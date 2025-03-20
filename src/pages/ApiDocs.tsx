@@ -20,6 +20,7 @@ import LabDataSection from '@/components/api/sections/LabDataSection';
 import ComplianceSection from '@/components/api/sections/ComplianceSection';
 import SchemaSection from '@/components/api/sections/SchemaSection';
 import SdksSection from '@/components/api/sections/SdksSection';
+import DomainStatusChecker from '@/components/api/DomainStatusChecker';
 
 const ApiDocs = () => {
   const [activeSection, setActiveSection] = useState('overview');
@@ -49,6 +50,7 @@ const ApiDocs = () => {
             
             <div className="lg:w-3/4">
               <OverviewSection />
+              <DomainStatusChecker />
               <AuthenticationSection />
               <RateLimitsSection />
               <VersioningSection />
