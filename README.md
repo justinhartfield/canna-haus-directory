@@ -94,6 +94,113 @@ You can easily deploy this project to Netlify by following these steps:
 
 After deployment, Netlify will automatically rebuild your site when you push changes to your repository.
 
+### Option 3: Deploy with GitHub Pages
+
+You can deploy this project using GitHub Pages with these steps:
+
+1. **Prepare your project for GitHub Pages**:
+   - Create a `.github/workflows/deploy.yml` file in your repository to set up GitHub Actions for deployment.
+   - The workflow will build your project and deploy it to GitHub Pages.
+
+2. **Configure your workflow file**:
+   ```yaml
+   name: Deploy to GitHub Pages
+
+   on:
+     push:
+       branches: [ main ]
+     workflow_dispatch:
+
+   jobs:
+     build-and-deploy:
+       runs-on: ubuntu-latest
+       steps:
+         - name: Checkout
+           uses: actions/checkout@v3
+           
+         - name: Setup Node.js
+           uses: actions/setup-node@v3
+           with:
+             node-version: 18
+             
+         - name: Install dependencies
+           run: npm ci
+           
+         - name: Build
+           run: npm run build
+           
+         - name: Deploy to GitHub Pages
+           uses: JamesIves/github-pages-deploy-action@v4
+           with:
+             folder: dist
+             branch: gh-pages
+   ```
+
+3. **Update the base path in vite.config.ts**:
+   - If deploying to a subfolder (e.g., username.github.io/repo-name), add a base property to your Vite config:
+   ```js
+   base: '/your-repo-name/',
+   ```
+
+4. **Enable GitHub Pages**:
+   - Go to your repository settings on GitHub.
+   - Navigate to "Pages" under "Code and automation".
+   - Under "Build and deployment", select "Deploy from a branch".
+   - Select the "gh-pages" branch and click "Save".
+
+5. **Access your deployed site**:
+   - Your site will be available at `https://username.github.io/repo-name/`.
+
+### Option 4: Deploy with Bitbucket Pipelines
+
+You can deploy this project using Bitbucket Pipelines with these steps:
+
+1. **Enable Bitbucket Pipelines**:
+   - Go to your repository in Bitbucket.
+   - Navigate to "Repository settings" > "Pipelines" > "Settings".
+   - Enable Pipelines.
+
+2. **Create a bitbucket-pipelines.yml file** in the root of your repository:
+   ```yaml
+   image: node:18
+
+   pipelines:
+     branches:
+       main:
+         - step:
+             name: Build and Deploy
+             caches:
+               - node
+             script:
+               - npm ci
+               - npm run build
+               - pipe: atlassian/scp-deploy:1.2.1
+                 variables:
+                   USER: $SERVER_USER
+                   SERVER: $SERVER_IP
+                   REMOTE_PATH: $REMOTE_PATH
+                   LOCAL_PATH: 'dist'
+                   SSH_KEY: $SSH_PRIVATE_KEY
+   ```
+
+3. **Configure deployment variables**:
+   - In Bitbucket, go to "Repository settings" > "Pipelines" > "Repository variables".
+   - Add the following variables:
+     - `SERVER_USER`: Your server username
+     - `SERVER_IP`: Your server IP address
+     - `REMOTE_PATH`: The path on your server where files should be deployed
+     - `SSH_PRIVATE_KEY`: Your SSH private key for server access
+
+4. **Alternative deployments with Bitbucket**:
+   - You can also deploy to services like AWS S3, Firebase, or other hosting providers by modifying the pipelines script to use their respective deployment tools.
+   - For simpler deployments, consider using Bitbucket's integration with hosting services.
+
 ## I want to use a custom domain - is that possible?
 
-You can use a custom domain by deploying with Netlify as mentioned above and adding your domain in the Netlify dashboard. For Lovable deployments, we don't support custom domains (yet). Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+You can use a custom domain by deploying with any of the methods above:
+
+- **Netlify**: Go to "Domain settings" to add your custom domain.
+- **GitHub Pages**: Add a custom domain in your repository settings under "Pages".
+- **Bitbucket**: Configure your hosting provider's settings to use your custom domain.
+
+For Lovable deployments, we don't support custom domains (yet). Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
