@@ -9,22 +9,6 @@ const OverviewSection: React.FC = () => {
         Welcome to the CannaHaus Directory API, designed to provide structured cannabis data optimized for AI consumption and integration.
       </p>
       
-      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
-        <h3 className="text-amber-800 dark:text-amber-300 font-medium flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-            <path d="M12 9v4"/>
-            <path d="M12 17h.01"/>
-          </svg>
-          API Status Notice
-        </h3>
-        <p className="text-sm mt-2">
-          Our API domain (cannahausapi.com) is currently being set up. You may encounter SSL configuration errors when
-          attempting to access it directly. Please use the domain status checker below to verify if the domain is ready for use.
-          During this setup period, you can develop against our mock data or test servers.
-        </p>
-      </div>
-      
       <div className="glass-card rounded-xl p-6 mb-6">
         <h2 className="text-xl font-semibold mb-3">Base URL</h2>
         <code className="block p-3 bg-secondary/50 rounded-md font-mono text-sm">
