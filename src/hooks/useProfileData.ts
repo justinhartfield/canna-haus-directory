@@ -22,7 +22,7 @@ export const useProfileData = (user: User | null, onDataLoaded: (data: ProfileFo
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .maybeSingle();
+          .single();
         
         if (profileError) throw profileError;
         
@@ -31,7 +31,7 @@ export const useProfileData = (user: User | null, onDataLoaded: (data: ProfileFo
           .from("user_settings")
           .select("*")
           .eq("id", user.id)
-          .maybeSingle();
+          .single();
         
         if (settingsError) throw settingsError;
         

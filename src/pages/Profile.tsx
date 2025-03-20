@@ -2,14 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
@@ -61,7 +54,7 @@ const Profile = () => {
     <div className="container max-w-2xl py-10">
       <Card>
         <CardHeader className="space-y-1">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-start space-x-4">
             <ProfileAvatar 
               avatarUrl={form.watch("avatarUrl")} 
               fullName={form.watch("fullName")} 

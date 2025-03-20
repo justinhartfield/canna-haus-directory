@@ -12,7 +12,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If finished loading and no user, redirect to auth
+    // Only redirect if not loading and no user
     if (!loading && !user) {
       navigate("/auth", { replace: true });
     }
@@ -26,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // This is a fallback, the useEffect should handle the redirect
+  // Second check as a fallback - if no user and not loading, redirect
   if (!user) {
     return <Navigate to="/auth" replace />;
   }

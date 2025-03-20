@@ -1,21 +1,21 @@
 
 import { useState } from "react";
 import { useAuth as useAuthContext } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export const useAuth = () => {
-  const { signIn, signUp, loading } = useAuthContext();
-  const navigate = useNavigate();
+  const { signIn, signUp, loading: authLoading } = useAuthContext();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [formError, setFormError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setLoading(true);
     
     try {
       if (authMode === "signin") {
@@ -23,6 +23,7 @@ export const useAuth = () => {
       } else {
         if (!fullName.trim()) {
           setFormError("Full name is required");
+          setLoading(false);
           return;
         }
         await signUp(email, password, fullName);
@@ -30,6 +31,8 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error("Authentication error:", error);
       setFormError(error.message || "Authentication failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,7 +46,7 @@ export const useAuth = () => {
     authMode,
     setAuthMode,
     formError,
-    loading,
+    loading: loading || authLoading, // Combine both loading states
     handleAuth
   };
 };
