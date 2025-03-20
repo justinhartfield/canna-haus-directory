@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,19 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				cannabis: {
+					'50': '#f2f7f5',
+					'100': '#e2efe8',
+					'200': '#c8e0d3',
+					'300': '#a2c9b5',
+					'400': '#77ac93',
+					'500': '#578f75',
+					'600': '#43735d',
+					'700': '#365c4b',
+					'800': '#2f4c3f',
+					'900': '#274035',
+					'950': '#142219',
 				}
 			},
 			borderRadius: {
@@ -70,25 +84,44 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				fadeIn: {
+					from: { opacity: '0' },
+					to: { opacity: '1' }
+				},
+				slideUp: {
+					from: { transform: 'translateY(10px)', opacity: '0' },
+					to: { transform: 'translateY(0)', opacity: '1' }
+				},
+				slideDown: {
+					from: { transform: 'translateY(-10px)', opacity: '0' },
+					to: { transform: 'translateY(0)', opacity: '1' }
+				},
+				pulse: {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fadeIn 0.6s ease-in-out',
+				'slide-up': 'slideUp 0.6s ease-out',
+				'slide-down': 'slideDown 0.6s ease-out',
+				'pulse-slow': 'pulse 3s ease-in-out infinite',
+			},
+			backdropBlur: {
+				xs: '2px',
+			},
+			fontFamily: {
+				sans: ['SF Pro Display', 'system-ui', 'sans-serif'],
+				mono: ['SF Mono', 'monospace'],
 			}
 		}
 	},
