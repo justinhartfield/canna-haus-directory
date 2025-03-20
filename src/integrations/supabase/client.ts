@@ -5,6 +5,7 @@ import type { Database } from './types';
 
 const SUPABASE_URL = "https://ecqiimdlcbrltktzkgax.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcWlpbWRsY2JybHRrdHprZ2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0Njc3ODYsImV4cCI6MjA1ODA0Mzc4Nn0.VgSqCK0oTAY1_LIxu-Kg9qq9j2aae_MBnLeps0lhC0o";
+const SITE_URL = "https://cannahausapi.com";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -14,5 +15,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    flowType: "pkce",
+    redirectTo: SITE_URL
   }
 });
