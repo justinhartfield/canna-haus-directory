@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Directory from "./pages/Directory";
+import DirectoryDetail from "./pages/DirectoryDetail";
 import ApiDocs from "./pages/ApiDocs";
 import Analytics from "./pages/Analytics";
 import Auth from "./pages/Auth";
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/directory" element={<Directory />} />
+            <Route path="/directory/:id" element={<DirectoryDetail />} />
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/analytics" element={
               <ProtectedRoute>

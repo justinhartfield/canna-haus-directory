@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface DirectoryCardProps {
@@ -9,6 +10,7 @@ interface DirectoryCardProps {
   imageUrl?: string;
   jsonLd: Record<string, any>;
   className?: string;
+  id: number; // Add id prop to link to the detail page
 }
 
 const DirectoryCard: React.FC<DirectoryCardProps> = ({
@@ -18,6 +20,7 @@ const DirectoryCard: React.FC<DirectoryCardProps> = ({
   imageUrl,
   jsonLd,
   className,
+  id,
 }) => {
   return (
     <div 
@@ -60,9 +63,9 @@ const DirectoryCard: React.FC<DirectoryCardProps> = ({
         </p>
         
         <div className="flex items-center justify-between">
-          <button 
+          <Link 
+            to={`/directory/${id}`} 
             className="text-xs inline-flex items-center gap-1 text-cannabis-700 dark:text-cannabis-300 hover:text-cannabis-800 dark:hover:text-cannabis-200 font-medium"
-            onClick={() => console.log(jsonLd)}
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -82,7 +85,7 @@ const DirectoryCard: React.FC<DirectoryCardProps> = ({
               <path d="M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z" />
             </svg>
             View JSON-LD
-          </button>
+          </Link>
           
           <div className="text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
