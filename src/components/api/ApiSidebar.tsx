@@ -31,6 +31,12 @@ const ApiSidebar: React.FC<ApiSidebarProps> = ({ activeSection, onSectionChange 
           >
             Rate Limits
           </SidebarNavItem>
+          <SidebarNavItem 
+            active={activeSection === 'endpoint-optimization'} 
+            onClick={() => onSectionChange('endpoint-optimization')}
+          >
+            Endpoint Optimization
+          </SidebarNavItem>
           
           <div className="pt-2 pb-1">
             <p className="text-xs uppercase font-medium text-muted-foreground tracking-wider">Endpoints</p>

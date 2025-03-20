@@ -11,6 +11,7 @@ import MedicalSection from '@/components/api/sections/MedicalSection';
 import ReviewsSection from '@/components/api/sections/ReviewsSection';
 import LicensingSection from '@/components/api/sections/LicensingSection';
 import AIRecommendationsSection from '@/components/api/sections/AIRecommendationsSection';
+import EndpointOptimizationSection from '@/components/api/sections/EndpointOptimizationSection';
 
 const ApiDocs = () => {
   const [activeSection, setActiveSection] = useState('overview');
@@ -42,6 +43,7 @@ const ApiDocs = () => {
               <OverviewSection />
               <AuthenticationSection />
               <RateLimitsSection />
+              <EndpointOptimizationSection />
               <StrainsSection />
               <MedicalSection />
               <ReviewsSection />
