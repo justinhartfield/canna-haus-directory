@@ -85,7 +85,7 @@ const HttpMethodsSection: React.FC = () => {
       <HttpMethodExample
         title="PATCH Example: Update Strain"
         endpoint="/strains/{id}"
-        method="PUT"
+        method="PATCH"
         description="Update an existing strain with partial data."
         requestExample={updateStrainExample}
         responseExample={updateStrainResponseExample}
