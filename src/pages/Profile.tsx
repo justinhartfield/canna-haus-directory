@@ -38,11 +38,6 @@ interface ProfileFormValues {
   newsletterSubscription: boolean;
 }
 
-interface UserSettings {
-  theme: string;
-  newsletter_subscription: boolean;
-}
-
 const Profile = () => {
   const { user, session, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +71,7 @@ const Profile = () => {
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
         
         if (profileError) throw profileError;
         
@@ -85,7 +80,7 @@ const Profile = () => {
           .from("user_settings")
           .select("*")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
         
         if (settingsError) throw settingsError;
         
