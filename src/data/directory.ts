@@ -1,3 +1,4 @@
+
 export const MOCK_DIRECTORY_DATA = [
   {
     id: 1,
@@ -21,74 +22,7 @@ export const MOCK_DIRECTORY_DATA = [
       "medicalUses": ["Stress", "Depression", "Pain", "Headaches"],
       "flavorProfile": ["Blueberry", "Sweet", "Berry", "Herbal"],
       "cultivationDifficulty": "Moderate"
-    },
-    examples: [
-      {
-        title: "Fetch Strain Data",
-        language: "javascript",
-        description: "Example of fetching strain data using the Cannabis API",
-        code: `// Fetch strain by name
-const fetchStrain = async (strainName) => {
-  const response = await fetch(\`https://api.cannabis-data.org/strains?name=\${encodeURIComponent(strainName)}\`);
-  const data = await response.json();
-  return data;
-};
-
-// Usage example
-fetchStrain("Blue Dream")
-  .then(strain => {
-    console.log("Strain Data:", strain);
-    // Process the strain data
-  })
-  .catch(error => console.error("Error fetching strain:", error));`
-      },
-      {
-        title: "Display Strain Information",
-        language: "jsx",
-        description: "React component to display strain information",
-        code: `import React from 'react';
-
-const StrainDetails = ({ strain }) => {
-  return (
-    <div className="strain-card">
-      <h2>{strain.name}</h2>
-      <p className="strain-type">{strain.category}</p>
-      
-      <div className="content-section">
-        <h3>Effects</h3>
-        <ul className="effects-list">
-          {strain.effects.map((effect, index) => (
-            <li key={index}>{effect}</li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="content-section">
-        <h3>Medical Applications</h3>
-        <ul className="medical-list">
-          {strain.medicalUses.map((use, index) => (
-            <li key={index}>{use}</li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="stats-grid">
-        <div className="stat">
-          <span>THC</span>
-          <strong>{strain.thcContent}</strong>
-        </div>
-        <div className="stat">
-          <span>CBD</span>
-          <strong>{strain.cbdContent}</strong>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default StrainDetails;`
-      }
-    ]
+    }
   },
   {
     id: 2,
@@ -346,43 +280,6 @@ export default StrainDetails;`
         "criminal": "Possible criminal charges for severe violations"
       },
       "relatedLink": "https://sbg.colorado.gov/med-rules"
-    },
-    examples: [
-      {
-        title: "Compliance Check API Call",
-        language: "javascript",
-        description: "Example of checking compliance status using the Cannabis API",
-        code: `// Function to check compliance status for a retailer
-const checkCompliance = async (retailerId, jurisdiction) => {
-  const url = \`https://api.cannabis-data.org/compliance/check?\${new URLSearchParams({
-    retailerId,
-    jurisdiction
-  })}\`;
-  
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
     }
-  });
-  
-  const data = await response.json();
-  return data;
-};
-
-// Usage
-checkCompliance('RT12345', 'colorado')
-  .then(result => {
-    if (result.status === 'compliant') {
-      console.log('Retailer is compliant with all regulations');
-      console.log('Last audit date:', result.lastAuditDate);
-    } else {
-      console.log('Compliance issues detected:', result.issues);
-      console.log('Required actions:', result.requiredActions);
-    }
-  })
-  .catch(error => console.error('Error checking compliance:', error));`
-      }
-    ]
   }
 ];
