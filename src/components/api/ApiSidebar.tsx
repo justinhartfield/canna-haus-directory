@@ -61,6 +61,24 @@ const ApiSidebar: React.FC<ApiSidebarProps> = ({ activeSection, onSectionChange 
             Medical Research
           </SidebarNavItem>
           <SidebarNavItem 
+            active={activeSection === 'dispensaries'} 
+            onClick={() => onSectionChange('dispensaries')}
+          >
+            Dispensaries & Retailers
+          </SidebarNavItem>
+          <SidebarNavItem 
+            active={activeSection === 'consumption-methods'} 
+            onClick={() => onSectionChange('consumption-methods')}
+          >
+            Consumption Methods
+          </SidebarNavItem>
+          <SidebarNavItem 
+            active={activeSection === 'extraction-techniques'} 
+            onClick={() => onSectionChange('extraction-techniques')}
+          >
+            Extraction Techniques
+          </SidebarNavItem>
+          <SidebarNavItem 
             active={activeSection === 'lab-data'} 
             onClick={() => onSectionChange('lab-data')}
           >
