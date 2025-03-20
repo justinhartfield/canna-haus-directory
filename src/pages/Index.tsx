@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Hero from '@/components/Hero';
 import DirectoryCard from '@/components/DirectoryCard';
@@ -148,6 +147,7 @@ const Index = () => {
               {featuredItems.map((item) => (
                 <DirectoryCard
                   key={item.id}
+                  id={item.id}
                   title={item.title}
                   description={item.description}
                   category={item.category}
@@ -348,3 +348,4 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) =
 };
 
 export default Index;
+
