@@ -32,6 +32,12 @@ const ApiSidebar: React.FC<ApiSidebarProps> = ({ activeSection, onSectionChange 
             Rate Limits
           </SidebarNavItem>
           <SidebarNavItem 
+            active={activeSection === 'versioning'} 
+            onClick={() => onSectionChange('versioning')}
+          >
+            API Versioning
+          </SidebarNavItem>
+          <SidebarNavItem 
             active={activeSection === 'endpoint-optimization'} 
             onClick={() => onSectionChange('endpoint-optimization')}
           >

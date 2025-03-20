@@ -6,6 +6,7 @@ import ApiSidebar from '@/components/api/ApiSidebar';
 import OverviewSection from '@/components/api/sections/OverviewSection';
 import AuthenticationSection from '@/components/api/sections/AuthenticationSection';
 import RateLimitsSection from '@/components/api/sections/RateLimitsSection';
+import VersioningSection from '@/components/api/sections/VersioningSection';
 import StrainsSection from '@/components/api/sections/StrainsSection';
 import MedicalSection from '@/components/api/sections/MedicalSection';
 import ReviewsSection from '@/components/api/sections/ReviewsSection';
@@ -43,6 +44,7 @@ const ApiDocs = () => {
               <OverviewSection />
               <AuthenticationSection />
               <RateLimitsSection />
+              <VersioningSection />
               <EndpointOptimizationSection />
               <StrainsSection />
               <MedicalSection />
