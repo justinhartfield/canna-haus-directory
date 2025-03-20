@@ -12,7 +12,7 @@ const OverviewSection: React.FC = () => {
       <div className="glass-card rounded-xl p-6 mb-6">
         <h2 className="text-xl font-semibold mb-3">Base URL</h2>
         <code className="block p-3 bg-secondary/50 rounded-md font-mono text-sm">
-          https://api.cannahaus.io/v1
+          https://cannahausapi.com/v1
         </code>
         <p className="mt-3 text-sm text-muted-foreground">
           All API calls should be made to this base URL with the appropriate endpoint appended.

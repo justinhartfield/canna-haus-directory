@@ -16,7 +16,7 @@ const AuthenticationSection: React.FC = () => {
         </p>
         
         <pre className="bg-secondary/50 p-3 rounded-md font-mono text-sm overflow-x-auto">
-{`curl -X GET "https://api.cannahaus.io/v1/strains" \\
+{`curl -X GET "https://cannahausapi.com/v1/strains" \\
   -H "X-API-Key: your_api_key_here"`}
         </pre>
       </div>
