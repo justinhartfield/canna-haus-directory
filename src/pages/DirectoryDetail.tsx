@@ -8,6 +8,8 @@ import DispensaryExamples from '@/components/directory/examples/DispensaryExampl
 import ConsumptionMethodsExamples from '@/components/directory/examples/ConsumptionMethodsExamples';
 import ExtractionTechniquesExamples from '@/components/directory/examples/ExtractionTechniquesExamples';
 import DefaultExamples from '@/components/directory/examples/DefaultExamples';
+import JsonLdDisplay from '@/components/directory/JsonLdDisplay';
+import ImplementationGuide from '@/components/directory/ImplementationGuide';
 
 const DirectoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -127,37 +129,9 @@ const DirectoryDetail: React.FC = () => {
 
             {renderExamples()}
 
-            <div className="glass-card p-6 mb-8 rounded-xl">
-              <h2 className="text-xl font-semibold mb-4">JSON-LD Structured Data</h2>
-              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-x-auto">
-                <pre className="text-sm">
-                  <code className="text-slate-800 dark:text-slate-200">
-                    {JSON.stringify(item.jsonLd, null, 2)}
-                  </code>
-                </pre>
-              </div>
-            </div>
-
-            <div className="glass-card p-6 rounded-xl">
-              <h2 className="text-xl font-semibold mb-4">Implementation Guide</h2>
-              <p className="mb-4">
-                You can integrate this structured data into your website by including the following script in your HTML:
-              </p>
-              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-x-auto mb-6">
-                <pre className="text-sm">
-                  <code className="text-slate-800 dark:text-slate-200">
-{`<script type="application/ld+json">
-${JSON.stringify(item.jsonLd, null, 2)}
-</script>`}
-                  </code>
-                </pre>
-              </div>
-              <Button onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(item.jsonLd, null, 2));
-              }}>
-                Copy JSON-LD
-              </Button>
-            </div>
+            <JsonLdDisplay jsonLd={item.jsonLd} />
+            
+            <ImplementationGuide jsonLd={item.jsonLd} />
           </div>
         </div>
       </main>
