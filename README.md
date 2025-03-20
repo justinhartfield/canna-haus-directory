@@ -1,3 +1,4 @@
+
 # Welcome to your Lovable project
 
 ## Project info
@@ -52,7 +53,7 @@ npm run dev
 
 ## What technologies are used for this project?
 
-This project is built with .
+This project is built with:
 
 - Vite
 - TypeScript
@@ -62,8 +63,37 @@ This project is built with .
 
 ## How can I deploy this project?
 
+### Option 1: Deploy with Lovable
+
 Simply open [Lovable](https://lovable.dev/projects/59a69159-cf08-46e3-89c3-51f217027a65) and click on Share -> Publish.
+
+### Option 2: Deploy with Netlify
+
+You can easily deploy this project to Netlify by following these steps:
+
+1. **Create a Netlify account**: If you don't already have one, sign up at [netlify.com](https://netlify.com).
+
+2. **Connect your repository**: 
+   - Go to the Netlify dashboard.
+   - Click "Add new site" > "Import an existing project".
+   - Connect to your Git provider and select your repository.
+
+3. **Configure the build settings**:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+   - Node version: Set to 18 or higher
+
+4. **Deploy**: Click "Deploy site" to start the deployment process.
+
+5. **Custom domain (optional)**: 
+   - Once deployed, go to "Domain settings" to add your custom domain.
+   - Add the domain and follow the instructions to set up DNS records.
+
+6. **Environment variables (if needed)**:
+   - If your app uses environment variables, add them in the Netlify dashboard under "Site settings" > "Environment variables".
+
+After deployment, Netlify will automatically rebuild your site when you push changes to your repository.
 
 ## I want to use a custom domain - is that possible?
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+You can use a custom domain by deploying with Netlify as mentioned above and adding your domain in the Netlify dashboard. For Lovable deployments, we don't support custom domains (yet). Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
