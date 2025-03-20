@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { AuthButtons } from './AuthButtons';
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -68,15 +69,7 @@ const Navbar: React.FC = () => {
           </nav>
           
           <div className="flex items-center space-x-2">
-            <button
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 
-              border border-input bg-background hover:bg-accent hover:text-accent-foreground 
-              h-9 px-4 py-2 relative overflow-hidden group"
-            >
-              <span className="relative z-10">Sign In</span>
-              <span className="absolute inset-0 bg-cannabis-100 dark:bg-cannabis-800 translate-y-[101%] group-hover:translate-y-0 transition-transform duration-300"></span>
-            </button>
+            <AuthButtons />
           </div>
         </div>
       </div>
