@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import CategoryBadge from './directory/CategoryBadge';
 import ActionButton from './directory/ActionButton';
 import DirectoryCardFooter from './directory/DirectoryCardFooter';
@@ -13,6 +14,7 @@ interface DirectoryCardProps {
   jsonLd: Record<string, any>;
   className?: string;
   id: number;
+  hasExamples?: boolean;
 }
 
 const DirectoryCard: React.FC<DirectoryCardProps> = ({
@@ -23,6 +25,7 @@ const DirectoryCard: React.FC<DirectoryCardProps> = ({
   jsonLd,
   className,
   id,
+  hasExamples = false,
 }) => {
   return (
     <div 
@@ -62,6 +65,28 @@ const DirectoryCard: React.FC<DirectoryCardProps> = ({
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
           {description}
         </p>
+        
+        {hasExamples && (
+          <div className="mb-4">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="mr-1"
+              >
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+              Examples Available
+            </span>
+          </div>
+        )}
         
         <DirectoryCardFooter id={id} />
       </div>

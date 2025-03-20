@@ -68,6 +68,216 @@ const DirectoryDetail: React.FC = () => {
     );
   }
 
+  const renderExamples = () => {
+    switch (item.category) {
+      case 'Dispensaries':
+        return (
+          <div className="glass-card p-6 mb-8 rounded-xl">
+            <h2 className="text-xl font-semibold mb-4">Implementation Examples</h2>
+            <div className="space-y-4">
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Location Search</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for dispensary location search
+fetch('https://api.cannabis-data.org/dispensaries?lat=40.0150&lon=-105.2705&radius=10')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Nearby dispensaries:', data);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Inventory Check</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for dispensary inventory check
+fetch('https://api.cannabis-data.org/dispensaries/inventory?id=9&product=blue-dream')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Product availability:', data);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Delivery Estimation</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for delivery time estimation
+fetch('https://api.cannabis-data.org/dispensaries/delivery?id=9&address=123+Main+St+Boulder+CO')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Estimated delivery time:', data.estimatedTime);
+    console.log('Delivery fee:', data.fee);
+  });`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        );
+      case 'Consumption Methods':
+        return (
+          <div className="glass-card p-6 mb-8 rounded-xl">
+            <h2 className="text-xl font-semibold mb-4">Implementation Examples</h2>
+            <div className="space-y-4">
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Method Comparison</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for consumption method comparison
+fetch('https://api.cannabis-data.org/consumption-methods/compare?methods=vaping,smoking,edibles')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Method comparison:', data);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Dosage Calculator</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for dosage calculation
+fetch('https://api.cannabis-data.org/consumption-methods/dosage?method=vaping&experience=beginner&weight=70&desired_effect=relaxation')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Recommended dosage:', data.recommendation);
+    console.log('Expected onset:', data.expectedOnset);
+    console.log('Expected duration:', data.expectedDuration);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Equipment Finder</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for equipment recommendations
+fetch('https://api.cannabis-data.org/consumption-methods/equipment?method=vaping&budget=medium&experience=intermediate')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Recommended equipment:', data.recommendations);
+    console.log('Retailers:', data.retailers);
+  });`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        );
+      case 'Extraction Techniques':
+        return (
+          <div className="glass-card p-6 mb-8 rounded-xl">
+            <h2 className="text-xl font-semibold mb-4">Implementation Examples</h2>
+            <div className="space-y-4">
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Technique Comparison</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for extraction technique comparison
+fetch('https://api.cannabis-data.org/extraction-techniques/compare?techniques=co2,ethanol,hydrocarbon&factors=purity,safety,cost')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Technique comparison:', data);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Equipment Suppliers</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for equipment supplier information
+fetch('https://api.cannabis-data.org/extraction-techniques/suppliers?technique=co2&region=north-america')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Recommended suppliers:', data.suppliers);
+    console.log('Equipment options:', data.equipment);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Yield Calculator</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call for yield estimation
+fetch('https://api.cannabis-data.org/extraction-techniques/yield-calculator?technique=co2&material=high-quality-flower&amount=5000&unit=grams')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Estimated yield:', data.estimatedYield);
+    console.log('Operating costs:', data.operatingCosts);
+    console.log('Estimated value:', data.estimatedValue);
+  });`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        if (item.hasExamples) {
+          return (
+            <div className="glass-card p-6 mb-8 rounded-xl">
+              <h2 className="text-xl font-semibold mb-4">Implementation Examples</h2>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded mb-4">
+                <h3 className="font-medium mb-2">API Implementation</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example API call
+fetch('https://api.cannabis-data.org/${item.category.toLowerCase()}/${item.id}')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Data retrieved:', data);
+  });`}
+                  </code>
+                </pre>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded">
+                <h3 className="font-medium mb-2">Integration with ChatGPT</h3>
+                <pre className="text-sm overflow-x-auto">
+                  <code className="text-slate-800 dark:text-slate-200">
+{`// Example ChatGPT API call using our data
+async function queryChatGPT() {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system", 
+          content: "You are an assistant with expertise in cannabis."
+        },
+        {
+          role: "user",
+          content: \`Analyze this cannabis data and provide insights: 
+            \${JSON.stringify(${JSON.stringify(item.jsonLd, null, 2)})}
+          \`
+        }
+      ]
+    })
+  });
+  
+  const data = await response.json();
+  console.log(data.choices[0].message.content);
+}`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          );
+        }
+        return null;
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -106,6 +316,9 @@ const DirectoryDetail: React.FC = () => {
             <p className="text-lg text-muted-foreground mb-8">
               {item.description}
             </p>
+
+            {/* Render Examples Section (if available) */}
+            {renderExamples()}
 
             <div className="glass-card p-6 mb-8 rounded-xl">
               <h2 className="text-xl font-semibold mb-4">JSON-LD Structured Data</h2>

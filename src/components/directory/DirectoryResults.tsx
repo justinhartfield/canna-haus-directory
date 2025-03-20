@@ -9,6 +9,7 @@ interface DirectoryItem {
   description: string;
   category: string;
   jsonLd: Record<string, any>;
+  hasExamples?: boolean;
 }
 
 interface DirectoryResultsProps {
@@ -31,6 +32,7 @@ const DirectoryResults: React.FC<DirectoryResultsProps> = ({ items, onClearFilte
           description={item.description}
           category={item.category}
           jsonLd={item.jsonLd}
+          hasExamples={item.hasExamples}
         />
       ))}
     </div>

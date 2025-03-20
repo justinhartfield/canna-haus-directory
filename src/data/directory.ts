@@ -5,6 +5,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "Blue Dream",
     description: "A sativa-dominant hybrid strain that provides a balanced high with full-body relaxation and gentle cerebral invigoration.",
     category: "Genetics",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "Product",
@@ -29,6 +30,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "Cannabis and Anxiety Management",
     description: "Comprehensive meta-analysis of studies examining the effects of various cannabis strains and consumption methods on anxiety disorders.",
     category: "Medical",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "MedicalStudy",
@@ -63,6 +65,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "California Cultivation Regulations",
     description: "Comprehensive guide to California's cannabis cultivation regulations, licensing requirements, and compliance standards.",
     category: "Compliance",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "LegalDocument",
@@ -97,6 +100,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "OG Kush",
     description: "A potent strain with high THC content known for its distinctive earthy pine and sour lemon scent with woody undertones.",
     category: "Genetics",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "Product",
@@ -122,6 +126,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "Cannabis Terpene Profiles and Effects",
     description: "Research study examining the entourage effect of various terpene profiles and their impact on therapeutic outcomes.",
     category: "Lab Data",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "ScholarlyArticle",
@@ -155,6 +160,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "Greenhouse Cannabis Cultivation Guide",
     description: "Complete resource for greenhouse cultivation techniques, including light deprivation, environmental controls, and IPM strategies.",
     category: "Cultivation",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "HowTo",
@@ -211,6 +217,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "Charlotte's Web",
     description: "A high-CBD, low-THC strain developed specifically for medicinal use without psychoactive effects, named after Charlotte Figi.",
     category: "Medical",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "Product",
@@ -237,6 +244,7 @@ export const MOCK_DIRECTORY_DATA = [
     title: "Colorado Retail Cannabis Compliance Checklist",
     description: "Comprehensive checklist covering all compliance requirements for retail cannabis operations in Colorado.",
     category: "Compliance",
+    hasExamples: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "LegalDocument",
@@ -281,5 +289,265 @@ export const MOCK_DIRECTORY_DATA = [
       },
       "relatedLink": "https://sbg.colorado.gov/med-rules"
     }
+  },
+  {
+    id: 9,
+    title: "Green Leaf Dispensary",
+    description: "Full-service cannabis dispensary offering medical and recreational products with delivery options and detailed inventory.",
+    category: "Dispensaries",
+    hasExamples: true,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "Green Leaf Dispensary",
+      "description": "Full-service cannabis dispensary offering medical and recreational products with delivery options and detailed inventory.",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "420 Main Street",
+        "addressLocality": "Boulder",
+        "addressRegion": "CO",
+        "postalCode": "80302",
+        "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "40.0150",
+        "longitude": "-105.2705"
+      },
+      "storeType": ["Medical", "Recreational"],
+      "telephone": "+13031234567",
+      "openingHours": "Mo-Su 09:00-21:00",
+      "paymentAccepted": ["Cash", "Debit Card", "CanPay"],
+      "priceRange": "$$",
+      "inventory": {
+        "categories": ["Flower", "Concentrates", "Edibles", "Tinctures", "Topicals", "Accessories"],
+        "featuredProducts": [
+          "Blue Dream (Flower)",
+          "Northern Lights (Flower)",
+          "Cherry Kush Wax (Concentrate)",
+          "CBD Relief Balm (Topical)"
+        ],
+        "inventoryUpdateFrequency": "Daily"
+      },
+      "ratings": {
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "156"
+        },
+        "aspects": {
+          "productQuality": "4.9",
+          "staffKnowledge": "4.7",
+          "valueForMoney": "4.5",
+          "atmosphere": "4.8"
+        }
+      },
+      "specialOffers": [
+        "10% off first purchase",
+        "Happy Hour: 15% off concentrates 4-6pm daily",
+        "Senior discount: 10% every Tuesday"
+      ],
+      "deliveryDetails": {
+        "available": true,
+        "radius": "15 miles",
+        "minimumOrder": "USD 50",
+        "estimatedTime": "45-60 minutes",
+        "fee": "USD 5 (free for orders over USD 100)"
+      },
+      "accessibility": {
+        "wheelchairAccessible": true,
+        "parkingAvailable": true,
+        "petFriendly": false,
+        "adaCompliant": true,
+        "curbsidePickup": true
+      }
+    }
+  },
+  {
+    id: 10,
+    title: "Vaporization Consumption Method",
+    description: "Detailed guide to cannabis vaporization, covering devices, techniques, efficiency, onset times, and health considerations.",
+    category: "Consumption Methods",
+    hasExamples: true,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "Vaporization Consumption Method",
+      "description": "Detailed guide to cannabis vaporization, covering devices, techniques, efficiency, onset times, and health considerations.",
+      "methodType": "Vaping",
+      "advantages": [
+        "Reduced respiratory risks compared to smoking",
+        "More efficient cannabinoid extraction",
+        "Less odor than combustion methods",
+        "Precise temperature control for targeting specific compounds",
+        "Immediate onset of effects"
+      ],
+      "disadvantages": [
+        "Higher initial cost for quality devices",
+        "Requires charging or power source",
+        "Some learning curve for optimal use",
+        "Regular maintenance required",
+        "Less portable than some other methods"
+      ],
+      "dosageGuidelines": {
+        "beginners": "1-2 inhalations, waiting 10-15 minutes between doses",
+        "moderate": "3-5 inhalations per session",
+        "experienced": "5+ inhalations as needed",
+        "idealTemperatures": {
+          "lowTemp": "320-356°F (160-180°C): Targeting terpenes and flavor",
+          "midTemp": "356-392°F (180-200°C): Balanced effects",
+          "highTemp": "392-428°F (200-220°C): Maximum extraction, stronger effects"
+        }
+      },
+      "onsetAndDuration": {
+        "onset": "Within 1-3 minutes",
+        "peak": "10-30 minutes",
+        "duration": "1-3 hours depending on strain and quantity"
+      },
+      "requiredEquipment": [
+        "Dry herb vaporizer, concentrate vaporizer, or vape pen",
+        "Grinder (for flower)",
+        "Cleaning tools and isopropyl alcohol",
+        "Charging equipment",
+        "Storage container for material"
+      ],
+      "bestPractices": [
+        "Grind flower to medium consistency for optimal airflow",
+        "Clean device regularly to maintain flavor and efficiency",
+        "Start with lower temperatures and work up",
+        "Pack chamber loosely for better airflow",
+        "Stay hydrated during sessions"
+      ],
+      "safetyTips": [
+        "Purchase vaporizers only from reputable manufacturers",
+        "Avoid black market vape cartridges",
+        "Replace coils and atomizers as recommended",
+        "Allow device to cool between intensive sessions",
+        "Store batteries safely away from metal objects"
+      ],
+      "userExperiences": [
+        {
+          "userProfile": "Medical patient with asthma",
+          "feedback": "Vaporizing at low temperatures allows me to medicate without triggering my asthma symptoms like smoking did."
+        },
+        {
+          "userProfile": "Daily recreational user",
+          "feedback": "The efficiency of vaporizing means my cannabis lasts nearly twice as long compared to smoking."
+        },
+        {
+          "userProfile": "Occasional user",
+          "feedback": "The ability to precisely control the temperature helps me avoid feeling overwhelmed or anxious."
+        }
+      ]
+    }
+  },
+  {
+    id: 11,
+    title: "CO₂ Extraction Technique",
+    description: "Comprehensive overview of supercritical and subcritical CO₂ extraction methods for cannabis, equipment specifications, and quality outcomes.",
+    category: "Extraction Techniques",
+    hasExamples: true,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "name": "CO₂ Extraction Technique",
+      "description": "Comprehensive overview of supercritical and subcritical CO₂ extraction methods for cannabis, equipment specifications, and quality outcomes.",
+      "techniqueType": "CO₂ Extraction",
+      "articleBody": "Carbon dioxide extraction utilizes CO₂ in its supercritical state to act as a solvent, stripping essential oils, cannabinoids, and terpenes from cannabis plant material. The process can be finely tuned by adjusting temperature and pressure to target specific compounds.",
+      "extractionMethods": {
+        "supercritical": {
+          "description": "Uses CO₂ above its critical point (31.1°C, 1,071 PSI) where it displays properties of both gas and liquid",
+          "bestFor": "Full-spectrum extracts with higher throughput",
+          "typicalParameters": "Pressure: 1,500-5,000 PSI, Temperature: 32-60°C"
+        },
+        "subcritical": {
+          "description": "Uses CO₂ below its critical point where it remains in a liquid state",
+          "bestFor": "Terpene preservation and more selective extraction",
+          "typicalParameters": "Pressure: 800-1,070 PSI, Temperature: 25-30°C"
+        }
+      },
+      "equipmentRequired": [
+        {
+          "name": "CO₂ Extraction System",
+          "description": "Complete closed-loop system with pressure vessels, pumps, heat exchangers, and separation vessels",
+          "approxCost": "$100,000-$500,000",
+          "recommendedSuppliers": ["Apeks Supercritical", "Waters", "Eden Labs", "Precision Extraction"]
+        },
+        {
+          "name": "Chiller System",
+          "description": "For cooling CO₂ and maintaining consistent temperatures",
+          "approxCost": "$15,000-$40,000"
+        },
+        {
+          "name": "Dewaxing Column",
+          "description": "For winterization process within the extraction system",
+          "approxCost": "$5,000-$15,000"
+        },
+        {
+          "name": "Material Preparation Equipment",
+          "description": "Grinders, mills, and decarboxylation ovens",
+          "approxCost": "$10,000-$30,000"
+        },
+        {
+          "name": "Post-Processing Equipment",
+          "description": "Rotary evaporators, vacuum ovens, filtration systems",
+          "approxCost": "$20,000-$50,000"
+        }
+      ],
+      "qualityDifferences": {
+        "advantages": [
+          "Solvent-free final product (CO₂ completely dissipates)",
+          "Selective extraction capability through parameter adjustment",
+          "No toxic residues",
+          "Preserves terpene profiles when properly executed",
+          "Extended shelf life of final product"
+        ],
+        "purityLevels": {
+          "crude": "70-80% cannabinoids with plant waxes and chlorophyll",
+          "refined": "85-95% cannabinoids after winterization and filtration",
+          "distilled": "95-99% isolated cannabinoids after distillation"
+        },
+        "comparisons": {
+          "vsEthanol": "Less aggressive than ethanol, better terpene preservation but lower throughput",
+          "vsHydrocarbon": "Safer process with no residual solvents, but typically lower yields of certain compounds"
+        }
+      },
+      "safetyConsiderations": {
+        "risks": [
+          "High-pressure systems require proper engineering and maintenance",
+          "Asphyxiation risk in case of large CO₂ leaks",
+          "Pressure vessel failures can be catastrophic if not properly maintained"
+        ],
+        "requiredSafety": [
+          "CO₂ monitoring systems",
+          "Pressure relief valves",
+          "Emergency shutdown systems",
+          "Regular pressure vessel inspections",
+          "Staff training and certification"
+        ],
+        "certifications": [
+          "Pressure vessel certification",
+          "ASME certification for components",
+          "Engineer sign-off on installation",
+          "Local fire marshal approval",
+          "Staff OSHA compliance training"
+        ]
+      },
+      "yieldData": {
+        "averageYield": "8-12% by weight from raw flower",
+        "costAnalysis": {
+          "setupCosts": "$200,000-$500,000",
+          "operatingCosts": "$1,000-$2,000 per day including labor, power, and CO₂",
+          "roi": "Typically 1-2 years at commercial scale"
+        },
+        "efficiencyFactors": [
+          "Starting material quality and moisture content",
+          "Grind size and packing density",
+          "Run time and flow rate optimization",
+          "Pressure and temperature parameter optimization",
+          "Collection efficiency and post-processing methods"
+        ]
+      }
+    }
   }
-];
+]
