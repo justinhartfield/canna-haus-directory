@@ -16,6 +16,10 @@ import EndpointOptimizationSection from '@/components/api/sections/EndpointOptim
 import DispensariesSection from '@/components/api/sections/DispensariesSection';
 import ConsumptionMethodsSection from '@/components/api/sections/ConsumptionMethodsSection';
 import ExtractionTechniquesSection from '@/components/api/sections/ExtractionTechniquesSection';
+import LabDataSection from '@/components/api/sections/LabDataSection';
+import ComplianceSection from '@/components/api/sections/ComplianceSection';
+import SchemaSection from '@/components/api/sections/SchemaSection';
+import SdksSection from '@/components/api/sections/SdksSection';
 
 const ApiDocs = () => {
   const [activeSection, setActiveSection] = useState('overview');
@@ -54,8 +58,12 @@ const ApiDocs = () => {
               <DispensariesSection />
               <ConsumptionMethodsSection />
               <ExtractionTechniquesSection />
+              <LabDataSection />
+              <ComplianceSection />
               <ReviewsSection />
               <LicensingSection />
+              <SchemaSection />
+              <SdksSection />
               <AIRecommendationsSection />
             </div>
           </div>

@@ -21,4 +21,6 @@ const JsonLdDisplay: React.FC<JsonLdDisplayProps> = ({ jsonLd }) => {
   );
 };
 
+// Export as both default and named export for flexibility
+export { JsonLdDisplay };
 export default JsonLdDisplay;
