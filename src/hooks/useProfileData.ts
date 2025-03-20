@@ -9,7 +9,10 @@ export const useProfileData = (user: User | null, onDataLoaded: (data: ProfileFo
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     
     const loadUserData = async () => {
       setIsLoading(true);
@@ -32,7 +35,7 @@ export const useProfileData = (user: User | null, onDataLoaded: (data: ProfileFo
         
         if (settingsError) throw settingsError;
         
-        // Prepare form data
+        // Prepare form data with default values if data is null
         const formData: ProfileFormValues = {
           fullName: profileData?.full_name || "",
           username: profileData?.username || "",
@@ -46,6 +49,18 @@ export const useProfileData = (user: User | null, onDataLoaded: (data: ProfileFo
       } catch (error: any) {
         console.error("Error loading user data:", error);
         toast.error("Failed to load profile data");
+        
+        // Even on error, load default data
+        const defaultData: ProfileFormValues = {
+          fullName: "",
+          username: "",
+          website: "",
+          avatarUrl: "",
+          theme: "light",
+          newsletterSubscription: false,
+        };
+        
+        onDataLoaded(defaultData);
       } finally {
         setIsLoading(false);
       }

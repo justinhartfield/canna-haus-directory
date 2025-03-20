@@ -19,12 +19,15 @@ const HttpMethodExample: React.FC<HttpMethodExampleProps> = ({
   requestExample,
   responseExample
 }) => {
+  // ApiExample component doesn't accept PATCH, so we need to cast it
+  const apiMethod = method === "PATCH" ? "PUT" as const : method;
+
   return (
     <div className="glass-card rounded-xl p-6 mb-6">
       <h4 className="text-lg font-medium mb-3">{title}</h4>
       <ApiExample
         endpoint={endpoint}
-        method={method}
+        method={apiMethod}
         description={description}
         requestExample={requestExample}
         responseExample={responseExample}

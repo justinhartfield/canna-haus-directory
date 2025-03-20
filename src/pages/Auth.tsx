@@ -6,7 +6,7 @@ import { AuthTabs } from "@/components/auth/AuthTabs";
 import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const navigate = useNavigate();
   
   const {
@@ -24,11 +24,20 @@ const Auth = () => {
   } = useAuth();
 
   useEffect(() => {
-    // Redirect if user is already logged in
-    if (user) {
+    // Redirect if user is already logged in and auth is not still loading
+    if (user && !authLoading) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
+
+  // Don't render anything while checking auth state
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-10">
