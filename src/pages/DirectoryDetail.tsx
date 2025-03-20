@@ -5,11 +5,29 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { MOCK_DIRECTORY_DATA } from '@/data/directory';
+import DirectoryExample from '@/components/directory/DirectoryExample';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface Example {
+  title: string;
+  language: string;
+  code: string;
+  description?: string;
+}
+
+interface DirectoryItem {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  jsonLd: Record<string, any>;
+  examples?: Example[];
+}
 
 const DirectoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [item, setItem] = useState<any>(null);
+  const [item, setItem] = useState<DirectoryItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -117,6 +135,21 @@ const DirectoryDetail: React.FC = () => {
                 </pre>
               </div>
             </div>
+
+            {item.examples && item.examples.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold mb-4">Implementation Examples</h2>
+                {item.examples.map((example, index) => (
+                  <DirectoryExample
+                    key={index}
+                    title={example.title}
+                    language={example.language}
+                    code={example.code}
+                    description={example.description}
+                  />
+                ))}
+              </div>
+            )}
 
             <div className="glass-card p-6 rounded-xl">
               <h2 className="text-xl font-semibold mb-4">Implementation Guide</h2>
