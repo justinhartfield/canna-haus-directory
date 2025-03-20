@@ -1,1 +1,5 @@
+
 project_id = "ecqiimdlcbrltktzkgax"
+
+[functions.recommend-strains]
+verify_jwt = false

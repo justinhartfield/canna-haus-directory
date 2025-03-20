@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ApiExampleProps {
   endpoint: string;
@@ -26,6 +27,12 @@ const ApiExample: React.FC<ApiExampleProps> = ({
     POST: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
     PUT: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
     DELETE: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  };
+
+  const copyToClipboard = () => {
+    const textToCopy = activeTab === 'request' ? requestExample : responseExample;
+    navigator.clipboard.writeText(textToCopy || '');
+    toast.success(`${activeTab === 'request' ? 'Request' : 'Response'} copied to clipboard`);
   };
 
   return (
@@ -76,7 +83,10 @@ const ApiExample: React.FC<ApiExampleProps> = ({
       </div>
       
       <div className="p-4 flex justify-end border-t border-border">
-        <button className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors gap-1">
+        <button 
+          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors gap-1"
+          onClick={copyToClipboard}
+        >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             width="14" 
