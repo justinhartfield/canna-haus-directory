@@ -134,7 +134,7 @@
   }
 
   .image-card {
-    @apply relative overflow-hidden rounded-lg group;
+    @apply relative overflow-hidden rounded-lg;
   }
 
   .image-card-overlay {

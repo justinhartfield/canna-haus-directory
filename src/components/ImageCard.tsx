@@ -35,7 +35,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
         className
       )}
     >
-      <div className="image-card">
+      <div className="image-card group">
         <AspectRatio ratio={16/9}>
           <img 
             src={imageUrl} 
