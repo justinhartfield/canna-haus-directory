@@ -10,7 +10,7 @@ interface CategoryBadgeProps {
 const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category, className }) => {
   return (
     <span className={cn(
-      "inline-block bg-cannabis-100 dark:bg-cannabis-900/40 text-cannabis-800 dark:text-cannabis-200 text-xs font-medium px-2.5 py-0.5 rounded",
+      "inline-block bg-visual-900/80 text-visual-200 text-xs font-medium px-2.5 py-0.5 rounded",
       className
     )}>
       {category}

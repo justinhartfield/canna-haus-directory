@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
-import Directory from "./pages/Directory";
+import Gallery from "./pages/Gallery";
 import DirectoryDetail from "./pages/DirectoryDetail";
 import ApiDocs from "./pages/ApiDocs";
 import Analytics from "./pages/Analytics";
@@ -26,8 +26,8 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/directory" element={<Directory />} />
-            <Route path="/directory/:id" element={<DirectoryDetail />} />
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/gallery/:id" element={<DirectoryDetail />} />
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/analytics" element={
               <ProtectedRoute>
