@@ -1,105 +1,73 @@
 
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { MOCK_DIRECTORY_DATA } from '@/data/mockDirectoryData';
+import { useQuery } from '@tanstack/react-query';
+import { getDirectoryItems } from '@/api/directoryService';
+import { DirectoryFilter } from '@/types/directory';
 
-interface DirectoryItem {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  jsonLd: Record<string, any>;
+interface UseDirectoryFiltersOptions {
+  filterUntitled?: boolean;
 }
 
-export const useDirectoryFilters = () => {
-  const location = useLocation();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Record<string, boolean>>({});
-  const [filteredData, setFilteredData] = useState<DirectoryItem[]>(MOCK_DIRECTORY_DATA);
-  
-  // Parse query parameters (for direct links to filtered categories)
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const categoryParam = params.get('category');
-    
-    if (categoryParam) {
-      const categoryMap: Record<string, string> = {
-        'medical': 'Medical',
-        'genetics': 'Genetics',
-        'labdata': 'Lab Data',
-        'cultivation': 'Cultivation',
-        'compliance': 'Compliance',
-        'consumer': 'Consumer'
-      };
-      
-      const category = categoryMap[categoryParam.toLowerCase()];
-      if (category) {
-        setActiveFilters({ [categoryParam.toLowerCase()]: true });
-        setFilteredData(MOCK_DIRECTORY_DATA.filter(item => item.category === category));
-      }
-    }
-  }, [location.search]);
-  
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    applyFilters(term, activeFilters);
-  };
-  
-  const handleFilter = (filters: Record<string, boolean>) => {
-    setActiveFilters(filters);
-    applyFilters(searchTerm, filters);
-  };
-  
-  const applyFilters = (term: string, filters: Record<string, boolean>) => {
-    const filterKeys = Object.keys(filters).filter(key => filters[key]);
-    
-    let result = [...MOCK_DIRECTORY_DATA];
-    
-    // Apply search term filter
-    if (term) {
-      const lowercaseTerm = term.toLowerCase();
-      result = result.filter(item => 
-        item.title.toLowerCase().includes(lowercaseTerm) || 
-        item.description.toLowerCase().includes(lowercaseTerm)
-      );
+export const useDirectoryFilters = (options: UseDirectoryFiltersOptions = {}) => {
+  const { filterUntitled = true } = options;
+  const [filters, setFilters] = useState<DirectoryFilter>({
+    categories: [],
+    searchTerm: '',
+  });
+
+  const { data: allItems = [], isLoading } = useQuery({
+    queryKey: ['directory-items'],
+    queryFn: getDirectoryItems,
+  });
+
+  // Filter data based on search term and categories
+  const filteredData = allItems.filter((item) => {
+    // Filter out "Untitled Item" if specified
+    if (filterUntitled && item.title === "Untitled Item") {
+      return false;
     }
     
-    // Apply category filters
-    if (filterKeys.length > 0) {
-      const categoryMap: Record<string, string> = {
-        'medical': 'Medical',
-        'genetics': 'Genetics',
-        'labData': 'Lab Data',
-        'cultivation': 'Cultivation',
-        'compliance': 'Compliance',
-        'consumer': 'Consumer'
-      };
-      
-      result = result.filter(item => {
-        for (const key of filterKeys) {
-          if (categoryMap[key] === item.category) {
-            return true;
-          }
-        }
-        return false;
-      });
+    // If no active filters, return all items (except untitled if filtered)
+    if (filters.searchTerm === '' && filters.categories.length === 0) {
+      return true;
     }
-    
-    setFilteredData(result);
+
+    // Check if search term matches
+    const matchesSearch = filters.searchTerm === '' || 
+      item.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(filters.searchTerm.toLowerCase());
+
+    // Check if category filter matches
+    const matchesCategory = filters.categories.length === 0 || 
+      filters.categories.includes(item.category);
+
+    return matchesSearch && matchesCategory;
+  });
+
+  // Update search term
+  const handleSearch = (searchTerm: string) => {
+    setFilters(prev => ({ ...prev, searchTerm }));
   };
 
+  // Update category filters
+  const handleFilter = (categories: string[]) => {
+    setFilters(prev => ({ ...prev, categories }));
+  };
+
+  // Clear all filters
   const clearFilters = () => {
-    setSearchTerm('');
-    setActiveFilters({});
-    setFilteredData(MOCK_DIRECTORY_DATA);
+    setFilters({
+      categories: [],
+      searchTerm: '',
+    });
   };
 
   return {
-    searchTerm,
-    activeFilters,
     filteredData,
+    isLoading,
     handleSearch,
     handleFilter,
-    clearFilters
+    clearFilters,
   };
 };
