@@ -12,40 +12,44 @@ interface AdminRouteProps {
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
-    const checkAdminRole = async () => {
+    const checkAuthorizedRole = async () => {
       try {
         if (!user) {
-          setIsAdmin(false);
+          setIsAuthorized(false);
           setCheckingRole(false);
           return;
         }
 
-        // Check if the user has the admin role using the has_role function
-        const { data, error } = await supabase.rpc('has_role', {
+        // Check if the user has either the admin or user role
+        const adminCheck = await supabase.rpc('has_role', {
           required_role: 'admin'
         });
+        
+        const userCheck = await supabase.rpc('has_role', {
+          required_role: 'user'
+        });
 
-        if (error) {
-          console.error("Error checking admin role:", error);
-          setIsAdmin(false);
+        if (adminCheck.error && userCheck.error) {
+          console.error("Error checking roles:", adminCheck.error);
+          setIsAuthorized(false);
         } else {
-          console.log("Admin role check result:", data);
-          setIsAdmin(!!data);
+          // User is authorized if they have either admin or user role
+          setIsAuthorized(!!(adminCheck.data || userCheck.data));
         }
       } catch (error) {
-        console.error("Error in admin role check:", error);
-        setIsAdmin(false);
+        console.error("Error in role check:", error);
+        setIsAuthorized(false);
       } finally {
         setCheckingRole(false);
       }
     };
 
     if (!loading) {
-      checkAdminRole();
+      checkAuthorizedRole();
     }
   }, [user, loading]);
 
@@ -67,8 +71,8 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // If authenticated but not admin, redirect to home with error
-  if (!isAdmin) {
+  // If authenticated but not authorized, redirect to home with error
+  if (!isAuthorized) {
     toast.error("You don't have permission to access the admin area", {
       duration: 3000,
       position: "top-center",
@@ -76,7 +80,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
-  // If admin, render the protected content
+  // If authorized, render the protected content
   return <>{children}</>;
 };
 

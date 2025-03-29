@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   
@@ -26,32 +26,38 @@ const Navbar: React.FC = () => {
   }, []);
   
   useEffect(() => {
-    const checkAdminRole = async () => {
+    const checkAuthorizedRole = async () => {
       if (!user) {
-        setIsAdmin(false);
+        setIsAuthorized(false);
         return;
       }
       
       try {
-        console.log("Checking admin role for user:", user.id);
-        const { data, error } = await supabase.rpc('has_role', {
+        console.log("Checking roles for user:", user.id);
+        
+        // Check if the user has either admin or user role
+        const adminCheck = await supabase.rpc('has_role', {
           required_role: 'admin'
         });
         
-        if (error) {
-          console.error("Error checking admin role:", error);
-          setIsAdmin(false);
+        const userCheck = await supabase.rpc('has_role', {
+          required_role: 'user'
+        });
+        
+        if (adminCheck.error && userCheck.error) {
+          console.error("Error checking roles:", adminCheck.error);
+          setIsAuthorized(false);
         } else {
-          console.log("Admin role check result:", data);
-          setIsAdmin(!!data);
+          console.log("Role check results - Admin:", adminCheck.data, "User:", userCheck.data);
+          setIsAuthorized(!!(adminCheck.data || userCheck.data));
         }
       } catch (error) {
-        console.error("Error in admin role check:", error);
-        setIsAdmin(false);
+        console.error("Error in role check:", error);
+        setIsAuthorized(false);
       }
     };
     
-    checkAdminRole();
+    checkAuthorizedRole();
   }, [user]);
 
   // Always include base navigation links
@@ -62,8 +68,8 @@ const Navbar: React.FC = () => {
     { name: 'Analytics', path: '/analytics' },
   ];
   
-  // Add Admin link if user is an admin
-  const allLinks = isAdmin 
+  // Add Admin link if user is authorized
+  const allLinks = isAuthorized 
     ? [...navLinks, { name: 'Admin', path: '/admin' }] 
     : navLinks;
 

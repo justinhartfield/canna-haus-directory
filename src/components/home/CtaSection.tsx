@@ -7,26 +7,31 @@ import { supabase } from '@/integrations/supabase/client';
 
 const CtaSection: React.FC = () => {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   
   useEffect(() => {
-    const checkAdminRole = async () => {
+    const checkAuthorizedRole = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase.rpc('has_role', {
+        // Check if the user has either admin or user role
+        const adminCheck = await supabase.rpc('has_role', {
           required_role: 'admin'
         });
         
-        if (!error && data) {
-          setIsAdmin(true);
+        const userCheck = await supabase.rpc('has_role', {
+          required_role: 'user'
+        });
+        
+        if (!adminCheck.error || !userCheck.error) {
+          setIsAuthorized(!!(adminCheck.data || userCheck.data));
         }
       } catch (error) {
-        console.error("Error checking admin role:", error);
+        console.error("Error checking roles:", error);
       }
     };
     
-    checkAdminRole();
+    checkAuthorizedRole();
   }, [user]);
   
   return (
@@ -54,8 +59,8 @@ const CtaSection: React.FC = () => {
             Browse Directory
           </Link>
           
-          {/* Only show Admin Dashboard button for admin users */}
-          {isAdmin && (
+          {/* Show Admin Dashboard button for authorized users */}
+          {isAuthorized && (
             <Link
               to="/admin"
               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
