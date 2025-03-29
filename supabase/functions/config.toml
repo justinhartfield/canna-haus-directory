@@ -4,3 +4,7 @@ project_id = "ecqiimdlcbrltktzkgax"
 [[functions]]
 name = "classify-csv-data"
 verify_jwt = false
+
+[[functions]]
+name = "recommend-strains"
+verify_jwt = false

@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AuthButtons } from './AuthButtons';
+import { useAuth } from '@/context/AuthContext';
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +24,8 @@ const Navbar: React.FC = () => {
     { name: 'Directory', path: '/directory' },
     { name: 'API Docs', path: '/api-docs' },
     { name: 'Analytics', path: '/analytics' },
+    // Only show Admin link if user is logged in
+    ...(user ? [{ name: 'Admin', path: '/admin' }] : []),
   ];
 
   return (
