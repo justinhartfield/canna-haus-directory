@@ -16,6 +16,7 @@ export interface DirectoryItem {
   createdAt: string;
   updatedAt: string;
   metaData?: Record<string, any>;
+  hasExamples?: boolean;
 }
 
 export interface DirectoryCategory {
