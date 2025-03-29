@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from '@/components/ui/use-toast';
@@ -11,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface DataImporterAIProps {
+export interface DataImporterAIProps {
   onCategorySelect: (category: string) => void;
   onMappingsGenerated: (mappings: Record<string, string>, schemaType: string) => void;
   isImporting: boolean;
@@ -33,7 +32,6 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     schemaType: string;
   } | null>(null);
   
-  // For user overrides
   const [isEditing, setIsEditing] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
   const [customSchemaType, setCustomSchemaType] = useState('');
@@ -62,7 +60,6 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
     
-    // Take the first file for analysis
     const file = acceptedFiles[0];
     setSelectedFile(file);
     setAnalysisResult(null);
@@ -96,14 +93,12 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
 
     setIsAnalyzing(true);
     try {
-      // Sample the file to get some representative data
       const sampleRows = await sampleFileContent(selectedFile, 3);
       
       if (sampleRows.length === 0) {
         throw new Error("Couldn't extract data from the file.");
       }
 
-      // Call the edge function to classify the data
       const { data, error } = await supabase.functions.invoke('classify-csv-data', {
         body: {
           sampleData: sampleRows,
@@ -121,7 +116,6 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
 
       setAnalysisResult(data);
       
-      // Initialize custom values with AI recommendations
       setCustomCategory(data.recommendedCategory);
       setCustomSchemaType(data.schemaType || 'Thing');
       setCustomMappings({...data.mappings});
@@ -168,7 +162,6 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
       [newFieldName.trim()]: newColumnName.trim()
     }));
 
-    // Reset input fields
     setNewFieldName('');
     setNewColumnName('');
 
@@ -194,7 +187,6 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
   const applyRecommendations = () => {
     if (!analysisResult && !isEditing) return;
     
-    // Use custom values if editing, otherwise use AI recommendations
     const categoryToApply = isEditing ? customCategory : analysisResult?.recommendedCategory || '';
     const schemaTypeToApply = isEditing ? customSchemaType : analysisResult?.schemaType || 'Thing';
     const mappingsToApply = isEditing ? customMappings : (analysisResult?.mappings || {});

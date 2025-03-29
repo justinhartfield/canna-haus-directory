@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from '@/components/ui/use-toast';
@@ -50,7 +49,6 @@ const DataImporterAdvanced: React.FC = () => {
     status: 'idle'
   });
 
-  // Handle file drops
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!category) {
       toast({
@@ -63,17 +61,14 @@ const DataImporterAdvanced: React.FC = () => {
 
     setSelectedFiles(acceptedFiles);
     
-    // Sample the first file to set up column mappings
     if (acceptedFiles.length > 0) {
       const sampleRows = await sampleFileContent(acceptedFiles[0]);
       setSampleData(sampleRows);
       
-      // Auto-detect column mappings
       try {
         const autoConfig = createMappingConfigFromSample(sampleRows, category);
         const mappings: ColumnMapping[] = [];
         
-        // Convert columnMappings object to array format
         for (const [targetField, sourceColumn] of Object.entries(autoConfig.columnMappings)) {
           mappings.push({
             sourceColumn,
@@ -85,7 +80,6 @@ const DataImporterAdvanced: React.FC = () => {
         setSchemaType(autoConfig.schemaType || 'Thing');
       } catch (error) {
         console.error('Error auto-detecting mappings:', error);
-        // If auto-detection fails, create empty mappings
         if (sampleRows.length > 0) {
           const columns = Object.keys(sampleRows[0]);
           setColumnMappings(
@@ -99,7 +93,6 @@ const DataImporterAdvanced: React.FC = () => {
     }
   }, [category]);
 
-  // Handle simple import (using the whole files)
   const handleSimpleImport = useCallback(async () => {
     if (!category || selectedFiles.length === 0) {
       toast({
@@ -121,7 +114,6 @@ const DataImporterAdvanced: React.FC = () => {
     });
 
     try {
-      // Create a basic mapping config
       const mappingConfig: DataMappingConfig = {
         columnMappings: {},
         defaultValues: {
@@ -130,17 +122,14 @@ const DataImporterAdvanced: React.FC = () => {
         schemaType: 'Thing'
       };
       
-      // Convert the column mappings array to the required format
       columnMappings.forEach(mapping => {
         if (mapping.targetField) {
           mappingConfig.columnMappings[mapping.targetField] = mapping.sourceColumn;
         }
       });
       
-      // Set the schema type
       mappingConfig.schemaType = schemaType;
       
-      // Process all files
       const result = await processBatchFiles(
         selectedFiles,
         mappingConfig,
@@ -164,7 +153,6 @@ const DataImporterAdvanced: React.FC = () => {
         status: result.errors.length > 0 ? 'error' : 'complete'
       }));
       
-      // Show toast notification
       toast({
         title: "Import Complete",
         description: `Successfully imported ${result.successRows} items with ${result.errorCount} errors.`,
@@ -196,7 +184,6 @@ const DataImporterAdvanced: React.FC = () => {
     }
   }, [category, selectedFiles, columnMappings, schemaType, batchSize]);
 
-  // Dropzone setup
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
     onDrop,
     disabled: isImporting || !category,
@@ -208,29 +195,23 @@ const DataImporterAdvanced: React.FC = () => {
     multiple: true
   });
 
-  // Handle changes to column mappings
   const handleMappingChange = (index: number, targetField: string) => {
     const newMappings = [...columnMappings];
     newMappings[index].targetField = targetField;
     setColumnMappings(newMappings);
   };
 
-  // Handle AI category selection
   const handleAiCategorySelect = (selectedCategory: string) => {
     setCategory(selectedCategory);
   };
-  
-  // Handle AI-generated mappings
+
   const handleAiMappingsGenerated = (mappings: Record<string, string>, aiSchemaType: string) => {
-    // Convert the mappings object to the array format expected by the component
     const newColumnMappings: ColumnMapping[] = [];
     
-    // First, ensure we have entries for all existing columns
     if (sampleData.length > 0) {
       const columns = Object.keys(sampleData[0]);
       
       for (const column of columns) {
-        // Find if this column is mapped to any field
         let mapped = false;
         for (const [field, mappedColumn] of Object.entries(mappings)) {
           if (mappedColumn === column) {
@@ -243,7 +224,6 @@ const DataImporterAdvanced: React.FC = () => {
           }
         }
         
-        // If not mapped, add with empty target field
         if (!mapped) {
           newColumnMappings.push({
             sourceColumn: column,
@@ -257,12 +237,10 @@ const DataImporterAdvanced: React.FC = () => {
     setSchemaType(aiSchemaType);
   };
 
-  // Handle switching back from AI tab
   const handleAiDone = () => {
     setActiveTab('simple');
   };
 
-  // Available target fields for mapping
   const availableTargetFields = [
     { value: 'title', label: 'Title' },
     { value: 'description', label: 'Description' },
@@ -273,7 +251,6 @@ const DataImporterAdvanced: React.FC = () => {
     { value: 'metaData', label: 'Meta Data' }
   ];
 
-  // Schema type options
   const schemaTypeOptions = [
     'Thing', 'Product', 'Event', 'Organization', 'Person', 'Place', 
     'CreativeWork', 'Article', 'MedicalEntity', 'Drug', 'Store'
@@ -349,7 +326,6 @@ const DataImporterAdvanced: React.FC = () => {
           
           <TabsContent value="advanced">
             <div className="space-y-4">
-              {/* Schema type selection */}
               <div className="space-y-2">
                 <Label>Schema Type</Label>
                 <Select value={schemaType} onValueChange={setSchemaType}>
@@ -367,7 +343,6 @@ const DataImporterAdvanced: React.FC = () => {
                 </p>
               </div>
               
-              {/* Batch size setting */}
               <div className="space-y-2">
                 <Label>Batch Size</Label>
                 <Input 
@@ -382,7 +357,6 @@ const DataImporterAdvanced: React.FC = () => {
                 </p>
               </div>
               
-              {/* Column mappings */}
               {sampleData.length > 0 && (
                 <div className="space-y-2 mt-4">
                   <Label>Column Mappings</Label>
@@ -432,7 +406,6 @@ const DataImporterAdvanced: React.FC = () => {
                 </div>
               )}
               
-              {/* Sample data preview */}
               {sampleData.length > 0 && (
                 <div className="space-y-2 mt-4">
                   <Label>Data Preview</Label>
