@@ -25,6 +25,9 @@ serve(async (req) => {
     // Convert the sample data to a string representation
     const sampleDataString = JSON.stringify(sampleData[0], null, 2);
     
+    // Get all column headers from the sample data
+    const allColumns = Object.keys(sampleData[0]);
+    
     // Prepare available categories as comma-separated string
     const categoriesString = Array.isArray(availableCategories) 
       ? availableCategories.join(", ") 
@@ -39,8 +42,14 @@ serve(async (req) => {
     1. Analyze the column headers and values
     2. Determine which of the following categories is the best fit: ${categoriesString}
     3. Provide a brief explanation for your choice
-    4. Suggest appropriate column mappings for the primary fields (title, description, subcategory, etc.)
-    5. Recommend the most appropriate Schema.org type for this data
+    4. Map EVERY column in the data to an appropriate field
+    5. Create custom fields as needed if the standard fields (title, description, subcategory, tags) don't cover all the data
+    6. Do not combine multiple columns into a single field unless absolutely necessary and logical to do so
+    7. Recommend the most appropriate Schema.org type for this data
+    
+    The data includes these columns: ${allColumns.join(", ")}
+    
+    IMPORTANT: Every column must be mapped to a field. Do not skip any columns.
     
     Respond with JSON in this format:
     {
@@ -50,7 +59,10 @@ serve(async (req) => {
         "title": "column name for title",
         "description": "column name for description",
         "subcategory": "column name for subcategory",
-        "tags": "column name for tags"
+        "tags": "column name for tags",
+        "customField1": "column name for custom field 1",
+        "customField2": "column name for custom field 2"
+        // ... include mappings for ALL columns
       },
       "schemaType": "recommended schema.org type"
     }
@@ -94,6 +106,24 @@ serve(async (req) => {
     try {
       // Parse the JSON response
       result = JSON.parse(jsonString);
+      
+      // Verify that all columns are mapped
+      const mappedColumns = Object.values(result.mappings);
+      const unmappedColumns = allColumns.filter(col => !mappedColumns.includes(col));
+      
+      // If there are unmapped columns, add them as custom fields
+      if (unmappedColumns.length > 0) {
+        console.log(`Adding ${unmappedColumns.length} unmapped columns as custom fields`);
+        unmappedColumns.forEach((col, idx) => {
+          const fieldName = `customField${Object.keys(result.mappings).length + idx + 1}`;
+          result.mappings[fieldName] = col;
+        });
+      }
+      
+      // Verify that all columns are now mapped
+      const finalMappedColumns = Object.values(result.mappings);
+      console.log(`Original columns: ${allColumns.length}, Mapped columns: ${finalMappedColumns.length}`);
+      
     } catch (parseError) {
       console.error('Error parsing JSON from OpenAI response:', parseError);
       console.log('Raw response:', content);

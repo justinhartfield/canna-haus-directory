@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { sampleFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Edit2, Plus, X, ArrowRight } from 'lucide-react';
+import { Loader2, Edit2, Plus, X, ArrowRight, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DataImporterAIProps {
   onCategorySelect: (category: string) => void;
@@ -26,6 +27,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [sampleData, setSampleData] = useState<Record<string, any> | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
     recommendedCategory: string;
     explanation: string;
@@ -41,6 +43,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
   const [newFieldName, setNewFieldName] = useState('');
   const [newColumnName, setNewColumnName] = useState('');
   const [settingsApplied, setSettingsApplied] = useState(false);
+  const [originalColumns, setOriginalColumns] = useState<string[]>([]);
 
   const DEFAULT_CATEGORIES = [
     'Strains',
@@ -71,6 +74,17 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     setCustomSchemaType('');
     setCustomMappings({});
     setSettingsApplied(false);
+    
+    try {
+      // Sample the file to get column names
+      const sampleRows = await sampleFileContent(file, 1);
+      if (sampleRows.length > 0) {
+        setSampleData(sampleRows[0]);
+        setOriginalColumns(Object.keys(sampleRows[0]));
+      }
+    } catch (error) {
+      console.error("Error sampling file:", error);
+    }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -125,6 +139,18 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
       setCustomCategory(data.recommendedCategory);
       setCustomSchemaType(data.schemaType || 'Thing');
       setCustomMappings({...data.mappings});
+      
+      // Verify all columns are mapped
+      const mappedColumns = Object.values(data.mappings);
+      const unmappedColumns = originalColumns.filter(col => !mappedColumns.includes(col));
+      
+      if (unmappedColumns.length > 0) {
+        toast({
+          title: "Warning: Unmapped Columns",
+          description: `${unmappedColumns.length} columns were not automatically mapped. Consider adding them manually.`,
+          variant: "warning"
+        });
+      }
       
       toast({
         title: "Analysis Complete",
@@ -199,6 +225,18 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     const schemaTypeToApply = isEditing ? customSchemaType : analysisResult?.schemaType || 'Thing';
     const mappingsToApply = isEditing ? customMappings : (analysisResult?.mappings || {});
     
+    // Check for unmapped columns
+    const mappedColumns = Object.values(mappingsToApply);
+    const unmappedColumns = originalColumns.filter(col => !mappedColumns.includes(col));
+    
+    if (unmappedColumns.length > 0) {
+      toast({
+        title: "Warning: Unmapped Columns",
+        description: `${unmappedColumns.length} columns are not mapped: ${unmappedColumns.join(", ")}`,
+        variant: "warning"
+      });
+    }
+    
     onCategorySelect(categoryToApply);
     onMappingsGenerated(mappingsToApply, schemaTypeToApply);
     setSettingsApplied(true);
@@ -213,6 +251,17 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
 
   const handleContinueToImport = () => {
     onDone();
+  };
+
+  // Helper to check if a column is mapped
+  const isColumnMapped = (columnName: string) => {
+    return Object.values(customMappings).includes(columnName);
+  };
+
+  // Get unmapped columns
+  const getUnmappedColumns = () => {
+    const mappedColumns = Object.values(customMappings);
+    return originalColumns.filter(col => !mappedColumns.includes(col));
   };
 
   return (
@@ -326,17 +375,43 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label>Field Mappings</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Map each column from your CSV to a field in the database. Every column should be mapped.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {Object.entries(customMappings).map(([field, column]) => (
                       <div key={field} className="grid grid-cols-12 gap-2 items-center">
                         <Label className="col-span-4">{field}:</Label>
-                        <Input 
-                          className="col-span-7"
+                        <Select
                           value={column}
-                          onChange={(e) => handleUpdateMapping(field, e.target.value)}
-                        />
+                          onValueChange={(value) => handleUpdateMapping(field, value)}
+                        >
+                          <SelectTrigger className="col-span-7">
+                            <SelectValue placeholder="Select column" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {originalColumns.map(col => (
+                              <SelectItem 
+                                key={col} 
+                                value={col}
+                                disabled={isColumnMapped(col) && column !== col}
+                              >
+                                {col} {isColumnMapped(col) && column !== col ? "(already mapped)" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -358,23 +433,46 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
                         value={newFieldName}
                         onChange={(e) => setNewFieldName(e.target.value)}
                       />
-                      <Input 
-                        className="col-span-7"
-                        placeholder="Column name"
+                      <Select
                         value={newColumnName}
-                        onChange={(e) => setNewColumnName(e.target.value)}
-                      />
+                        onValueChange={setNewColumnName}
+                      >
+                        <SelectTrigger className="col-span-7">
+                          <SelectValue placeholder="Select column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getUnmappedColumns().map(col => (
+                            <SelectItem key={col} value={col}>{col}</SelectItem>
+                          ))}
+                          {getUnmappedColumns().length === 0 && (
+                            <SelectItem value="" disabled>All columns are mapped</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
                       <Button 
                         variant="ghost"
                         size="icon"
                         className="col-span-1"
                         onClick={handleAddNewMapping}
+                        disabled={getUnmappedColumns().length === 0}
                       >
                         <Plus className="h-4 w-4 text-primary" />
                       </Button>
                     </div>
                   </div>
                 </div>
+
+                {getUnmappedColumns().length > 0 && (
+                  <div className="mt-2 p-2 bg-amber-500/20 rounded border border-amber-500/30">
+                    <p className="text-sm flex items-center">
+                      <Info className="h-4 w-4 mr-2 text-amber-500" />
+                      <span>
+                        Warning: {getUnmappedColumns().length} column(s) are not mapped: 
+                        <span className="font-semibold ml-1">{getUnmappedColumns().join(", ")}</span>
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               analysisResult && (
@@ -410,6 +508,19 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
                       </table>
                     </div>
                   </div>
+
+                  {/* Check for unmapped columns in view mode too */}
+                  {originalColumns.length > 0 && 
+                    !originalColumns.every(col => Object.values(analysisResult.mappings).includes(col)) && (
+                    <div className="mt-2 p-2 bg-amber-500/20 rounded border border-amber-500/30">
+                      <p className="text-sm flex items-center">
+                        <Info className="h-4 w-4 mr-2 text-amber-500" />
+                        <span>
+                          Some columns are not mapped. Switch to edit mode to add them.
+                        </span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               )
             )}
