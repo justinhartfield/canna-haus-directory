@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
-import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, RefreshCw } from 'lucide-react';
 import { sampleFileContent, processFileContent, DataMappingConfig } from '@/utils/dataProcessingUtils';
 import { ImportAnalysis, ColumnMapping, DirectoryItem } from '@/types/directory';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +38,8 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   const [schemaType, setSchemaType] = useState('Thing');
   const [selectedCategory, setSelectedCategory] = useState(category);
   const [customFields, setCustomFields] = useState<Record<string, string>>({});
+  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
+  const [manualMappingMode, setManualMappingMode] = useState(false);
 
   const DEFAULT_CATEGORIES = [
     'Strains', 'Medical', 'Extraction', 'Cultivation',
@@ -74,6 +76,9 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       if (sampleRows.length === 0) {
         throw new Error("Couldn't extract data from the file.");
       }
+
+      // Store available columns for manual mapping
+      setAvailableColumns(Object.keys(sampleRows[0]));
 
       // Call the edge function to classify the data
       const { data, error } = await supabase.functions.invoke('classify-csv-data', {
@@ -134,6 +139,9 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive"
       });
+      
+      // If AI analysis fails, set up for manual mapping
+      setManualMappingMode(true);
     } finally {
       setIsAnalyzing(false);
     }
@@ -151,6 +159,37 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       ...customFields,
       [sourceColumn]: customName
     });
+  };
+
+  const handleSourceColumnChange = (index: number, sourceColumn: string) => {
+    const newMappings = [...columnMappings];
+    newMappings[index].sourceColumn = sourceColumn;
+    newMappings[index].sampleData = analysis?.sampleData[sourceColumn];
+    setColumnMappings(newMappings);
+  };
+
+  const handleAddMapping = () => {
+    if (availableColumns.length === 0) return;
+    
+    setColumnMappings([
+      ...columnMappings,
+      {
+        sourceColumn: availableColumns[0],
+        targetField: '',
+        isCustomField: false,
+        sampleData: analysis?.sampleData[availableColumns[0]]
+      }
+    ]);
+  };
+
+  const handleRemoveMapping = (index: number) => {
+    const newMappings = [...columnMappings];
+    newMappings.splice(index, 1);
+    setColumnMappings(newMappings);
+  };
+
+  const toggleManualMode = () => {
+    setManualMappingMode(!manualMappingMode);
   };
 
   const handleProcessFile = async () => {
@@ -219,18 +258,32 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     );
   }
 
-  if (!analysis) {
+  if (!analysis && !manualMappingMode) {
     return (
       <div className="flex flex-col items-center justify-center py-8 space-y-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <p>Failed to analyze file. Please try again or use manual mapping.</p>
-        <Button onClick={onCancel}>Go Back</Button>
+        <div className="flex space-x-4">
+          <Button onClick={analyzeFile}>Retry Analysis</Button>
+          <Button onClick={() => setManualMappingMode(true)} variant="secondary">Manual Mapping</Button>
+          <Button onClick={onCancel} variant="outline">Go Back</Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Data Mapping Configuration</h3>
+        {!manualMappingMode && analysis && (
+          <Button variant="outline" size="sm" onClick={toggleManualMode} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            {manualMappingMode ? "Use AI Suggestions" : "Manual Override"}
+          </Button>
+        )}
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="category">Category</Label>
@@ -269,9 +322,22 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       </div>
       
       <div className="space-y-2">
-        <Label>Column Mappings</Label>
+        <div className="flex justify-between items-center">
+          <Label>Column Mappings</Label>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={handleAddMapping}
+            disabled={isProcessing}
+          >
+            Add Mapping
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Review AI-suggested mappings and adjust if needed
+          {manualMappingMode 
+            ? "Configure your column mappings manually" 
+            : "Review AI-suggested mappings and adjust if needed"}
         </p>
         
         <Card className="overflow-hidden">
@@ -284,12 +350,32 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
                     <TableHead>Map To</TableHead>
                     <TableHead>Custom Field Name</TableHead>
                     <TableHead>Sample Value</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {columnMappings.map((mapping, index) => (
                     <TableRow key={index}>
-                      <TableCell>{mapping.sourceColumn}</TableCell>
+                      <TableCell>
+                        {manualMappingMode ? (
+                          <Select
+                            value={mapping.sourceColumn}
+                            onValueChange={(value) => handleSourceColumnChange(index, value)}
+                            disabled={isProcessing}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select column" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableColumns.map(col => (
+                                <SelectItem key={col} value={col}>{col}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          mapping.sourceColumn
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Select
                           value={mapping.targetField}
@@ -322,6 +408,16 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {mapping.sampleData}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveMapping(index)}
+                          disabled={isProcessing}
+                        >
+                          <AlertTriangle className="h-4 w-4 text-destructive" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
