@@ -3,13 +3,13 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DataImporter from '@/components/admin/DataImporter';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
 const Admin: React.FC = () => {
   const auth = useAuth();
   
-  if (auth.isLoading) {
+  if (auth.loading) {
     return (
       <>
         <Navbar />

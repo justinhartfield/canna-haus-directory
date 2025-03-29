@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DirectoryItem } from "@/types/directory";
+import { Json } from "@/integrations/supabase/types";
 
 /**
  * Fetches all directory items
@@ -16,7 +17,8 @@ export async function getDirectoryItems() {
     throw error;
   }
   
-  return data as DirectoryItem[];
+  // Map from DB format to app format
+  return data.map(mapToDirectoryItem) as DirectoryItem[];
 }
 
 /**
@@ -34,7 +36,8 @@ export async function getDirectoryItemById(id: string) {
     throw error;
   }
   
-  return data as DirectoryItem;
+  // Map from DB format to app format
+  return mapToDirectoryItem(data);
 }
 
 /**
@@ -52,7 +55,8 @@ export async function getDirectoryItemsByCategory(category: string) {
     throw error;
   }
   
-  return data as DirectoryItem[];
+  // Map from DB format to app format
+  return data.map(mapToDirectoryItem) as DirectoryItem[];
 }
 
 /**
