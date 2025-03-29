@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DataMappingConfig, processFileContent, processBatchFiles, sampleFileContent, createMappingConfigFromSample } from '@/utils/dataProcessingUtils';
 import { ImportProgress } from '@/types/directory';
+import DataImporterAI from './DataImporterAI';
 
 const DEFAULT_CATEGORIES = [
   'Strains',
@@ -214,6 +215,48 @@ const DataImporterAdvanced: React.FC = () => {
     setColumnMappings(newMappings);
   };
 
+  // Handle AI category selection
+  const handleAiCategorySelect = (selectedCategory: string) => {
+    setCategory(selectedCategory);
+  };
+  
+  // Handle AI-generated mappings
+  const handleAiMappingsGenerated = (mappings: Record<string, string>, aiSchemaType: string) => {
+    // Convert the mappings object to the array format expected by the component
+    const newColumnMappings: ColumnMapping[] = [];
+    
+    // First, ensure we have entries for all existing columns
+    if (sampleData.length > 0) {
+      const columns = Object.keys(sampleData[0]);
+      
+      for (const column of columns) {
+        // Find if this column is mapped to any field
+        let mapped = false;
+        for (const [field, mappedColumn] of Object.entries(mappings)) {
+          if (mappedColumn === column) {
+            newColumnMappings.push({
+              sourceColumn: column,
+              targetField: field
+            });
+            mapped = true;
+            break;
+          }
+        }
+        
+        // If not mapped, add with empty target field
+        if (!mapped) {
+          newColumnMappings.push({
+            sourceColumn: column,
+            targetField: ''
+          });
+        }
+      }
+    }
+    
+    setColumnMappings(newColumnMappings);
+    setSchemaType(aiSchemaType);
+  };
+
   // Available target fields for mapping
   const availableTargetFields = [
     { value: 'title', label: 'Title' },
@@ -259,6 +302,7 @@ const DataImporterAdvanced: React.FC = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="simple">Simple Import</TabsTrigger>
             <TabsTrigger value="advanced">Advanced Options</TabsTrigger>
+            <TabsTrigger value="ai">AI Assistant</TabsTrigger>
           </TabsList>
           
           <TabsContent value="simple">
@@ -395,6 +439,14 @@ const DataImporterAdvanced: React.FC = () => {
                 </div>
               )}
             </div>
+          </TabsContent>
+          
+          <TabsContent value="ai">
+            <DataImporterAI 
+              onCategorySelect={handleAiCategorySelect}
+              onMappingsGenerated={handleAiMappingsGenerated}
+              isImporting={isImporting}
+            />
           </TabsContent>
         </Tabs>
         
