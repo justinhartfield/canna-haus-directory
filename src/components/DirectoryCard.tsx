@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
-import { DirectoryCardFooter } from './directory/DirectoryCardFooter';
+import DirectoryCardFooter from './directory/DirectoryCardFooter';
 
 interface DirectoryCardProps {
   id: string; // Change from number to string to match the UUID in the database
