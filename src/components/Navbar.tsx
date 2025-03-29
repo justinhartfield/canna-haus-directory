@@ -19,14 +19,18 @@ const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Always include base navigation links
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Directory', path: '/directory' },
     { name: 'API Docs', path: '/api-docs' },
     { name: 'Analytics', path: '/analytics' },
-    // Only show Admin link if user is logged in
-    ...(user ? [{ name: 'Admin', path: '/admin' }] : []),
   ];
+  
+  // Add Admin link if user is authenticated
+  const allLinks = user 
+    ? [...navLinks, { name: 'Admin', path: '/admin' }] 
+    : navLinks;
 
   return (
     <header className={cn(
@@ -56,7 +60,7 @@ const Navbar: React.FC = () => {
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => (
+            {allLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}

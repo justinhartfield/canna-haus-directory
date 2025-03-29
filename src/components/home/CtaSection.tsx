@@ -31,6 +31,8 @@ const CtaSection: React.FC = () => {
           >
             Browse Directory
           </Link>
+          
+          {/* Always show Admin Dashboard button for authenticated users */}
           {user && (
             <Link
               to="/admin"
