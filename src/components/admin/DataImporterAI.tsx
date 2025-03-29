@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { sampleFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Edit2, Plus, X, ArrowRight } from 'lucide-react';
+import { Loader2, Edit2, Plus, X, ArrowRight, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { processFileContent, processBatchFiles, DataMappingConfig } from '@/utils/dataProcessingUtils';
+import { Progress } from '@/components/ui/progress';
 
 export interface DataImporterAIProps {
   onCategorySelect: (category: string) => void;
@@ -40,6 +42,16 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
   const [newFieldName, setNewFieldName] = useState('');
   const [newColumnName, setNewColumnName] = useState('');
   const [settingsApplied, setSettingsApplied] = useState(false);
+  
+  // Additional states for direct upload functionality
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [isDirectlyUploading, setIsDirectlyUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    count: number;
+    errorCount: number;
+  } | null>(null);
 
   const DEFAULT_CATEGORIES = [
     'Strains',
@@ -80,6 +92,24 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
       'application/vnd.ms-excel': ['.xls']
     },
     multiple: false
+  });
+  
+  // For direct upload functionality
+  const onUploadDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setUploadFiles(acceptedFiles);
+    }
+  }, []);
+
+  const { getRootProps: getUploadRootProps, getInputProps: getUploadInputProps, isDragActive: isUploadDragActive } = useDropzone({
+    onDrop: onUploadDrop,
+    disabled: isDirectlyUploading || !settingsApplied,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
+    multiple: true
   });
 
   const handleAnalyzeFile = async () => {
@@ -218,6 +248,73 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
       description: "Moving to the import step with your configured settings.",
       variant: "default"
     });
+  };
+  
+  // Handle direct uploading from this component
+  const handleDirectUpload = async () => {
+    if (!uploadFiles.length || !settingsApplied) {
+      toast({
+        title: "Upload Failed",
+        description: "Please select files and apply AI recommendations first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsDirectlyUploading(true);
+    setUploadProgress(0);
+    setImportResult(null);
+    
+    try {
+      const categoryToUse = isEditing ? customCategory : analysisResult?.recommendedCategory || '';
+      const schemaTypeToUse = isEditing ? customSchemaType : analysisResult?.schemaType || 'Thing';
+      const mappingsToUse = isEditing ? customMappings : (analysisResult?.mappings || {});
+      
+      // Create mapping config for the import process
+      const mappingConfig: DataMappingConfig = {
+        columnMappings: {},
+        defaultValues: {
+          category: categoryToUse
+        },
+        schemaType: schemaTypeToUse
+      };
+      
+      // Convert our mappings format to the expected format
+      Object.entries(mappingsToUse).forEach(([field, column]) => {
+        mappingConfig.columnMappings[field] = column;
+      });
+      
+      // Process the files
+      const result = await processBatchFiles(
+        uploadFiles,
+        mappingConfig,
+        100, // Default batch size
+        (current, total) => {
+          setUploadProgress(Math.round((current / total) * 100));
+        }
+      );
+      
+      setImportResult({
+        success: result.success,
+        count: result.successRows,
+        errorCount: result.errorCount
+      });
+      
+      toast({
+        title: result.success ? "Import Successful" : "Import Completed with Issues",
+        description: `Imported ${result.successRows} items with ${result.errorCount} errors.`,
+        variant: result.errorCount > 0 ? "destructive" : "default"
+      });
+    } catch (error) {
+      console.error("Error importing files:", error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDirectlyUploading(false);
+    }
   };
 
   return (
@@ -429,14 +526,88 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
             </Button>
 
             {settingsApplied && (
-              <Button 
-                onClick={handleContinueToImport} 
-                className="w-full mt-2"
-                variant="outline"
-                type="button"
-              >
-                Continue to Import <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <>
+                {/* Direct file upload area */}
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-2">Upload Files</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upload your files using the AI recommended settings.
+                  </p>
+                  
+                  <div 
+                    {...getUploadRootProps()} 
+                    className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
+                      isUploadDragActive ? 'border-visual-500 bg-visual-500/10' : 'border-gray-600'
+                    } ${isDirectlyUploading || !settingsApplied ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <input {...getUploadInputProps()} />
+                    <div className="flex flex-col items-center space-y-2">
+                      <Upload className="h-6 w-6 text-gray-400" />
+                      <p className="text-sm text-gray-300">
+                        {isUploadDragActive
+                          ? 'Drop the files here...'
+                          : 'Drag & drop files here, or click to select files'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Upload multiple files with the same structure
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {uploadFiles.length > 0 && (
+                    <div className="mt-4 p-3 bg-secondary/10 rounded">
+                      <p className="text-sm font-medium">Selected files: {uploadFiles.length}</p>
+                      <ul className="text-xs mt-1 space-y-1 max-h-28 overflow-y-auto">
+                        {uploadFiles.map((file, index) => (
+                          <li key={index} className="truncate">{file.name} ({(file.size / 1024).toFixed(1)} KB)</li>
+                        ))}
+                      </ul>
+                      
+                      <Button 
+                        onClick={handleDirectUpload} 
+                        className="w-full mt-3"
+                        disabled={isDirectlyUploading || !settingsApplied}
+                      >
+                        {isDirectlyUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Importing... ({uploadProgress}%)
+                          </>
+                        ) : 'Start Import'}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {isDirectlyUploading && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Progress</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} className="h-2" />
+                    </div>
+                  )}
+                  
+                  {importResult && (
+                    <div className={`mt-4 p-3 rounded ${importResult.success ? 'bg-green-900/20 border-green-600/30' : 'bg-red-900/20 border-red-600/30'} border`}>
+                      <h4 className="font-medium">Import {importResult.success ? 'Successful' : 'Completed'}</h4>
+                      <p className="text-sm mt-1">
+                        Successfully imported {importResult.count} items
+                        {importResult.errorCount > 0 && ` with ${importResult.errorCount} errors`}.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  onClick={handleContinueToImport} 
+                  className="w-full mt-2"
+                  variant="outline"
+                  type="button"
+                >
+                  Continue to Advanced Import <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         )}
