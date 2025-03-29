@@ -4,7 +4,7 @@ import DirectoryCard from '@/components/DirectoryCard';
 import NoResultsView from './NoResultsView';
 
 interface DirectoryItem {
-  id: number;
+  id: string; // Changed from 'number' to 'string'
   title: string;
   description: string;
   category: string;
