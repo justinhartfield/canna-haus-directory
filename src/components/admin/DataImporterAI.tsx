@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { sampleFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Edit2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DataImporterAIProps {
   onCategorySelect: (category: string) => void;
@@ -27,6 +30,12 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     mappings: Record<string, string>;
     schemaType: string;
   } | null>(null);
+  
+  // For user overrides
+  const [isEditing, setIsEditing] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [customSchemaType, setCustomSchemaType] = useState('');
+  const [customMappings, setCustomMappings] = useState<Record<string, string>>({});
 
   const DEFAULT_CATEGORIES = [
     'Strains',
@@ -40,6 +49,11 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     'Educational'
   ];
 
+  const SCHEMA_TYPES = [
+    'Thing', 'Product', 'Event', 'Organization', 'Person', 'Place', 
+    'CreativeWork', 'Article', 'MedicalEntity', 'Drug', 'Store'
+  ];
+
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
     
@@ -47,6 +61,10 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     const file = acceptedFiles[0];
     setSelectedFile(file);
     setAnalysisResult(null);
+    setIsEditing(false);
+    setCustomCategory('');
+    setCustomSchemaType('');
+    setCustomMappings({});
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -97,14 +115,10 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
 
       setAnalysisResult(data);
       
-      // Update parent component with the classification results
-      if (data.recommendedCategory) {
-        onCategorySelect(data.recommendedCategory);
-      }
-      
-      if (data.mappings) {
-        onMappingsGenerated(data.mappings, data.schemaType || 'Thing');
-      }
+      // Initialize custom values with AI recommendations
+      setCustomCategory(data.recommendedCategory);
+      setCustomSchemaType(data.schemaType || 'Thing');
+      setCustomMappings({...data.mappings});
       
       toast({
         title: "Analysis Complete",
@@ -122,15 +136,33 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     }
   };
 
+  const toggleEditMode = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const handleUpdateMapping = (field: string, column: string) => {
+    setCustomMappings(prev => ({
+      ...prev,
+      [field]: column
+    }));
+  };
+
   const applyRecommendations = () => {
     if (!analysisResult) return;
     
-    onCategorySelect(analysisResult.recommendedCategory);
-    onMappingsGenerated(analysisResult.mappings, analysisResult.schemaType);
+    // Use custom values if editing, otherwise use AI recommendations
+    const categoryToApply = isEditing ? customCategory : analysisResult.recommendedCategory;
+    const schemaTypeToApply = isEditing ? customSchemaType : analysisResult.schemaType;
+    const mappingsToApply = isEditing ? customMappings : analysisResult.mappings;
+    
+    onCategorySelect(categoryToApply);
+    onMappingsGenerated(mappingsToApply, schemaTypeToApply);
     
     toast({
       title: "Recommendations Applied",
-      description: "The AI recommendations have been applied to your import settings."
+      description: isEditing ? 
+        "Your custom settings have been applied to your import settings." :
+        "The AI recommendations have been applied to your import settings."
     });
   };
 
@@ -194,52 +226,113 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
 
         {analysisResult && (
           <div className="bg-secondary/20 p-4 rounded space-y-3">
-            <div>
-              <h3 className="text-lg font-semibold">AI Recommendations</h3>
-              <p className="text-sm text-muted-foreground">{analysisResult.explanation}</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm font-medium">Recommended Category:</span>
-                <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.recommendedCategory}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-sm font-medium">Recommended Schema Type:</span>
-                <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.schemaType}</span>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium">Suggested Mappings:</span>
-                <div className="mt-1 text-sm border border-border rounded overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="text-left py-1 px-2">Field</th>
-                        <th className="text-left py-1 px-2">Source Column</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(analysisResult.mappings).map(([field, column]) => (
-                        <tr key={field} className="border-t border-border">
-                          <td className="py-1 px-2">{field}</td>
-                          <td className="py-1 px-2">{column}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">
+                {isEditing ? 'Edit Recommendations' : 'AI Recommendations'}
+              </h3>
               <Button 
-                onClick={applyRecommendations} 
-                className="w-full mt-2"
-                variant="default"
+                variant="outline" 
+                size="sm"
+                onClick={toggleEditMode}
               >
-                Apply Recommendations
+                <Edit2 className="h-4 w-4 mr-1" />
+                {isEditing ? 'View AI Recommendations' : 'Override'}
               </Button>
             </div>
+            
+            {!isEditing && (
+              <p className="text-sm text-muted-foreground">{analysisResult.explanation}</p>
+            )}
+            
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="custom-category">Category</Label>
+                  <Select value={customCategory} onValueChange={setCustomCategory}>
+                    <SelectTrigger id="custom-category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="custom-schema">Schema Type</Label>
+                  <Select value={customSchemaType} onValueChange={setCustomSchemaType}>
+                    <SelectTrigger id="custom-schema">
+                      <SelectValue placeholder="Select schema type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SCHEMA_TYPES.map(schema => (
+                        <SelectItem key={schema} value={schema}>{schema}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Field Mappings</Label>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {Object.entries(customMappings).map(([field, column]) => (
+                      <div key={field} className="grid grid-cols-12 gap-2 items-center">
+                        <Label className="col-span-4">{field}:</Label>
+                        <Input 
+                          className="col-span-8"
+                          value={column}
+                          onChange={(e) => handleUpdateMapping(field, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Recommended Category:</span>
+                  <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.recommendedCategory}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Recommended Schema Type:</span>
+                  <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.schemaType}</span>
+                </div>
+                
+                <div>
+                  <span className="text-sm font-medium">Suggested Mappings:</span>
+                  <div className="mt-1 text-sm border border-border rounded overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left py-1 px-2">Field</th>
+                          <th className="text-left py-1 px-2">Source Column</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(analysisResult.mappings).map(([field, column]) => (
+                          <tr key={field} className="border-t border-border">
+                            <td className="py-1 px-2">{field}</td>
+                            <td className="py-1 px-2">{column}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <Button 
+              onClick={applyRecommendations} 
+              className="w-full mt-2"
+              variant="default"
+            >
+              {isEditing ? 'Apply Custom Settings' : 'Apply AI Recommendations'}
+            </Button>
           </div>
         )}
       </CardContent>

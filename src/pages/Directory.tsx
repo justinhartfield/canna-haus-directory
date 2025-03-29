@@ -20,6 +20,12 @@ const Directory = () => {
     filterUntitled: !showUntitled
   });
 
+  // Helper function to convert filter object to categories array
+  const handleFilterChange = (filters: Record<string, boolean>) => {
+    const selectedCategories = Object.keys(filters).filter(key => filters[key]);
+    handleFilter(selectedCategories);
+  };
+
   return (
     <>
       <Navbar />
@@ -34,7 +40,7 @@ const Directory = () => {
             <div className="mt-8">
               <SearchFilter
                 onSearch={handleSearch}
-                onFilter={handleFilter}
+                onFilter={handleFilterChange}
                 className="mb-8"
               />
               

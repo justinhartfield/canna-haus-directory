@@ -2,10 +2,14 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDirectoryItems } from '@/api/directoryService';
-import { DirectoryFilter } from '@/types/directory';
 
 interface UseDirectoryFiltersOptions {
   filterUntitled?: boolean;
+}
+
+export interface DirectoryFilter {
+  categories: string[];
+  searchTerm: string;
 }
 
 export const useDirectoryFilters = (options: UseDirectoryFiltersOptions = {}) => {
