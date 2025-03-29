@@ -5,8 +5,12 @@ import ApiExample from '@/components/ApiExample';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { Shield } from 'lucide-react';
 
 const Index = () => {
+  const { user } = useAuth();
+  
   // Sample data for featured directory items
   const featuredItems = [
     {
@@ -248,7 +252,7 @@ const Index = () => {
                 icon={
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="16.5" x2="7.5" y1="9.4" y2="4.21" />
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
                     <polyline points="3.29 7 12 12 20.71 7" />
                     <line x1="12" x2="12" y1="22" y2="12" />
                   </svg>
@@ -320,6 +324,17 @@ const Index = () => {
               >
                 Browse Directory
               </Link>
+              {user && (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 
+                  bg-cannabis-800 text-white hover:bg-cannabis-900 h-10 px-8 py-2"
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Admin Dashboard
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -348,4 +363,3 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) =
 };
 
 export default Index;
-
