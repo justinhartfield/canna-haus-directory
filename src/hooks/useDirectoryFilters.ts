@@ -4,11 +4,19 @@ import { useLocation } from 'react-router-dom';
 import { MOCK_DIRECTORY_DATA } from '@/data/mockDirectoryData';
 import { DirectoryItem } from '@/types/directory';
 
+// Convert the mock data to match the DirectoryItem interface
+const convertedMockData: DirectoryItem[] = MOCK_DIRECTORY_DATA.map(item => ({
+  ...item,
+  id: item.id.toString(), // Convert number id to string
+  createdAt: new Date().toISOString(), // Add missing required field
+  updatedAt: new Date().toISOString(), // Add missing required field
+}));
+
 export const useDirectoryFilters = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, boolean>>({});
-  const [filteredData, setFilteredData] = useState<DirectoryItem[]>(MOCK_DIRECTORY_DATA);
+  const [filteredData, setFilteredData] = useState<DirectoryItem[]>(convertedMockData);
   
   // Parse query parameters (for direct links to filtered categories)
   useEffect(() => {
@@ -28,7 +36,7 @@ export const useDirectoryFilters = () => {
       const category = categoryMap[categoryParam.toLowerCase()];
       if (category) {
         setActiveFilters({ [categoryParam.toLowerCase()]: true });
-        setFilteredData(MOCK_DIRECTORY_DATA.filter(item => item.category === category));
+        setFilteredData(convertedMockData.filter(item => item.category === category));
       }
     }
   }, [location.search]);
@@ -46,7 +54,7 @@ export const useDirectoryFilters = () => {
   const applyFilters = (term: string, filters: Record<string, boolean>) => {
     const filterKeys = Object.keys(filters).filter(key => filters[key]);
     
-    let result = [...MOCK_DIRECTORY_DATA];
+    let result = [...convertedMockData];
     
     // Apply search term filter
     if (term) {
@@ -84,7 +92,7 @@ export const useDirectoryFilters = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setActiveFilters({});
-    setFilteredData(MOCK_DIRECTORY_DATA);
+    setFilteredData(convertedMockData);
   };
 
   return {

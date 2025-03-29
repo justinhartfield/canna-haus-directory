@@ -8,25 +8,25 @@
 export {
   detectFileType,
   sampleFileContent,
-  parseFileContent,
-  SupportedFileType
+  parseFileContent
 } from './fileProcessing';
+export type { SupportedFileType } from './fileProcessing';
 
 // Mapping utilities
 export {
   createMappingConfigFromSample,
   generateJsonLd,
   formatJsonLdKey,
-  validateRequiredField,
-  DataMappingConfig
+  validateRequiredField
 } from './mappingUtils';
+export type { DataMappingConfig } from './mappingUtils';
 
 // Transformation utilities
 export {
   transformData,
-  transformDataRow,
-  ProcessingResult
+  transformDataRow
 } from './transformUtils';
+export type { ProcessingResult } from './transformUtils';
 
 // Import utilities
 export {
@@ -34,3 +34,4 @@ export {
   processBatchFiles,
   updateImportProgress
 } from './importUtils';
+

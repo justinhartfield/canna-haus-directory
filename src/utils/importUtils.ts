@@ -37,6 +37,56 @@ export async function processFileContent(
 }
 
 /**
+ * Process and import a single file
+ * This is used by the simple importer
+ */
+export async function processAndImportFile(
+  file: File, 
+  category: string
+): Promise<{
+  success: boolean;
+  count: number;
+  errors: string[];
+}> {
+  try {
+    // Create a simple mapping config based on the category
+    const mappingConfig: DataMappingConfig = {
+      columnMappings: {},
+      defaultValues: {
+        category
+      },
+      schemaType: 'Thing'
+    };
+    
+    // Process the file content
+    const result = await processFileContent(file, mappingConfig);
+    
+    if (!result.success) {
+      return {
+        success: false,
+        count: 0,
+        errors: result.errors.map(e => e.message)
+      };
+    }
+    
+    // Import the processed items
+    await bulkInsertDirectoryItems(result.items);
+    
+    return {
+      success: true,
+      count: result.items.length,
+      errors: []
+    };
+  } catch (error) {
+    return {
+      success: false,
+      count: 0,
+      errors: [error instanceof Error ? error.message : 'Unknown error']
+    };
+  }
+}
+
+/**
  * Process a batch of files using a common mapping configuration
  */
 export async function processBatchFiles(

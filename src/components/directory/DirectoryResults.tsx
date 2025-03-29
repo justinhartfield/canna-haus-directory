@@ -19,7 +19,7 @@ const DirectoryResults: React.FC<DirectoryResultsProps> = ({ items, onClearFilte
       {items.map((item) => (
         <DirectoryCard
           key={item.id}
-          id={item.id}
+          id={item.id.toString()}
           title={item.title}
           description={item.description}
           category={item.category}
