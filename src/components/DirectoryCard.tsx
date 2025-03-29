@@ -13,7 +13,7 @@ interface DirectoryCardProps {
   imageUrl?: string;
   jsonLd: Record<string, any>;
   className?: string;
-  id: string; // Changed from 'number' to 'string' to match Supabase types
+  id: number;
   hasExamples?: boolean;
 }
 

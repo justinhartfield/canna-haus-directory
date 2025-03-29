@@ -6,8 +6,6 @@ import SearchFilter from '@/components/SearchFilter';
 import DirectoryResults from '@/components/directory/DirectoryResults';
 import { useDirectoryFilters } from '@/hooks/useDirectoryFilters';
 
-// We don't need to redefine DirectoryItem here since we're using the one from useDirectoryFilters
-
 const Directory = () => {
   const { 
     filteredData, 

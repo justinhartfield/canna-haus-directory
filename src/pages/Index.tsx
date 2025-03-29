@@ -7,6 +7,7 @@ import DirectorySection from '@/components/home/DirectorySection';
 import ApiSection from '@/components/home/ApiSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import CtaSection from '@/components/home/CtaSection';
+import { featuredItems } from '@/components/home/FeaturedItemsData';
 
 const Index = () => {
   return (
@@ -17,7 +18,7 @@ const Index = () => {
         <Hero />
         
         {/* Featured Directory Items */}
-        <DirectorySection />
+        <DirectorySection featuredItems={featuredItems} />
         
         {/* API Section */}
         <ApiSection />

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import ActionButton from './ActionButton';
 
 interface DirectoryCardFooterProps {
-  id: string; // Changed from 'number' to 'string' to match Supabase's UUID format
+  id: number;
 }
 
 const DirectoryCardFooter: React.FC<DirectoryCardFooterProps> = ({ id }) => {

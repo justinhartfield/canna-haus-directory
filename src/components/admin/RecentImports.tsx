@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getDirectoryItems } from '@/api/directoryService';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Database } from 'lucide-react';
-import { DirectoryItem } from '@/types/directory';
 
 const RecentImports: React.FC = () => {
   const { data: items, isLoading, error } = useQuery({
@@ -71,7 +70,7 @@ const RecentImports: React.FC = () => {
             <TableBody>
               {recentItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.title || 'Untitled'}</TableCell>
+                  <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell>{item.category}</TableCell>
                   <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
                 </TableRow>
