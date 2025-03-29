@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from '@/components/ui/use-toast';
@@ -199,12 +200,24 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
       title: "Recommendations Applied",
       description: isEditing ? 
         "Your custom settings have been applied to your import settings." :
-        "The AI recommendations have been applied to your import settings."
+        "The AI recommendations have been applied to your import settings.",
+      variant: "default"
     });
   };
 
-  const handleContinueToImport = () => {
+  const handleContinueToImport = (e: React.MouseEvent) => {
+    // Prevent default behavior to avoid any form submission
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Call the onDone callback provided by the parent component
     onDone();
+    
+    toast({
+      title: "Continuing to Import",
+      description: "Moving to the import step with your configured settings.",
+      variant: "default"
+    });
   };
 
   return (
@@ -420,6 +433,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
                 onClick={handleContinueToImport} 
                 className="w-full mt-2"
                 variant="outline"
+                type="button"
               >
                 Continue to Import <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

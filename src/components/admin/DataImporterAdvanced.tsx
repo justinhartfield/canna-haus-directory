@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DataMappingConfig, processFileContent, processBatchFiles, sampleFileContent, createMappingConfigFromSample } from '@/utils/dataProcessingUtils';
 import { ImportProgress } from '@/types/directory';
-import DataImporterAI from './DataImporterAI';
+import DataImporterAI, { DataImporterAIProps } from './DataImporterAI';
 
 const DEFAULT_CATEGORIES = [
   'Strains',
@@ -231,6 +231,13 @@ const DataImporterAdvanced: React.FC = () => {
           });
         }
       }
+    } else {
+      for (const [field, column] of Object.entries(mappings)) {
+        newColumnMappings.push({
+          sourceColumn: column,
+          targetField: field
+        });
+      }
     }
     
     setColumnMappings(newColumnMappings);
@@ -239,6 +246,12 @@ const DataImporterAdvanced: React.FC = () => {
 
   const handleAiDone = () => {
     setActiveTab('simple');
+    
+    toast({
+      title: "AI Settings Applied",
+      description: "You can now upload files and start the import process.",
+      variant: "default"
+    });
   };
 
   const availableTargetFields = [
