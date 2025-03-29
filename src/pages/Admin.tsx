@@ -7,9 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
 const Admin: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const auth = useAuth();
   
-  if (isLoading) {
+  if (auth.isLoading) {
     return (
       <>
         <Navbar />
@@ -29,7 +29,7 @@ const Admin: React.FC = () => {
     );
   }
   
-  if (!user) {
+  if (!auth.user) {
     return <Navigate to="/auth" replace />;
   }
   
