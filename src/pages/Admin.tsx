@@ -3,8 +3,10 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DataImporter from '@/components/admin/DataImporter';
+import DataImporterAdvanced from '@/components/admin/DataImporterAdvanced';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const Admin: React.FC = () => {
   const auth = useAuth();
@@ -44,9 +46,20 @@ const Admin: React.FC = () => {
               Manage your data and content
             </p>
             
-            <div className="space-y-8">
-              <DataImporter />
-            </div>
+            <Tabs defaultValue="simple">
+              <TabsList className="mb-6">
+                <TabsTrigger value="simple">Simple Import</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced Import</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="simple">
+                <DataImporter />
+              </TabsContent>
+              
+              <TabsContent value="advanced">
+                <DataImporterAdvanced />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>
