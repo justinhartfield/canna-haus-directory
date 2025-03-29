@@ -9,57 +9,13 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      directory_items: {
-        Row: {
-          category: string
-          created_at: string
-          description: string
-          id: string
-          image_url: string | null
-          json_ld: Json
-          meta_data: Json | null
-          subcategory: string | null
-          tags: string[] | null
-          thumbnail_url: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          description: string
-          id?: string
-          image_url?: string | null
-          json_ld: Json
-          meta_data?: Json | null
-          subcategory?: string | null
-          tags?: string[] | null
-          thumbnail_url?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          description?: string
-          id?: string
-          image_url?: string | null
-          json_ld?: Json
-          meta_data?: Json | null
-          subcategory?: string | null
-          tags?: string[] | null
-          thumbnail_url?: string | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           full_name: string | null
           id: string
+          role: string
           updated_at: string
           username: string | null
           website: string | null
@@ -69,6 +25,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          role?: string
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -78,6 +35,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          role?: string
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -113,7 +71,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          required_role: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

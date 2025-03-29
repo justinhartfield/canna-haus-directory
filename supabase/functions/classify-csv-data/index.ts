@@ -16,7 +16,7 @@ serve(async (req) => {
   }
   
   try {
-    const { sampleData, availableCategories } = await req.json();
+    const { sampleData, availableFields } = await req.json();
     
     if (!sampleData || !Array.isArray(sampleData) || sampleData.length === 0) {
       throw new Error("No sample data provided");
@@ -25,32 +25,27 @@ serve(async (req) => {
     // Convert the sample data to a string representation
     const sampleDataString = JSON.stringify(sampleData[0], null, 2);
     
-    // Prepare available categories as comma-separated string
-    const categoriesString = Array.isArray(availableCategories) 
-      ? availableCategories.join(", ") 
-      : "Strains, Medical, Extraction, Cultivation, Dispensaries, Lab Data, Compliance, Products, Educational";
+    // Prepare available fields as comma-separated string
+    const fieldsString = Array.isArray(availableFields) 
+      ? availableFields.join(", ") 
+      : "title, description, category, subcategory, tags, imageUrl, thumbnailUrl";
     
     // Construct the prompt for OpenAI
     const systemPrompt = `
-    You are a data categorization assistant that specializes in cannabis industry data. 
-    Your task is to analyze CSV/Excel data and determine the best category for it.
+    You are a data analysis assistant that specializes in mapping CSV/Excel columns to API fields.
+    Your task is to analyze the column headers and a sample row from a data file, and determine the best mapping to standard API fields.
+    
     You'll be provided with a sample row from a CSV/Excel file, and you need to:
     
     1. Analyze the column headers and values
-    2. Determine which of the following categories is the best fit: ${categoriesString}
-    3. Provide a brief explanation for your choice
-    4. Suggest appropriate column mappings for the primary fields (title, description, subcategory, etc.)
-    5. Recommend the most appropriate Schema.org type for this data
+    2. Map each column to the most appropriate API field from the following list: ${fieldsString}
+    3. Suggest the most appropriate Schema.org type for this data
     
     Respond with JSON in this format:
     {
-      "recommendedCategory": "category name",
-      "explanation": "brief explanation why this is the appropriate category",
       "mappings": {
-        "title": "column name for title",
-        "description": "column name for description",
-        "subcategory": "column name for subcategory",
-        "tags": "column name for tags"
+        "apiField1": "columnName1",
+        "apiField2": "columnName2"
       },
       "schemaType": "recommended schema.org type"
     }

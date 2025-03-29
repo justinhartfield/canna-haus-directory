@@ -16,6 +16,8 @@ export interface DirectoryItem {
   createdAt: string;
   updatedAt: string;
   metaData?: Record<string, any>;
+  // New field to store additional data that doesn't match existing fields
+  additionalFields?: Record<string, any>;
 }
 
 export interface DirectoryCategory {
@@ -42,4 +44,19 @@ export interface ImportProgress {
     error: string;
   }>;
   status: 'idle' | 'processing' | 'complete' | 'error';
+}
+
+// The structure for column mapping
+export interface ColumnMapping {
+  sourceColumn: string;
+  targetField: string;
+  isCustomField: boolean;
+  sampleData?: string;
+}
+
+// The import analysis result
+export interface ImportAnalysis {
+  suggestedMappings: ColumnMapping[];
+  unmappedColumns: string[];
+  sampleData: Record<string, any>;
 }

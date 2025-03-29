@@ -2,15 +2,7 @@
 import React from 'react';
 import DirectoryCard from '@/components/DirectoryCard';
 import NoResultsView from './NoResultsView';
-
-interface DirectoryItem {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  jsonLd: Record<string, any>;
-  hasExamples?: boolean;
-}
+import { DirectoryItem } from '@/types/directory';
 
 interface DirectoryResultsProps {
   items: DirectoryItem[];
@@ -32,7 +24,7 @@ const DirectoryResults: React.FC<DirectoryResultsProps> = ({ items, onClearFilte
           description={item.description}
           category={item.category}
           jsonLd={item.jsonLd}
-          hasExamples={item.hasExamples}
+          hasExamples={!!item.additionalFields && Object.keys(item.additionalFields).length > 0}
         />
       ))}
     </div>
