@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDirectoryItems } from '@/api/directoryService';
+import { DirectoryItem } from '@/types/directory';
 
 interface UseDirectoryFiltersOptions {
   filterUntitled?: boolean;
@@ -25,7 +26,7 @@ export const useDirectoryFilters = (options: UseDirectoryFiltersOptions = {}) =>
   });
 
   // Filter data based on search term and categories
-  const filteredData = allItems.filter((item) => {
+  const filteredData = allItems.filter((item: DirectoryItem) => {
     // Filter out "Untitled Item" if specified
     if (filterUntitled && item.title === "Untitled Item") {
       return false;

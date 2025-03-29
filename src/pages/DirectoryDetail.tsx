@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -10,27 +11,21 @@ import ExtractionTechniquesExamples from '@/components/directory/examples/Extrac
 import DefaultExamples from '@/components/directory/examples/DefaultExamples';
 import JsonLdDisplay from '@/components/directory/JsonLdDisplay';
 import ImplementationGuide from '@/components/directory/ImplementationGuide';
+import { getDirectoryItemById } from '@/api/directoryService';
+import { useQuery } from '@tanstack/react-query';
+import { DirectoryItem } from '@/types/directory';
 
 const DirectoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [item, setItem] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: item, isLoading, error } = useQuery({
+    queryKey: ['directory-item', id],
+    queryFn: () => id ? getDirectoryItemById(id) : Promise.reject('No ID provided'),
+    enabled: !!id,
+  });
 
-  useEffect(() => {
-    // In a real app, this would be an API call
-    if (id) {
-      const numId = parseInt(id, 10);
-      const found = MOCK_DIRECTORY_DATA.find(item => item.id === numId);
-      
-      if (found) {
-        setItem(found);
-      }
-      setLoading(false);
-    }
-  }, [id]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <>
         <Navbar />

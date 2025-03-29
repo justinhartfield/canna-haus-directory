@@ -27,11 +27,6 @@ export interface DirectoryCategory {
   iconName?: string;
 }
 
-export interface DirectoryFilter {
-  categories: boolean[];
-  searchTerm: string;
-}
-
 export interface ImportProgress {
   totalFiles: number;
   processedFiles: number;

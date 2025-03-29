@@ -1,25 +1,11 @@
+
 import React from 'react';
 import DirectoryCard from '@/components/DirectoryCard';
 import { Link } from 'react-router-dom';
-
-interface DirectoryItem {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  jsonLd: Record<string, any>;
-  hasExamples?: boolean;
-}
+import { DirectoryItem } from '@/types/directory';
 
 interface DirectorySectionProps {
-  featuredItems: Array<{
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    jsonLd: Record<string, any>;
-    hasExamples?: boolean;
-  }>;
+  featuredItems: DirectoryItem[];
 }
 
 const DirectorySection: React.FC<DirectorySectionProps> = ({ featuredItems }) => {
