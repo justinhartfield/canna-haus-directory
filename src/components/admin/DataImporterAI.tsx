@@ -233,7 +233,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
       toast({
         title: "Warning: Unmapped Columns",
         description: `${unmappedColumns.length} columns are not mapped: ${unmappedColumns.join(", ")}`,
-        variant: "warning"
+        variant: "destructive"
       });
     }
     

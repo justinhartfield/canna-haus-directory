@@ -259,7 +259,8 @@ const DataImporterAdvanced: React.FC = () => {
 
   // Handle switching back from AI tab
   const handleAiDone = () => {
-    setActiveTab('simple');
+    // Change from 'simple' to 'advanced' to show the mapping UI after AI analysis
+    setActiveTab('advanced');
   };
 
   // Available target fields for mapping
