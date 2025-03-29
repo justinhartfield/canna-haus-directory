@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { sampleFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Edit2 } from 'lucide-react';
+import { Loader2, Edit2, Plus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,6 +36,8 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
   const [customCategory, setCustomCategory] = useState('');
   const [customSchemaType, setCustomSchemaType] = useState('');
   const [customMappings, setCustomMappings] = useState<Record<string, string>>({});
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newColumnName, setNewColumnName] = useState('');
 
   const DEFAULT_CATEGORIES = [
     'Strains',
@@ -147,13 +149,51 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     }));
   };
 
+  const handleAddNewMapping = () => {
+    if (!newFieldName.trim() || !newColumnName.trim()) {
+      toast({
+        title: "Invalid Input",
+        description: "Both field name and column name are required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCustomMappings(prev => ({
+      ...prev,
+      [newFieldName.trim()]: newColumnName.trim()
+    }));
+
+    // Reset input fields
+    setNewFieldName('');
+    setNewColumnName('');
+
+    toast({
+      title: "Mapping Added",
+      description: `${newFieldName} ➝ ${newColumnName} added to mappings`
+    });
+  };
+
+  const handleRemoveMapping = (field: string) => {
+    setCustomMappings(prev => {
+      const updated = { ...prev };
+      delete updated[field];
+      return updated;
+    });
+
+    toast({
+      title: "Mapping Removed",
+      description: `${field} mapping has been removed`
+    });
+  };
+
   const applyRecommendations = () => {
-    if (!analysisResult) return;
+    if (!analysisResult && !isEditing) return;
     
     // Use custom values if editing, otherwise use AI recommendations
-    const categoryToApply = isEditing ? customCategory : analysisResult.recommendedCategory;
-    const schemaTypeToApply = isEditing ? customSchemaType : analysisResult.schemaType;
-    const mappingsToApply = isEditing ? customMappings : analysisResult.mappings;
+    const categoryToApply = isEditing ? customCategory : analysisResult?.recommendedCategory || '';
+    const schemaTypeToApply = isEditing ? customSchemaType : analysisResult?.schemaType || 'Thing';
+    const mappingsToApply = isEditing ? customMappings : (analysisResult?.mappings || {});
     
     onCategorySelect(categoryToApply);
     onMappingsGenerated(mappingsToApply, schemaTypeToApply);
@@ -224,7 +264,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
           </div>
         )}
 
-        {analysisResult && (
+        {(analysisResult || isEditing) && (
           <div className="bg-secondary/20 p-4 rounded space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">
@@ -240,7 +280,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
               </Button>
             </div>
             
-            {!isEditing && (
+            {!isEditing && analysisResult && (
               <p className="text-sm text-muted-foreground">{analysisResult.explanation}</p>
             )}
             
@@ -275,55 +315,94 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Field Mappings</Label>
+                  <div className="flex justify-between items-center">
+                    <Label>Field Mappings</Label>
+                  </div>
+                  
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {Object.entries(customMappings).map(([field, column]) => (
                       <div key={field} className="grid grid-cols-12 gap-2 items-center">
                         <Label className="col-span-4">{field}:</Label>
                         <Input 
-                          className="col-span-8"
+                          className="col-span-7"
                           value={column}
                           onChange={(e) => handleUpdateMapping(field, e.target.value)}
                         />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="col-span-1"
+                          onClick={() => handleRemoveMapping(field)}
+                        >
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     ))}
+                  </div>
+                  
+                  <div className="pt-2 border-t mt-2">
+                    <Label className="mb-2 block">Add New Field Mapping</Label>
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <Input 
+                        className="col-span-4"
+                        placeholder="Field name"
+                        value={newFieldName}
+                        onChange={(e) => setNewFieldName(e.target.value)}
+                      />
+                      <Input 
+                        className="col-span-7"
+                        placeholder="Column name"
+                        value={newColumnName}
+                        onChange={(e) => setNewColumnName(e.target.value)}
+                      />
+                      <Button 
+                        variant="ghost"
+                        size="icon"
+                        className="col-span-1"
+                        onClick={handleAddNewMapping}
+                      >
+                        <Plus className="h-4 w-4 text-primary" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Recommended Category:</span>
-                  <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.recommendedCategory}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Recommended Schema Type:</span>
-                  <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.schemaType}</span>
-                </div>
-                
-                <div>
-                  <span className="text-sm font-medium">Suggested Mappings:</span>
-                  <div className="mt-1 text-sm border border-border rounded overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="text-left py-1 px-2">Field</th>
-                          <th className="text-left py-1 px-2">Source Column</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(analysisResult.mappings).map(([field, column]) => (
-                          <tr key={field} className="border-t border-border">
-                            <td className="py-1 px-2">{field}</td>
-                            <td className="py-1 px-2">{column}</td>
+              analysisResult && (
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Recommended Category:</span>
+                    <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.recommendedCategory}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Recommended Schema Type:</span>
+                    <span className="text-sm bg-primary/20 px-2 py-1 rounded">{analysisResult.schemaType}</span>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium">Suggested Mappings:</span>
+                    <div className="mt-1 text-sm border border-border rounded overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="text-left py-1 px-2">Field</th>
+                            <th className="text-left py-1 px-2">Source Column</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {Object.entries(analysisResult.mappings).map(([field, column]) => (
+                            <tr key={field} className="border-t border-border">
+                              <td className="py-1 px-2">{field}</td>
+                              <td className="py-1 px-2">{column}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )
             )}
             
             <Button 
