@@ -1,18 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
+import React from 'react';
+import { DataMappingConfig, processFileContent } from '@/utils/dataProcessingUtils';
+import { DirectoryItem } from '@/types/directory';
 import { toast } from '@/hooks/use-toast';
-import { AlertTriangle, Check, Loader2, RefreshCw } from 'lucide-react';
-import { sampleFileContent, processFileContent, DataMappingConfig } from '@/utils/dataProcessingUtils';
-import { ImportAnalysis, ColumnMapping, DirectoryItem } from '@/types/directory';
-import { supabase } from '@/integrations/supabase/client';
+import { useColumnMapper } from '@/hooks/useColumnMapper';
+
+// Import the extracted components
+import MappingHeader from './MappingHeader';
+import CategorySchemaSelector from './CategorySchemaSelector';
+import ColumnMappingSection from './ColumnMappingSection';
+import ProcessingControls from './ProcessingControls';
+import AnalyzingState from './AnalyzingState';
+import AnalysisErrorState from './AnalysisErrorState';
 
 interface AIColumnMapperProps {
   file: {
@@ -24,173 +23,48 @@ interface AIColumnMapperProps {
   category?: string;
 }
 
+// Schema type options
+const SCHEMA_TYPE_OPTIONS = [
+  'Thing', 'Product', 'Event', 'Organization', 'Person', 'Place',
+  'CreativeWork', 'Article', 'MedicalEntity', 'Drug', 'Store'
+];
+
+// Default category options
+const DEFAULT_CATEGORIES = [
+  'Strains', 'Medical', 'Extraction', 'Cultivation',
+  'Dispensaries', 'Lab Data', 'Compliance', 'Products', 'Educational'
+];
+
 const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   file,
   onComplete,
   onCancel,
   category = 'Uncategorized'
 }) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [analysis, setAnalysis] = useState<ImportAnalysis | null>(null);
-  const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
-  const [schemaType, setSchemaType] = useState('Thing');
-  const [selectedCategory, setSelectedCategory] = useState(category);
-  const [customFields, setCustomFields] = useState<Record<string, string>>({});
-  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
-  const [manualMappingMode, setManualMappingMode] = useState(false);
-
-  const DEFAULT_CATEGORIES = [
-    'Strains', 'Medical', 'Extraction', 'Cultivation',
-    'Dispensaries', 'Lab Data', 'Compliance', 'Products', 'Educational'
-  ];
-
-  // Available target fields for mapping
-  const availableTargetFields = [
-    { value: 'title', label: 'Title' },
-    { value: 'description', label: 'Description' },
-    { value: 'subcategory', label: 'Subcategory' },
-    { value: 'tags', label: 'Tags' },
-    { value: 'imageUrl', label: 'Image URL' },
-    { value: 'thumbnailUrl', label: 'Thumbnail URL' }
-  ];
-
-  // Schema type options
-  const schemaTypeOptions = [
-    'Thing', 'Product', 'Event', 'Organization', 'Person', 'Place',
-    'CreativeWork', 'Article', 'MedicalEntity', 'Drug', 'Store'
-  ];
-
-  // Analyze file on component mount
-  useEffect(() => {
-    analyzeFile();
-  }, []);
-
-  const analyzeFile = async () => {
-    setIsAnalyzing(true);
-    try {
-      // Sample the file to get some representative data
-      const sampleRows = await sampleFileContent(file.file, 3);
-      
-      if (sampleRows.length === 0) {
-        throw new Error("Couldn't extract data from the file.");
-      }
-
-      // Store available columns for manual mapping
-      setAvailableColumns(Object.keys(sampleRows[0]));
-
-      // Call the edge function to classify the data
-      const { data, error } = await supabase.functions.invoke('classify-csv-data', {
-        body: {
-          sampleData: sampleRows,
-          availableCategories: DEFAULT_CATEGORIES
-        }
-      });
-
-      if (error) {
-        throw new Error(`Error calling classification function: ${error.message}`);
-      }
-
-      if (!data) {
-        throw new Error("No classification data returned.");
-      }
-
-      // Convert AI response to our format
-      const suggestedMappings: ColumnMapping[] = [];
-      const aiMappings = data.mappings || {};
-      
-      // Get all columns from the sample data
-      const columns = Object.keys(sampleRows[0]);
-      const mappedColumns = new Set(Object.values(aiMappings));
-      
-      // Add mapped columns
-      for (const [targetField, sourceColumn] of Object.entries(aiMappings)) {
-        suggestedMappings.push({
-          sourceColumn: sourceColumn as string,
-          targetField,
-          isCustomField: !availableTargetFields.some(f => f.value === targetField),
-          sampleData: sampleRows[0][sourceColumn as string]
-        });
-      }
-      
-      // Add unmapped columns
-      const unmappedColumns = columns.filter(col => !mappedColumns.has(col));
-      
-      const aiAnalysis: ImportAnalysis = {
-        suggestedMappings,
-        unmappedColumns,
-        sampleData: sampleRows[0]
-      };
-      
-      setAnalysis(aiAnalysis);
-      setColumnMappings(suggestedMappings);
-      setSelectedCategory(data.recommendedCategory || category);
-      setSchemaType(data.schemaType || 'Thing');
-      
-      toast({
-        title: "Analysis Complete",
-        description: `AI suggests ${data.recommendedCategory} category with ${suggestedMappings.length} mapped fields`,
-      });
-    } catch (error) {
-      console.error("Error analyzing file:", error);
-      toast({
-        title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
-      });
-      
-      // If AI analysis fails, set up for manual mapping
-      setManualMappingMode(true);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleMappingChange = (index: number, targetField: string) => {
-    const newMappings = [...columnMappings];
-    newMappings[index].targetField = targetField;
-    newMappings[index].isCustomField = !availableTargetFields.some(f => f.value === targetField);
-    setColumnMappings(newMappings);
-  };
-
-  const handleCustomFieldNameChange = (sourceColumn: string, customName: string) => {
-    setCustomFields({
-      ...customFields,
-      [sourceColumn]: customName
-    });
-  };
-
-  const handleSourceColumnChange = (index: number, sourceColumn: string) => {
-    const newMappings = [...columnMappings];
-    newMappings[index].sourceColumn = sourceColumn;
-    newMappings[index].sampleData = analysis?.sampleData[sourceColumn];
-    setColumnMappings(newMappings);
-  };
-
-  const handleAddMapping = () => {
-    if (availableColumns.length === 0) return;
-    
-    setColumnMappings([
-      ...columnMappings,
-      {
-        sourceColumn: availableColumns[0],
-        targetField: '',
-        isCustomField: false,
-        sampleData: analysis?.sampleData[availableColumns[0]]
-      }
-    ]);
-  };
-
-  const handleRemoveMapping = (index: number) => {
-    const newMappings = [...columnMappings];
-    newMappings.splice(index, 1);
-    setColumnMappings(newMappings);
-  };
-
-  const toggleManualMode = () => {
-    setManualMappingMode(!manualMappingMode);
-  };
+  // Use our custom hook for most of the component's logic
+  const {
+    isAnalyzing,
+    isProcessing,
+    setIsProcessing,
+    progress,
+    setProgress,
+    analysis,
+    columnMappings,
+    schemaType,
+    setSchemaType,
+    selectedCategory,
+    setSelectedCategory,
+    customFields,
+    availableColumns,
+    manualMappingMode,
+    handleMappingChange,
+    handleCustomFieldNameChange,
+    handleSourceColumnChange,
+    handleAddMapping,
+    handleRemoveMapping,
+    toggleManualMode,
+    analyzeFile
+  } = useColumnMapper({ file, category });
 
   const handleProcessFile = async () => {
     setIsProcessing(true);
@@ -250,213 +124,57 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   };
 
   if (isAnalyzing) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p>Analyzing file with AI...</p>
-      </div>
-    );
+    return <AnalyzingState />;
   }
 
   if (!analysis && !manualMappingMode) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 space-y-4">
-        <AlertTriangle className="h-8 w-8 text-destructive" />
-        <p>Failed to analyze file. Please try again or use manual mapping.</p>
-        <div className="flex space-x-4">
-          <Button onClick={analyzeFile}>Retry Analysis</Button>
-          <Button onClick={() => setManualMappingMode(true)} variant="secondary">Manual Mapping</Button>
-          <Button onClick={onCancel} variant="outline">Go Back</Button>
-        </div>
-      </div>
+      <AnalysisErrorState 
+        onRetry={analyzeFile}
+        onManualMapping={() => setManualMappingMode(true)}
+        onCancel={onCancel}
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Data Mapping Configuration</h3>
-        {!manualMappingMode && analysis && (
-          <Button variant="outline" size="sm" onClick={toggleManualMode} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            {manualMappingMode ? "Use AI Suggestions" : "Manual Override"}
-          </Button>
-        )}
-      </div>
+      <MappingHeader 
+        title="Data Mapping Configuration"
+        manualMappingMode={manualMappingMode}
+        onToggleMode={toggleManualMode}
+        showModeToggle={!manualMappingMode && analysis !== null}
+      />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Select 
-            value={selectedCategory} 
-            onValueChange={setSelectedCategory}
-            disabled={isProcessing}
-          >
-            <SelectTrigger id="category">
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {DEFAULT_CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="schemaType">Schema Type</Label>
-          <Select 
-            value={schemaType} 
-            onValueChange={setSchemaType}
-            disabled={isProcessing}
-          >
-            <SelectTrigger id="schemaType">
-              <SelectValue placeholder="Select schema type" />
-            </SelectTrigger>
-            <SelectContent>
-              {schemaTypeOptions.map(type => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <CategorySchemaSelector
+        selectedCategory={selectedCategory}
+        schemaType={schemaType}
+        onCategoryChange={setSelectedCategory}
+        onSchemaTypeChange={setSchemaType}
+        isProcessing={isProcessing}
+        categories={DEFAULT_CATEGORIES}
+        schemaTypes={SCHEMA_TYPE_OPTIONS}
+      />
       
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <Label>Column Mappings</Label>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={handleAddMapping}
-            disabled={isProcessing}
-          >
-            Add Mapping
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {manualMappingMode 
-            ? "Configure your column mappings manually" 
-            : "Review AI-suggested mappings and adjust if needed"}
-        </p>
-        
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="max-h-80 overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Source Column</TableHead>
-                    <TableHead>Map To</TableHead>
-                    <TableHead>Custom Field Name</TableHead>
-                    <TableHead>Sample Value</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {columnMappings.map((mapping, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        {manualMappingMode ? (
-                          <Select
-                            value={mapping.sourceColumn}
-                            onValueChange={(value) => handleSourceColumnChange(index, value)}
-                            disabled={isProcessing}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select column" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableColumns.map(col => (
-                                <SelectItem key={col} value={col}>{col}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          mapping.sourceColumn
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={mapping.targetField}
-                          onValueChange={(value) => handleMappingChange(index, value)}
-                          disabled={isProcessing}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">-- Ignore --</SelectItem>
-                            {availableTargetFields.map(field => (
-                              <SelectItem key={field.value} value={field.value}>
-                                {field.label}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="custom">Custom Field</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {mapping.isCustomField && (
-                          <Input
-                            value={customFields[mapping.sourceColumn] || ''}
-                            onChange={(e) => handleCustomFieldNameChange(mapping.sourceColumn, e.target.value)}
-                            placeholder="Field name"
-                            disabled={isProcessing}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {mapping.sampleData}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveMapping(index)}
-                          disabled={isProcessing}
-                        >
-                          <AlertTriangle className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ColumnMappingSection
+        columnMappings={columnMappings}
+        availableColumns={availableColumns}
+        customFields={customFields}
+        manualMappingMode={manualMappingMode}
+        isProcessing={isProcessing}
+        onMappingChange={handleMappingChange}
+        onCustomFieldNameChange={handleCustomFieldNameChange}
+        onSourceColumnChange={handleSourceColumnChange}
+        onRemoveMapping={handleRemoveMapping}
+        onAddMapping={handleAddMapping}
+      />
       
-      {isProcessing && (
-        <div className="space-y-2">
-          <Label>Processing File</Label>
-          <Progress value={progress} className="h-2" />
-        </div>
-      )}
-      
-      <div className="flex justify-between space-x-2 pt-2">
-        <Button variant="outline" onClick={onCancel} disabled={isProcessing}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleProcessFile} 
-          disabled={isProcessing}
-          className="gap-2"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Check className="h-4 w-4" />
-              Process File
-            </>
-          )}
-        </Button>
-      </div>
+      <ProcessingControls
+        isProcessing={isProcessing}
+        progress={progress}
+        onProcess={handleProcessFile}
+        onCancel={onCancel}
+      />
     </div>
   );
 };
