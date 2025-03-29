@@ -2,18 +2,19 @@
 import React from 'react';
 import DirectoryCard from '@/components/DirectoryCard';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getDirectoryItems } from '@/api/directoryService';
+import { DirectoryItem } from '@/types/directory';
 
-interface DirectorySectionProps {
-  featuredItems: Array<{
-    id: number;
-    title: string;
-    description: string;
-    category: string;
-    jsonLd: Record<string, any>;
-  }>;
-}
+const DirectorySection: React.FC = () => {
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['directory-items-featured'],
+    queryFn: getDirectoryItems,
+  });
 
-const DirectorySection: React.FC<DirectorySectionProps> = ({ featuredItems }) => {
+  // Just take the first 3 items for featured display
+  const featuredItems = items.slice(0, 3);
+
   return (
     <section className="py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
@@ -28,16 +29,32 @@ const DirectorySection: React.FC<DirectorySectionProps> = ({ featuredItems }) =>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuredItems.map((item) => (
-            <DirectoryCard
-              key={item.id}
-              id={item.id}
-              title={item.title}
-              description={item.description}
-              category={item.category}
-              jsonLd={item.jsonLd}
-            />
-          ))}
+          {isLoading ? (
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="rounded-lg border bg-card text-card-foreground shadow animate-pulse">
+                <div className="p-6 space-y-4">
+                  <div className="h-5 bg-muted rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                </div>
+              </div>
+            ))
+          ) : featuredItems.length > 0 ? (
+            featuredItems.map((item) => (
+              <DirectoryCard
+                key={item.id}
+                id={item.id}
+                title={item.title || 'Untitled'}
+                description={item.description || 'No description available'}
+                category={item.category}
+                jsonLd={item.jsonLd}
+              />
+            ))
+          ) : (
+            <div className="col-span-3 text-center p-12">
+              <p className="text-muted-foreground">No directory entries found. Import some data to see it here.</p>
+            </div>
+          )}
         </div>
         
         <div className="mt-10 text-center">
