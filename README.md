@@ -78,27 +78,18 @@ You can easily deploy this project to Netlify by following these steps:
    - Click "Add new site" > "Import an existing project".
    - Connect to your Git provider and select your repository.
 
-3. **Troubleshooting "No results found" for Branch selection**:
-   - If you see "No results found" in the branch dropdown:
-     - Make sure your repository has at least one branch (usually `main` or `master`)
-     - Try creating a new branch if you only have the default one: `git checkout -b production && git push -u origin production`
-     - Ensure Netlify has proper permissions to access your repository
-     - Try disconnecting and reconnecting your Git provider in Netlify
-     - If using GitHub, check that the Netlify GitHub app has access to the repository
-   - You can also manually type your branch name (e.g., `main`) even if it doesn't appear in the dropdown
-
-4. **Configure the build settings**:
+3. **Configure the build settings**:
    - Build command: `npm run build`
    - Publish directory: `dist`
-   - Node version: Set to 18 or higher (in the Environment variables section, add `NODE_VERSION` with value `18`)
+   - Node version: Set to 18 or higher
 
-5. **Deploy**: Click "Deploy site" to start the deployment process.
+4. **Deploy**: Click "Deploy site" to start the deployment process.
 
-6. **Custom domain (optional)**: 
+5. **Custom domain (optional)**: 
    - Once deployed, go to "Domain settings" to add your custom domain.
    - Add the domain and follow the instructions to set up DNS records.
 
-7. **Environment variables (if needed)**:
+6. **Environment variables (if needed)**:
    - If your app uses environment variables, add them in the Netlify dashboard under "Site settings" > "Environment variables".
 
 After deployment, Netlify will automatically rebuild your site when you push changes to your repository.

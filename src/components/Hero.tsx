@@ -1,54 +1,59 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
-const Hero = () => {
+interface HeroProps {
+  className?: string;
+}
+
+const Hero: React.FC<HeroProps> = ({ className }) => {
   return (
-    <section className="relative py-20 lg:py-32 overflow-hidden">
-      {/* Background with gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-radial from-visual-900/30 via-background to-background z-0"></div>
-      
-      {/* Floating elements for visual interest */}
-      <div className="absolute top-20 left-10 w-32 h-32 bg-visual-500/10 rounded-full blur-3xl animate-float"></div>
-      <div className="absolute bottom-20 right-10 w-40 h-40 bg-visual-700/10 rounded-full blur-3xl animate-float delay-700"></div>
-      
-      <div className="container relative z-10 mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <span className="inline-block bg-visual-900/80 text-visual-200 text-xs font-medium px-3 py-1 rounded-full mb-4">
-            Cannabis Photography for AI
+    <div className={cn(
+      "relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24",
+      className
+    )}>
+      {/* Background elements */}
+      <div className="absolute top-0 left-0 right-0 h-full">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1400px] h-full">
+          <div className="absolute top-1/3 -left-64 w-96 h-96 bg-cannabis-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/3 -right-64 w-96 h-96 bg-cannabis-500/10 rounded-full blur-3xl"></div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="max-w-4xl mx-auto text-center">
+          <span className="inline-block animate-slide-down opacity-0 animation-delay-200 bg-cannabis-100 dark:bg-cannabis-900/40 text-cannabis-800 dark:text-cannabis-200 text-xs font-medium px-3 py-1 rounded-full mb-4" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
+            The First AI-Ready Cannabis Directory
           </span>
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 gradient-text">
-            Premium Cannabis Visuals
+          <h1 className="animate-slide-down opacity-0 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-balance" style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}>
+            Structured Cannabis Data <br className="hidden sm:block" />
+            <span className="text-cannabis-600 dark:text-cannabis-400">Built for AI Consumption</span>
           </h1>
           
-          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-            High-quality, AI-ready imagery with structured metadata for researchers, marketers, and developers building the future of cannabis technology.
+          <p className="animate-slide-down opacity-0 text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-balance" style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}>
+            A standardized, open data platform featuring cannabis genetics, lab tests, medical conditions, and compliance information - all optimized for AI integration and analysis.
           </p>
           
-          <div className="relative max-w-xl mx-auto mb-8">
-            <Input 
-              type="text" 
-              placeholder="Search for cannabis strain images, cultivation photos..." 
-              className="w-full h-12 pl-12 pr-4 rounded-full bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-400 focus:ring-visual-500"
-            />
-            <Search className="absolute top-3 left-4 h-5 w-5 text-gray-400" />
-          </div>
-          
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Link to="/categories" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">#Strains</Link>
-            <Link to="/categories" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">#Cultivation</Link>
-            <Link to="/categories" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">#Extraction</Link>
-            <Link to="/categories" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">#Dispensaries</Link>
-            <Link to="/categories" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">#Products</Link>
-            <Link to="/categories" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">#Laboratory</Link>
+          <div className="animate-slide-down opacity-0 flex flex-col sm:flex-row gap-4 justify-center" style={{ animationDelay: '800ms', animationFillMode: 'forwards' }}>
+            <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 
+            bg-cannabis-600 text-white hover:bg-cannabis-700 h-10 px-8 py-2 relative overflow-hidden group">
+              <span className="relative z-10">Explore Directory</span>
+              <span className="absolute inset-0 bg-cannabis-700 translate-y-[101%] group-hover:translate-y-0 transition-transform duration-300"></span>
+            </button>
+            
+            <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 
+            border border-cannabis-200 dark:border-cannabis-800 bg-transparent hover:bg-cannabis-50 dark:hover:bg-cannabis-900/40 text-cannabis-800 dark:text-cannabis-200 
+            h-10 px-8 py-2">
+              API Documentation
+            </button>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

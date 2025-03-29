@@ -63,18 +63,18 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				visual: {
-					'50': '#f5f3ff',
-					'100': '#ede9fe',
-					'200': '#ddd6fe',
-					'300': '#c4b5fd',
-					'400': '#a78bfa',
-					'500': '#8b5cf6',
-					'600': '#7c3aed',
-					'700': '#6d28d9',
-					'800': '#5b21b6',
-					'900': '#4c1d95',
-					'950': '#2e1065',
+				cannabis: {
+					'50': '#f2f7f5',
+					'100': '#e2efe8',
+					'200': '#c8e0d3',
+					'300': '#a2c9b5',
+					'400': '#77ac93',
+					'500': '#578f75',
+					'600': '#43735d',
+					'700': '#365c4b',
+					'800': '#2f4c3f',
+					'900': '#274035',
+					'950': '#142219',
 				}
 			},
 			borderRadius: {
@@ -106,10 +106,6 @@ export default {
 				pulse: {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.5' }
-				},
-				float: {
-					'0%, 100%': { transform: 'translateY(0)' },
-					'50%': { transform: 'translateY(-10px)' }
 				}
 			},
 			animation: {
@@ -119,7 +115,6 @@ export default {
 				'slide-up': 'slideUp 0.6s ease-out',
 				'slide-down': 'slideDown 0.6s ease-out',
 				'pulse-slow': 'pulse 3s ease-in-out infinite',
-				'float': 'float 6s ease-in-out infinite',
 			},
 			backdropBlur: {
 				xs: '2px',
@@ -127,12 +122,6 @@ export default {
 			fontFamily: {
 				sans: ['SF Pro Display', 'system-ui', 'sans-serif'],
 				mono: ['SF Mono', 'monospace'],
-			},
-			backgroundImage: {
-				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-				'gradient-visual': 'linear-gradient(to right, #243949 0%, #517fa4 100%)',
-				'gradient-purple': 'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)',
-				'gradient-dark': 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
 			}
 		}
 	},
