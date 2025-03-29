@@ -4,11 +4,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AuthButtons } from './AuthButtons';
 import { useAuth } from '@/context/AuthContext';
+import { Menu, X } from 'lucide-react'; // Import icons for mobile menu
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+  
+  // Log the user object to check if it's properly loaded
+  console.log("Current user in Navbar:", user);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -59,6 +64,7 @@ const Navbar: React.FC = () => {
             <span className="hidden sm:inline-block">CannaHaus</span>
           </Link>
           
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             {allLinks.map((link) => (
               <Link
@@ -76,10 +82,44 @@ const Navbar: React.FC = () => {
             ))}
           </nav>
           
+          {/* Mobile menu button */}
+          <div className="flex md:hidden">
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-muted-foreground p-2"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+          
           <div className="flex items-center space-x-2">
             <AuthButtons />
           </div>
         </div>
+        
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="md:hidden pt-4 pb-3">
+            <nav className="flex flex-col space-y-4">
+              {allLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary py-2",
+                    location.pathname === link.path 
+                      ? "text-primary" 
+                      : "text-muted-foreground"
+                  )}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

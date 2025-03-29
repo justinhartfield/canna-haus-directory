@@ -13,16 +13,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
 
+  // Add console log to debug authentication state
+  console.log("ProtectedRoute state:", { user: !!user, loading, authChecked });
+
   useEffect(() => {
     // Only redirect if not loading and no user
     if (!loading) {
       setAuthChecked(true);
       if (!user) {
+        console.log("User not authenticated, redirecting to /auth");
         toast.error("You need to sign in to access this page", {
           duration: 3000,
           position: "top-center",
         });
         navigate("/auth", { replace: true });
+      } else {
+        console.log("User is authenticated, allowing access");
       }
     }
   }, [loading, user, navigate]);
@@ -37,6 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Second check as a fallback - if no user and not loading, redirect
   if (!user) {
+    console.log("Fallback redirect triggered in ProtectedRoute");
     return <Navigate to="/auth" replace />;
   }
 
