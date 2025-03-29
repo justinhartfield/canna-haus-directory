@@ -2,14 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MOCK_DIRECTORY_DATA } from '@/data/mockDirectoryData';
-
-interface DirectoryItem {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  jsonLd: Record<string, any>;
-}
+import { DirectoryItem } from '@/types/directory';
 
 export const useDirectoryFilters = () => {
   const location = useLocation();

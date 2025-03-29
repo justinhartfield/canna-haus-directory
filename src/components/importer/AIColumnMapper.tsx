@@ -1,600 +1,367 @@
 
 import React, { useState, useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { toast } from '@/hooks/use-toast';
-import { ColumnMapping, ImportAnalysis } from '@/types/directory';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, CheckCircle, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { toast } from '@/hooks/use-toast';
+import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { sampleFileContent, processFileContent, DataMappingConfig } from '@/utils/dataProcessingUtils';
+import { ImportAnalysis, ColumnMapping, DirectoryItem } from '@/types/directory';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AIColumnMapperProps {
   file: {
     file: File;
     type: 'csv' | 'xlsx';
   };
-  onComplete?: (data: any[]) => void;
-  onCancel?: () => void;
-  existingFields?: string[];
+  onComplete: (data: any[]) => void;
+  onCancel: () => void;
   category?: string;
 }
 
-const DEFAULT_FIELDS = [
-  'title', 
-  'description', 
-  'category', 
-  'subcategory', 
-  'tags', 
-  'imageUrl',
-  'thumbnailUrl'
-];
-
-const AIColumnMapper: React.FC<AIColumnMapperProps> = ({ 
-  file, 
-  onComplete, 
+const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
+  file,
+  onComplete,
   onCancel,
-  existingFields = DEFAULT_FIELDS,
   category = 'Uncategorized'
 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [rawData, setRawData] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<ImportAnalysis | null>(null);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
-  const [importedCount, setImportedCount] = useState(0);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [schemaType, setSchemaType] = useState('Thing');
+  const [selectedCategory, setSelectedCategory] = useState(category);
+  const [customFields, setCustomFields] = useState<Record<string, string>>({});
 
-  // Read and parse the file contents
+  const DEFAULT_CATEGORIES = [
+    'Strains', 'Medical', 'Extraction', 'Cultivation',
+    'Dispensaries', 'Lab Data', 'Compliance', 'Products', 'Educational'
+  ];
+
+  // Available target fields for mapping
+  const availableTargetFields = [
+    { value: 'title', label: 'Title' },
+    { value: 'description', label: 'Description' },
+    { value: 'subcategory', label: 'Subcategory' },
+    { value: 'tags', label: 'Tags' },
+    { value: 'imageUrl', label: 'Image URL' },
+    { value: 'thumbnailUrl', label: 'Thumbnail URL' }
+  ];
+
+  // Schema type options
+  const schemaTypeOptions = [
+    'Thing', 'Product', 'Event', 'Organization', 'Person', 'Place',
+    'CreativeWork', 'Article', 'MedicalEntity', 'Drug', 'Store'
+  ];
+
+  // Analyze file on component mount
   useEffect(() => {
-    if (!file.file) return;
-    
-    const parseFile = async () => {
-      setIsAnalyzing(true);
-      try {
-        let data: any[] = [];
-        
-        if (file.type === 'csv') {
-          const text = await file.file.text();
-          const result = Papa.parse(text, {
-            header: true,
-            skipEmptyLines: true,
-            dynamicTyping: true
-          });
-          
-          if (result.errors && result.errors.length > 0) {
-            throw new Error(`CSV parsing error: ${result.errors[0].message}`);
-          }
-          
-          data = result.data as any[];
-        } else if (file.type === 'xlsx') {
-          const buffer = await file.file.arrayBuffer();
-          const workbook = XLSX.read(buffer, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          data = XLSX.utils.sheet_to_json(worksheet);
-        }
-        
-        if (data.length === 0) {
-          throw new Error('No data found in file');
-        }
-        
-        setRawData(data);
-        
-        // Auto-analyze columns using AI
-        await analyzeColumnsWithAI(data);
-      } catch (error) {
-        console.error('Error parsing file:', error);
-        toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Failed to parse file',
-          variant: 'destructive'
-        });
-      } finally {
-        setIsAnalyzing(false);
-      }
-    };
-    
-    parseFile();
-  }, [file]);
+    analyzeFile();
+  }, []);
 
-  // Analyze columns using AI
-  const analyzeColumnsWithAI = async (data: any[]) => {
+  const analyzeFile = async () => {
+    setIsAnalyzing(true);
     try {
-      // Take a sample of the data (first row)
-      const sampleData = data[0];
+      // Sample the file to get some representative data
+      const sampleRows = await sampleFileContent(file.file, 3);
       
-      // Call the GPT analysis function
-      const { data: aiData, error } = await supabase.functions.invoke('classify-csv-data', {
+      if (sampleRows.length === 0) {
+        throw new Error("Couldn't extract data from the file.");
+      }
+
+      // Call the edge function to classify the data
+      const { data, error } = await supabase.functions.invoke('classify-csv-data', {
         body: {
-          sampleData: [sampleData],
-          availableFields: existingFields
+          sampleData: sampleRows,
+          availableCategories: DEFAULT_CATEGORIES
         }
       });
-      
+
       if (error) {
-        throw new Error(`AI analysis error: ${error.message}`);
+        throw new Error(`Error calling classification function: ${error.message}`);
       }
-      
-      if (!aiData?.mappings) {
-        throw new Error('AI analysis returned no mappings');
+
+      if (!data) {
+        throw new Error("No classification data returned.");
       }
-      
-      // Convert AI mappings to our format
+
+      // Convert AI response to our format
       const suggestedMappings: ColumnMapping[] = [];
-      const sourceColumns = Object.keys(sampleData);
-      const mappedColumns = new Set<string>();
+      const aiMappings = data.mappings || {};
       
-      // First process the AI suggested mappings
-      for (const [targetField, sourceColumn] of Object.entries(aiData.mappings)) {
-        if (sourceColumn && typeof sourceColumn === 'string' && sourceColumn in sampleData) {
-          suggestedMappings.push({
-            sourceColumn,
-            targetField,
-            isCustomField: !existingFields.includes(targetField),
-            sampleData: String(sampleData[sourceColumn]).substring(0, 50)
-          });
-          mappedColumns.add(sourceColumn);
-        }
+      // Get all columns from the sample data
+      const columns = Object.keys(sampleRows[0]);
+      const mappedColumns = new Set(Object.values(aiMappings));
+      
+      // Add mapped columns
+      for (const [targetField, sourceColumn] of Object.entries(aiMappings)) {
+        suggestedMappings.push({
+          sourceColumn: sourceColumn as string,
+          targetField,
+          isCustomField: !availableTargetFields.some(f => f.value === targetField),
+          sampleData: sampleRows[0][sourceColumn as string]
+        });
       }
       
-      // Add any unmapped columns as custom fields
-      const unmappedColumns = sourceColumns.filter(col => !mappedColumns.has(col));
+      // Add unmapped columns
+      const unmappedColumns = columns.filter(col => !mappedColumns.has(col));
       
-      // Generate analysis result
-      const analysisResult: ImportAnalysis = {
+      const aiAnalysis: ImportAnalysis = {
         suggestedMappings,
         unmappedColumns,
-        sampleData
+        sampleData: sampleRows[0]
       };
       
-      setAnalysis(analysisResult);
+      setAnalysis(aiAnalysis);
       setColumnMappings(suggestedMappings);
+      setSelectedCategory(data.recommendedCategory || category);
+      setSchemaType(data.schemaType || 'Thing');
       
       toast({
-        title: 'Analysis Complete',
-        description: `AI mapped ${suggestedMappings.length} columns. ${unmappedColumns.length} columns remain unmapped.`,
+        title: "Analysis Complete",
+        description: `AI suggests ${data.recommendedCategory} category with ${suggestedMappings.length} mapped fields`,
       });
     } catch (error) {
-      console.error('AI analysis error:', error);
+      console.error("Error analyzing file:", error);
       toast({
-        title: 'AI Analysis Failed',
-        description: error instanceof Error ? error.message : 'Failed to analyze columns with AI',
-        variant: 'destructive'
-      });
-      
-      // Fallback: create basic mappings based on column names
-      createFallbackMappings(data[0]);
-    }
-  };
-  
-  // Create fallback mappings when AI fails
-  const createFallbackMappings = (sampleData: Record<string, any>) => {
-    const sourceColumns = Object.keys(sampleData);
-    const mappings: ColumnMapping[] = [];
-    const mappedColumns = new Set<string>();
-    
-    // Try to match columns by name similarity
-    for (const field of existingFields) {
-      const lowerField = field.toLowerCase();
-      
-      // Find a column that matches this field
-      const matchingColumn = sourceColumns.find(col => {
-        const lowerCol = col.toLowerCase();
-        return !mappedColumns.has(col) && (
-          lowerCol === lowerField || 
-          lowerCol.includes(lowerField) || 
-          lowerField.includes(lowerCol)
-        );
-      });
-      
-      if (matchingColumn) {
-        mappings.push({
-          sourceColumn: matchingColumn,
-          targetField: field,
-          isCustomField: false,
-          sampleData: String(sampleData[matchingColumn]).substring(0, 50)
-        });
-        mappedColumns.add(matchingColumn);
-      }
-    }
-    
-    // Add unmapped columns as custom fields
-    const unmappedColumns = sourceColumns.filter(col => !mappedColumns.has(col));
-    
-    const analysisResult: ImportAnalysis = {
-      suggestedMappings: mappings,
-      unmappedColumns,
-      sampleData
-    };
-    
-    setAnalysis(analysisResult);
-    setColumnMappings(mappings);
-    
-    toast({
-      title: 'Basic Mapping Applied',
-      description: `${mappings.length} columns mapped automatically. ${unmappedColumns.length} columns remain unmapped.`,
-    });
-  };
-  
-  // Handle mapping changes
-  const updateMapping = (index: number, newTargetField: string) => {
-    const newMappings = [...columnMappings];
-    newMappings[index].targetField = newTargetField;
-    newMappings[index].isCustomField = !existingFields.includes(newTargetField);
-    setColumnMappings(newMappings);
-  };
-  
-  // Add unmapped column to mappings
-  const addUnmappedColumn = (sourceColumn: string) => {
-    // Generate a target field name
-    const targetField = sourceColumn.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    
-    setColumnMappings([
-      ...columnMappings,
-      {
-        sourceColumn,
-        targetField,
-        isCustomField: true,
-        sampleData: String(analysis?.sampleData[sourceColumn]).substring(0, 50)
-      }
-    ]);
-  };
-  
-  // Remove a mapping
-  const removeMapping = (index: number) => {
-    const newMappings = [...columnMappings];
-    newMappings.splice(index, 1);
-    setColumnMappings(newMappings);
-  };
-  
-  // Start the import process
-  const startImport = async () => {
-    if (!rawData.length || !columnMappings.length) {
-      toast({
-        title: 'Cannot Import',
-        description: 'No data or column mappings available',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    setIsImporting(true);
-    setProgress(0);
-    setImportedCount(0);
-    setErrors([]);
-    
-    try {
-      // Process the data based on mappings
-      const processedData = rawData.map((row) => {
-        const result: Record<string, any> = {
-          category, // Always set the provided category
-          additionalFields: {} // For custom fields
-        };
-        
-        // Apply each mapping
-        for (const mapping of columnMappings) {
-          const { sourceColumn, targetField, isCustomField } = mapping;
-          const value = row[sourceColumn];
-          
-          if (value !== undefined) {
-            if (isCustomField) {
-              // Store custom fields separately
-              result.additionalFields[targetField] = value;
-            } else {
-              // Handle special cases
-              if (targetField === 'tags' && typeof value === 'string') {
-                result[targetField] = value.split(',').map(tag => tag.trim());
-              } else {
-                result[targetField] = value;
-              }
-            }
-          }
-        }
-        
-        // Create JSON-LD from all available data
-        result.jsonLd = {
-          "@context": "https://schema.org",
-          "@type": aiData?.schemaType || "Thing",
-          ...Object.entries(result).reduce((acc, [key, val]) => {
-            if (key !== 'jsonLd' && key !== 'additionalFields') {
-              acc[key] = val;
-            }
-            return acc;
-          }, {} as Record<string, any>),
-          ...result.additionalFields
-        };
-        
-        return result;
-      });
-      
-      // Import in batches
-      const BATCH_SIZE = 50;
-      let successCount = 0;
-      const newErrors: string[] = [];
-      
-      for (let i = 0; i < processedData.length; i += BATCH_SIZE) {
-        const batch = processedData.slice(i, i + BATCH_SIZE);
-        
-        try {
-          // Process the batch
-          await processImportBatch(batch);
-          successCount += batch.length;
-        } catch (error) {
-          console.error('Batch import error:', error);
-          newErrors.push(`Batch ${i/BATCH_SIZE + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-        
-        // Update progress
-        const newProgress = Math.floor(((i + batch.length) / processedData.length) * 100);
-        setProgress(newProgress);
-        setImportedCount(successCount);
-        setErrors(newErrors);
-      }
-      
-      // Complete
-      setProgress(100);
-      
-      if (newErrors.length === 0) {
-        toast({
-          title: 'Import Complete',
-          description: `Successfully imported ${successCount} records`,
-          variant: 'default'
-        });
-      } else {
-        toast({
-          title: 'Import Completed with Errors',
-          description: `Imported ${successCount} of ${processedData.length} records with ${newErrors.length} errors`,
-          variant: 'destructive'
-        });
-      }
-      
-      // Call the onComplete callback with the processed data
-      if (onComplete) {
-        onComplete(processedData);
-      }
-    } catch (error) {
-      console.error('Import error:', error);
-      toast({
-        title: 'Import Failed',
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: 'destructive'
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
       });
     } finally {
-      setIsImporting(false);
+      setIsAnalyzing(false);
     }
   };
-  
-  // Process a batch of data for import
-  const processImportBatch = async (batch: any[]) => {
-    // Validate the data
-    for (const item of batch) {
-      if (!item.title) {
-        throw new Error('Title is required for all items');
-      }
-      if (!item.description) {
-        throw new Error('Description is required for all items');
-      }
-    }
-    
-    // Here you would typically call your API to import the data
-    // For now we'll just simulate success after a short delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return true;
+
+  const handleMappingChange = (index: number, targetField: string) => {
+    const newMappings = [...columnMappings];
+    newMappings[index].targetField = targetField;
+    newMappings[index].isCustomField = !availableTargetFields.some(f => f.value === targetField);
+    setColumnMappings(newMappings);
   };
-  
+
+  const handleCustomFieldNameChange = (sourceColumn: string, customName: string) => {
+    setCustomFields({
+      ...customFields,
+      [sourceColumn]: customName
+    });
+  };
+
+  const handleProcessFile = async () => {
+    setIsProcessing(true);
+    setProgress(0);
+    
+    try {
+      // Create mapping configuration from the user's selections
+      const mappingConfig: DataMappingConfig = {
+        columnMappings: {},
+        defaultValues: {
+          category: selectedCategory
+        },
+        schemaType
+      };
+      
+      // Process column mappings, handling custom fields
+      columnMappings.forEach(mapping => {
+        if (!mapping.targetField) return; // Skip unmapped columns
+        
+        if (mapping.isCustomField) {
+          // For custom fields, use the custom name or the source column
+          const customFieldName = customFields[mapping.sourceColumn] || mapping.sourceColumn;
+          mappingConfig.columnMappings[`additionalFields.${customFieldName}`] = mapping.sourceColumn;
+        } else {
+          // For standard fields, use the target field directly
+          mappingConfig.columnMappings[mapping.targetField] = mapping.sourceColumn;
+        }
+      });
+      
+      // Process the file
+      const result = await processFileContent(file.file, mappingConfig);
+      
+      if (!result.success) {
+        throw new Error(`File processing failed with ${result.errorCount} errors`);
+      }
+      
+      setProgress(100);
+      
+      toast({
+        title: "Processing Complete",
+        description: `Successfully processed ${result.processedRows} of ${result.totalRows} rows`,
+      });
+      
+      // Return processed items to the parent component
+      onComplete(result.items as unknown as DirectoryItem[]);
+      
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast({
+        title: "Processing Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (isAnalyzing) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p>Analyzing file with AI...</p>
+      </div>
+    );
+  }
+
+  if (!analysis) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 space-y-4">
+        <AlertTriangle className="h-8 w-8 text-destructive" />
+        <p>Failed to analyze file. Please try again or use manual mapping.</p>
+        <Button onClick={onCancel}>Go Back</Button>
+      </div>
+    );
+  }
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div>AI Column Mapper</div>
-          <div className="text-sm font-normal">
-            {file.file.name} ({(file.file.size / 1024).toFixed(1)} KB)
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isAnalyzing ? (
-          <div className="py-8 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-            <p className="mt-2 text-muted-foreground">Analyzing file contents with AI...</p>
-          </div>
-        ) : analysis ? (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">AI Suggested Mappings</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Review and adjust the column mappings suggested by AI.
-              </p>
-              
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Source Column</TableHead>
-                      <TableHead>Maps To</TableHead>
-                      <TableHead>Sample Data</TableHead>
-                      <TableHead className="w-24">Actions</TableHead>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="category">Category</Label>
+          <Select 
+            value={selectedCategory} 
+            onValueChange={setSelectedCategory}
+            disabled={isProcessing}
+          >
+            <SelectTrigger id="category">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEFAULT_CATEGORIES.map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="schemaType">Schema Type</Label>
+          <Select 
+            value={schemaType} 
+            onValueChange={setSchemaType}
+            disabled={isProcessing}
+          >
+            <SelectTrigger id="schemaType">
+              <SelectValue placeholder="Select schema type" />
+            </SelectTrigger>
+            <SelectContent>
+              {schemaTypeOptions.map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Column Mappings</Label>
+        <p className="text-sm text-muted-foreground">
+          Review AI-suggested mappings and adjust if needed
+        </p>
+        
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="max-h-80 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Source Column</TableHead>
+                    <TableHead>Map To</TableHead>
+                    <TableHead>Custom Field Name</TableHead>
+                    <TableHead>Sample Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {columnMappings.map((mapping, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{mapping.sourceColumn}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={mapping.targetField}
+                          onValueChange={(value) => handleMappingChange(index, value)}
+                          disabled={isProcessing}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">-- Ignore --</SelectItem>
+                            {availableTargetFields.map(field => (
+                              <SelectItem key={field.value} value={field.value}>
+                                {field.label}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="custom">Custom Field</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {mapping.isCustomField && (
+                          <Input
+                            value={customFields[mapping.sourceColumn] || ''}
+                            onChange={(e) => handleCustomFieldNameChange(mapping.sourceColumn, e.target.value)}
+                            placeholder="Field name"
+                            disabled={isProcessing}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {mapping.sampleData}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {columnMappings.map((mapping, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{mapping.sourceColumn}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={mapping.targetField}
-                              onValueChange={(value) => updateMapping(index, value)}
-                              disabled={isImporting}
-                            >
-                              <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select field" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="title">Title</SelectItem>
-                                <SelectItem value="description">Description</SelectItem>
-                                <SelectItem value="subcategory">Subcategory</SelectItem>
-                                <SelectItem value="tags">Tags</SelectItem>
-                                <SelectItem value="imageUrl">Image URL</SelectItem>
-                                <SelectItem value="thumbnailUrl">Thumbnail URL</SelectItem>
-                                {/* Allow custom field names */}
-                                <SelectItem value={mapping.sourceColumn}>
-                                  Custom: {mapping.sourceColumn}
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {mapping.isCustomField && (
-                              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                                Custom
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs truncate max-w-[200px]">
-                          {mapping.sampleData || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeMapping(index)}
-                            disabled={isImporting}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-destructive"
-                            >
-                              <path d="M3 6h18" />
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                              <line x1="10" x2="10" y1="11" y2="17" />
-                              <line x1="14" x2="14" y1="11" y2="17" />
-                            </svg>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-            
-            {analysis.unmappedColumns.length > 0 && (
-              <div>
-                <h3 className="text-lg font-medium mb-2">Unmapped Columns</h3>
-                <p className="text-sm text-muted-foreground mb-2">
-                  The following columns were not automatically mapped. Click to add them as custom fields.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.unmappedColumns.map((column) => (
-                    <Button
-                      key={column}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addUnmappedColumn(column)}
-                      disabled={isImporting}
-                    >
-                      + {column}
-                    </Button>
                   ))}
-                </div>
-              </div>
-            )}
-            
-            {isImporting ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Importing...</span>
-                    <span>{importedCount} of {rawData.length} records</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
-                
-                {errors.length > 0 && (
-                  <div className="bg-destructive/10 p-3 rounded border border-destructive/20">
-                    <div className="flex items-center gap-2 text-destructive font-medium mb-2">
-                      <AlertCircle size={16} />
-                      <span>{errors.length} errors encountered</span>
-                    </div>
-                    <ul className="text-sm space-y-1 list-disc pl-5">
-                      {errors.slice(0, 3).map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                      {errors.length > 3 && (
-                        <li>...and {errors.length - 3} more</li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={onCancel}
-                  disabled={isImporting}
-                >
-                  Cancel
-                </Button>
-                <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => analyzeColumnsWithAI(rawData)}
-                    disabled={isImporting}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Re-analyze
-                  </Button>
-                  <Button
-                    onClick={startImport}
-                    disabled={isImporting || columnMappings.length === 0}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Start Import
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="py-8 text-center">
-            <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-2 text-muted-foreground">File analysis failed. Please try again.</p>
-            <Button className="mt-4" onClick={() => analyzeColumnsWithAI(rawData)}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Retry Analysis
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {isProcessing && (
+        <div className="space-y-2">
+          <Label>Processing File</Label>
+          <Progress value={progress} className="h-2" />
+        </div>
+      )}
+      
+      <div className="flex justify-between space-x-2 pt-2">
+        <Button variant="outline" onClick={onCancel} disabled={isProcessing}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleProcessFile} 
+          disabled={isProcessing}
+          className="gap-2"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Check className="h-4 w-4" />
+              Process File
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
   );
 };
 

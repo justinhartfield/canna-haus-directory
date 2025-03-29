@@ -1,149 +1,125 @@
 
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-import { DirectoryItem } from '@/types/directory';
+import { DirectoryItem, ImportProgress } from '@/types/directory';
 import { bulkInsertDirectoryItems } from '@/api/directoryService';
+import { parseFileContent } from './fileProcessing';
+import { DataMappingConfig } from './mappingUtils';
+import { transformData, ProcessingResult } from './transformUtils';
 
 /**
- * Converts a CSV file to JSON
+ * Process file content into structured data
  */
-export function csvToJson(csvContent: string): Record<string, any>[] {
-  const results = Papa.parse(csvContent, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: true
-  });
-  
-  if (results.errors && results.errors.length > 0) {
-    console.error('CSV parsing errors:', results.errors);
-    throw new Error(`Error parsing CSV: ${results.errors[0].message}`);
-  }
-  
-  return results.data as Record<string, any>[];
-}
-
-/**
- * Converts an Excel file to JSON
- */
-export function excelToJson(excelContent: ArrayBuffer): Record<string, any>[] {
+export async function processFileContent(
+  file: File,
+  mappingConfig: DataMappingConfig
+): Promise<ProcessingResult> {
   try {
-    const workbook = XLSX.read(excelContent, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    // Parse file to get raw data
+    const rawData = await parseFileContent(file);
     
-    return XLSX.utils.sheet_to_json(worksheet);
-  } catch (error) {
-    console.error('Excel parsing error:', error);
-    throw new Error(`Error parsing Excel file: ${error.message}`);
-  }
-}
-
-/**
- * Maps raw data to DirectoryItem format
- */
-export function mapToDirectoryItem(
-  rawItem: Record<string, any>, 
-  category: string, 
-  mapConfig: Record<string, string> = {}
-): Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> {
-  // Default mapping if specific mappings aren't provided
-  const titleField = mapConfig.title || 'title' || 'name' || 'Title' || 'Name';
-  const descField = mapConfig.description || 'description' || 'desc' || 'Description';
-  const imageField = mapConfig.imageUrl || 'imageUrl' || 'image' || 'Image';
-  const subcategoryField = mapConfig.subcategory || 'subcategory' || 'Subcategory';
-  const tagsField = mapConfig.tags || 'tags' || 'Tags';
-  
-  // Extract values with fallbacks
-  const title = rawItem[titleField] || 'Untitled Item';
-  const description = rawItem[descField] || '';
-  const imageUrl = rawItem[imageField] || '';
-  const subcategory = rawItem[subcategoryField] || '';
-  
-  // Handle tags (could be string or array)
-  let tags: string[] = [];
-  if (rawItem[tagsField]) {
-    if (typeof rawItem[tagsField] === 'string') {
-      tags = rawItem[tagsField].split(',').map(tag => tag.trim());
-    } else if (Array.isArray(rawItem[tagsField])) {
-      tags = rawItem[tagsField];
-    }
-  }
-  
-  // Create JSON-LD from all available fields
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ImageObject",
-    "name": title,
-    "description": description,
-    "contentUrl": imageUrl,
-    "keywords": tags,
-    "category": category,
-    "subcategory": subcategory,
-    // Add other fields from rawItem
-    ...Object.entries(rawItem).reduce((acc, [key, value]) => {
-      // Skip fields already mapped to standard properties
-      if (![titleField, descField, imageField, subcategoryField, tagsField].includes(key)) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {})
-  };
-  
-  return {
-    title,
-    description,
-    category,
-    subcategory,
-    tags,
-    imageUrl,
-    jsonLd
-  };
-}
-
-/**
- * Processes a file and imports it into the database
- */
-export async function processAndImportFile(
-  file: File, 
-  category: string, 
-  mapConfig: Record<string, string> = {}
-): Promise<{ success: boolean, count: number, errors: string[] }> {
-  const errors: string[] = [];
-  let rawData: Record<string, any>[] = [];
-  
-  try {
-    // Parse file content based on file type
-    if (file.name.endsWith('.csv')) {
-      const text = await file.text();
-      rawData = csvToJson(text);
-    } else if (file.name.match(/\.xlsx?$/i)) {
-      const buffer = await file.arrayBuffer();
-      rawData = excelToJson(buffer);
-    } else {
-      throw new Error(`Unsupported file type: ${file.type}`);
-    }
-    
-    if (!rawData.length) {
-      throw new Error('No data found in file');
-    }
-    
-    // Map raw data to DirectoryItem format
-    const directoryItems = rawData.map(item => mapToDirectoryItem(item, category, mapConfig));
-    
-    // Import to database
-    await bulkInsertDirectoryItems(directoryItems);
-    
-    return {
-      success: true,
-      count: directoryItems.length,
-      errors
-    };
+    // Transform raw data to structured directory items
+    return transformData(rawData, mappingConfig);
   } catch (error) {
     console.error(`Error processing file ${file.name}:`, error);
     return {
       success: false,
-      count: 0,
-      errors: [`Error processing ${file.name}: ${error.message}`]
+      totalRows: 0,
+      processedRows: 0,
+      errorCount: 1,
+      errors: [
+        {
+          row: 0,
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }
+      ],
+      items: []
     };
   }
+}
+
+/**
+ * Process a batch of files using a common mapping configuration
+ */
+export async function processBatchFiles(
+  files: File[],
+  mappingConfig: DataMappingConfig,
+  batchSize: number = 100,
+  onProgress?: (current: number, total: number) => void
+): Promise<{
+  success: boolean;
+  totalFiles: number;
+  processedFiles: number;
+  totalRows: number;
+  successRows: number;
+  errorCount: number;
+  errors: Array<{ file: string; errors: Array<{ row: number; message: string }> }>;
+}> {
+  const result = {
+    success: true,
+    totalFiles: files.length,
+    processedFiles: 0,
+    totalRows: 0,
+    successRows: 0,
+    errorCount: 0,
+    errors: [] as Array<{ file: string; errors: Array<{ row: number; message: string }> }>
+  };
+  
+  // Process files sequentially to avoid memory issues
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const fileResult = await processFileContent(file, mappingConfig);
+    
+    result.processedFiles++;
+    result.totalRows += fileResult.totalRows;
+    result.successRows += fileResult.processedRows;
+    
+    if (fileResult.errorCount > 0) {
+      result.errorCount += fileResult.errorCount;
+      result.errors.push({
+        file: file.name,
+        errors: fileResult.errors.map(err => ({ row: err.row, message: err.message }))
+      });
+    }
+    
+    // If we have successful items, import them in batches
+    if (fileResult.items.length > 0) {
+      // Process in batches to avoid memory issues
+      for (let j = 0; j < fileResult.items.length; j += batchSize) {
+        const batch = fileResult.items.slice(j, j + batchSize);
+        try {
+          await bulkInsertDirectoryItems(batch);
+        } catch (error) {
+          console.error(`Error importing batch from file ${file.name}:`, error);
+          result.errorCount++;
+          result.errors.push({
+            file: file.name,
+            errors: [{
+              row: -1,
+              message: `Batch import error: ${error instanceof Error ? error.message : 'Unknown error'}`
+            }]
+          });
+        }
+      }
+    }
+    
+    // Report progress
+    if (onProgress) {
+      onProgress(i + 1, files.length);
+    }
+  }
+  
+  result.success = result.errorCount === 0;
+  return result;
+}
+
+/**
+ * Update import progress state
+ */
+export function updateImportProgress(
+  currentProgress: ImportProgress,
+  updates: Partial<ImportProgress>
+): ImportProgress {
+  return {
+    ...currentProgress,
+    ...updates
+  };
 }

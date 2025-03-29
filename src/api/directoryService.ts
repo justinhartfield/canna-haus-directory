@@ -1,197 +1,107 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DirectoryItem } from "@/types/directory";
-import { Json } from "@/integrations/supabase/types";
+
+/**
+ * Mock implementation for the directory service
+ * This can be replaced with actual API calls when the backend is ready
+ */
+
+// Mock data for development
+const mockItems: DirectoryItem[] = [];
 
 /**
  * Fetches all directory items
  */
-export async function getDirectoryItems() {
-  const { data, error } = await supabase
-    .from('directory_items')
-    .select('*')
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error fetching directory items:', error);
-    throw error;
-  }
-  
-  // Map from DB format to app format
-  return data.map(mapToDirectoryItem) as DirectoryItem[];
+export async function getDirectoryItems(): Promise<DirectoryItem[]> {
+  // Mock implementation returns the mock data
+  // This should be replaced with actual API calls
+  return Promise.resolve([...mockItems]);
 }
 
 /**
  * Fetches a directory item by ID
  */
-export async function getDirectoryItemById(id: string) {
-  const { data, error } = await supabase
-    .from('directory_items')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
-    console.error(`Error fetching directory item with ID ${id}:`, error);
-    throw error;
-  }
-  
-  // Map from DB format to app format
-  return mapToDirectoryItem(data);
+export async function getDirectoryItemById(id: string): Promise<DirectoryItem | null> {
+  // Mock implementation finds an item by ID
+  const item = mockItems.find(item => item.id === id);
+  return Promise.resolve(item || null);
 }
 
 /**
  * Fetches directory items by category
  */
-export async function getDirectoryItemsByCategory(category: string) {
-  const { data, error } = await supabase
-    .from('directory_items')
-    .select('*')
-    .eq('category', category)
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error(`Error fetching directory items with category ${category}:`, error);
-    throw error;
-  }
-  
-  // Map from DB format to app format
-  return data.map(mapToDirectoryItem) as DirectoryItem[];
+export async function getDirectoryItemsByCategory(category: string): Promise<DirectoryItem[]> {
+  // Mock implementation filters items by category
+  const items = mockItems.filter(item => item.category === category);
+  return Promise.resolve(items);
 }
 
 /**
  * Creates a new directory item
  */
-export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>) {
-  // Map DirectoryItem properties to Supabase column names
-  const supabaseItem = {
-    title: item.title,
-    description: item.description,
-    category: item.category,
-    subcategory: item.subcategory,
-    tags: item.tags,
-    image_url: item.imageUrl,
-    thumbnail_url: item.thumbnailUrl,
-    json_ld: item.jsonLd,
-    meta_data: item.metaData,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<DirectoryItem> {
+  // Generate an ID and timestamps
+  const newItem: DirectoryItem = {
+    id: String(Date.now()),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...item
   };
-
-  const { data, error } = await supabase
-    .from('directory_items')
-    .insert([supabaseItem])
-    .select();
   
-  if (error) {
-    console.error('Error creating directory item:', error);
-    throw error;
-  }
+  // Add to mock data
+  mockItems.push(newItem);
   
-  // Map Supabase response back to DirectoryItem format
-  return mapToDirectoryItem(data[0]);
+  return Promise.resolve(newItem);
 }
 
 /**
  * Updates an existing directory item
  */
-export async function updateDirectoryItem(id: string, item: Partial<DirectoryItem>) {
-  // Map DirectoryItem properties to Supabase column names
-  const supabaseItem: any = {};
+export async function updateDirectoryItem(id: string, item: Partial<DirectoryItem>): Promise<DirectoryItem | null> {
+  // Find the item to update
+  const index = mockItems.findIndex(item => item.id === id);
+  if (index === -1) return Promise.resolve(null);
   
-  if (item.title) supabaseItem.title = item.title;
-  if (item.description) supabaseItem.description = item.description;
-  if (item.category) supabaseItem.category = item.category;
-  if (item.subcategory !== undefined) supabaseItem.subcategory = item.subcategory;
-  if (item.tags !== undefined) supabaseItem.tags = item.tags;
-  if (item.imageUrl !== undefined) supabaseItem.image_url = item.imageUrl;
-  if (item.thumbnailUrl !== undefined) supabaseItem.thumbnail_url = item.thumbnailUrl;
-  if (item.jsonLd) supabaseItem.json_ld = item.jsonLd;
-  if (item.metaData !== undefined) supabaseItem.meta_data = item.metaData;
+  // Update the item
+  const updatedItem: DirectoryItem = {
+    ...mockItems[index],
+    ...item,
+    updatedAt: new Date().toISOString()
+  };
   
-  supabaseItem.updated_at = new Date().toISOString();
-
-  const { data, error } = await supabase
-    .from('directory_items')
-    .update(supabaseItem)
-    .eq('id', id)
-    .select();
+  mockItems[index] = updatedItem;
   
-  if (error) {
-    console.error(`Error updating directory item with ID ${id}:`, error);
-    throw error;
-  }
-  
-  // Map Supabase response back to DirectoryItem format
-  return mapToDirectoryItem(data[0]);
+  return Promise.resolve(updatedItem);
 }
 
 /**
  * Deletes a directory item
  */
-export async function deleteDirectoryItem(id: string) {
-  const { error } = await supabase
-    .from('directory_items')
-    .delete()
-    .eq('id', id);
+export async function deleteDirectoryItem(id: string): Promise<boolean> {
+  // Find the item to delete
+  const index = mockItems.findIndex(item => item.id === id);
+  if (index === -1) return Promise.resolve(false);
   
-  if (error) {
-    console.error(`Error deleting directory item with ID ${id}:`, error);
-    throw error;
-  }
+  // Remove the item
+  mockItems.splice(index, 1);
   
-  return true;
+  return Promise.resolve(true);
 }
 
 /**
  * Bulk inserts directory items
  */
-export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>) {
-  // Map all items to Supabase format
-  const supabaseItems = items.map(item => ({
-    title: item.title,
-    description: item.description,
-    category: item.category,
-    subcategory: item.subcategory,
-    tags: item.tags,
-    image_url: item.imageUrl,
-    thumbnail_url: item.thumbnailUrl,
-    json_ld: item.jsonLd,
-    meta_data: item.metaData,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<DirectoryItem[]> {
+  const newItems: DirectoryItem[] = items.map(item => ({
+    id: String(Date.now() + Math.floor(Math.random() * 1000)),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...item
   }));
-
-  const { data, error } = await supabase
-    .from('directory_items')
-    .insert(supabaseItems)
-    .select();
   
-  if (error) {
-    console.error('Error bulk inserting directory items:', error);
-    throw error;
-  }
+  // Add all items to mock data
+  mockItems.push(...newItems);
   
-  // Map Supabase response back to DirectoryItem format
-  return data.map(mapToDirectoryItem) as DirectoryItem[];
-}
-
-/**
- * Helper function to map from Supabase database format to DirectoryItem format
- */
-function mapToDirectoryItem(item: any): DirectoryItem {
-  return {
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.category,
-    subcategory: item.subcategory || undefined,
-    tags: item.tags || undefined,
-    imageUrl: item.image_url || undefined,
-    thumbnailUrl: item.thumbnail_url || undefined,
-    jsonLd: item.json_ld,
-    createdAt: item.created_at,
-    updatedAt: item.updated_at,
-    metaData: item.meta_data || undefined
-  };
+  return Promise.resolve(newItems);
 }
