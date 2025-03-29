@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DataImporter from '@/components/admin/DataImporter';
 import DataImporterAdvanced from '@/components/admin/DataImporterAdvanced';
+import RecentImports from '@/components/admin/RecentImports';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -50,6 +51,7 @@ const Admin: React.FC = () => {
               <TabsList className="mb-6">
                 <TabsTrigger value="simple">Simple Import</TabsTrigger>
                 <TabsTrigger value="advanced">Advanced Import</TabsTrigger>
+                <TabsTrigger value="recent">Recent Imports</TabsTrigger>
               </TabsList>
               
               <TabsContent value="simple">
@@ -58,6 +60,10 @@ const Admin: React.FC = () => {
               
               <TabsContent value="advanced">
                 <DataImporterAdvanced />
+              </TabsContent>
+              
+              <TabsContent value="recent">
+                <RecentImports />
               </TabsContent>
             </Tabs>
           </div>
