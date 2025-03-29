@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Hero from '@/components/Hero';
 import DirectoryCard from '@/components/DirectoryCard';
@@ -10,7 +11,7 @@ const Index = () => {
   // Sample data for featured directory items
   const featuredItems = [
     {
-      id: 1,
+      id: "1", // Changed from number to string
       title: "Blue Dream",
       description: "A sativa-dominant hybrid strain that provides a balanced high with full-body relaxation and gentle cerebral invigoration.",
       category: "Genetics",
@@ -34,7 +35,7 @@ const Index = () => {
       }
     },
     {
-      id: 2,
+      id: "2", // Changed from number to string
       title: "Cannabis and Anxiety Management",
       description: "Comprehensive meta-analysis of studies examining the effects of various cannabis strains and consumption methods on anxiety disorders.",
       category: "Medical",
@@ -68,7 +69,7 @@ const Index = () => {
       }
     },
     {
-      id: 3,
+      id: "3", // Changed from number to string
       title: "California Cultivation Regulations",
       description: "Comprehensive guide to California's cannabis cultivation regulations, licensing requirements, and compliance standards.",
       category: "Compliance",
