@@ -1,21 +1,26 @@
 
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MOCK_DIRECTORY_DATA } from '@/data/mockDirectoryData';
-
-interface DirectoryItem {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  jsonLd: Record<string, any>;
-}
+import { getDirectoryItems } from '@/api/directoryService';
+import { DirectoryItem } from '@/types/directory';
+import { useQuery } from '@tanstack/react-query';
 
 export const useDirectoryFilters = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, boolean>>({});
-  const [filteredData, setFilteredData] = useState<DirectoryItem[]>(MOCK_DIRECTORY_DATA);
+  const [filteredData, setFilteredData] = useState<DirectoryItem[]>([]);
+  
+  // Fetch directory items from Supabase
+  const { data: directoryItems = [] } = useQuery({
+    queryKey: ['directory-items'],
+    queryFn: getDirectoryItems,
+  });
+  
+  // Update filtered data when directory items change
+  useEffect(() => {
+    applyFilters(searchTerm, activeFilters, directoryItems);
+  }, [directoryItems]);
   
   // Parse query parameters (for direct links to filtered categories)
   useEffect(() => {
@@ -33,27 +38,28 @@ export const useDirectoryFilters = () => {
       };
       
       const category = categoryMap[categoryParam.toLowerCase()];
-      if (category) {
-        setActiveFilters({ [categoryParam.toLowerCase()]: true });
-        setFilteredData(MOCK_DIRECTORY_DATA.filter(item => item.category === category));
+      if (category && directoryItems.length > 0) {
+        const newFilters = { [categoryParam.toLowerCase()]: true };
+        setActiveFilters(newFilters);
+        applyFilters('', newFilters, directoryItems);
       }
     }
-  }, [location.search]);
+  }, [location.search, directoryItems]);
   
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    applyFilters(term, activeFilters);
+    applyFilters(term, activeFilters, directoryItems);
   };
   
   const handleFilter = (filters: Record<string, boolean>) => {
     setActiveFilters(filters);
-    applyFilters(searchTerm, filters);
+    applyFilters(searchTerm, filters, directoryItems);
   };
   
-  const applyFilters = (term: string, filters: Record<string, boolean>) => {
+  const applyFilters = (term: string, filters: Record<string, boolean>, items: DirectoryItem[]) => {
     const filterKeys = Object.keys(filters).filter(key => filters[key]);
     
-    let result = [...MOCK_DIRECTORY_DATA];
+    let result = [...items];
     
     // Apply search term filter
     if (term) {
@@ -91,7 +97,7 @@ export const useDirectoryFilters = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setActiveFilters({});
-    setFilteredData(MOCK_DIRECTORY_DATA);
+    setFilteredData(directoryItems);
   };
 
   return {
