@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AuthButtons } from './AuthButtons';
 import { useAuth } from '@/context/AuthContext';
-import { Menu, X } from 'lucide-react'; // Import icons for mobile menu
+import { Menu, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   
@@ -23,6 +24,35 @@ const Navbar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+  
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      
+      try {
+        console.log("Checking admin role for user:", user.id);
+        const { data, error } = await supabase.rpc('has_role', {
+          required_role: 'admin'
+        });
+        
+        if (error) {
+          console.error("Error checking admin role:", error);
+          setIsAdmin(false);
+        } else {
+          console.log("Admin role check result:", data);
+          setIsAdmin(!!data);
+        }
+      } catch (error) {
+        console.error("Error in admin role check:", error);
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdminRole();
+  }, [user]);
 
   // Always include base navigation links
   const navLinks = [
@@ -32,8 +62,8 @@ const Navbar: React.FC = () => {
     { name: 'Analytics', path: '/analytics' },
   ];
   
-  // Add Admin link if user is authenticated
-  const allLinks = user 
+  // Add Admin link if user is an admin
+  const allLinks = isAdmin 
     ? [...navLinks, { name: 'Admin', path: '/admin' }] 
     : navLinks;
 

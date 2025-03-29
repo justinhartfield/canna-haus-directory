@@ -1,11 +1,33 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const CtaSection: React.FC = () => {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase.rpc('has_role', {
+          required_role: 'admin'
+        });
+        
+        if (!error && data) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error checking admin role:", error);
+      }
+    };
+    
+    checkAdminRole();
+  }, [user]);
   
   return (
     <section className="py-20 bg-cannabis-600 text-white">
@@ -32,8 +54,8 @@ const CtaSection: React.FC = () => {
             Browse Directory
           </Link>
           
-          {/* Always show Admin Dashboard button for authenticated users */}
-          {user && (
+          {/* Only show Admin Dashboard button for admin users */}
+          {isAdmin && (
             <Link
               to="/admin"
               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
