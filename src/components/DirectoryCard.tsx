@@ -13,7 +13,7 @@ interface DirectoryCardProps {
   imageUrl?: string;
   jsonLd: Record<string, any>;
   className?: string;
-  id: number;
+  id: string; // Changed from number to string
   hasExamples?: boolean;
 }
 
