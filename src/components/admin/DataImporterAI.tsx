@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { sampleFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Edit2, Plus, X } from 'lucide-react';
+import { Loader2, Edit2, Plus, X, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,12 +15,14 @@ interface DataImporterAIProps {
   onCategorySelect: (category: string) => void;
   onMappingsGenerated: (mappings: Record<string, string>, schemaType: string) => void;
   isImporting: boolean;
+  onDone: () => void;
 }
 
 const DataImporterAI: React.FC<DataImporterAIProps> = ({ 
   onCategorySelect, 
   onMappingsGenerated,
-  isImporting
+  isImporting,
+  onDone
 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -38,6 +40,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
   const [customMappings, setCustomMappings] = useState<Record<string, string>>({});
   const [newFieldName, setNewFieldName] = useState('');
   const [newColumnName, setNewColumnName] = useState('');
+  const [settingsApplied, setSettingsApplied] = useState(false);
 
   const DEFAULT_CATEGORIES = [
     'Strains',
@@ -67,6 +70,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     setCustomCategory('');
     setCustomSchemaType('');
     setCustomMappings({});
+    setSettingsApplied(false);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -197,6 +201,7 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
     
     onCategorySelect(categoryToApply);
     onMappingsGenerated(mappingsToApply, schemaTypeToApply);
+    setSettingsApplied(true);
     
     toast({
       title: "Recommendations Applied",
@@ -204,6 +209,10 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
         "Your custom settings have been applied to your import settings." :
         "The AI recommendations have been applied to your import settings."
     });
+  };
+
+  const handleContinueToImport = () => {
+    onDone();
   };
 
   return (
@@ -409,9 +418,20 @@ const DataImporterAI: React.FC<DataImporterAIProps> = ({
               onClick={applyRecommendations} 
               className="w-full mt-2"
               variant="default"
+              disabled={settingsApplied}
             >
               {isEditing ? 'Apply Custom Settings' : 'Apply AI Recommendations'}
             </Button>
+
+            {settingsApplied && (
+              <Button 
+                onClick={handleContinueToImport} 
+                className="w-full mt-2"
+                variant="outline"
+              >
+                Continue to Import <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

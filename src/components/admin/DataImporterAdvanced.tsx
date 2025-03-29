@@ -257,6 +257,11 @@ const DataImporterAdvanced: React.FC = () => {
     setSchemaType(aiSchemaType);
   };
 
+  // Handle switching back from AI tab
+  const handleAiDone = () => {
+    setActiveTab('simple');
+  };
+
   // Available target fields for mapping
   const availableTargetFields = [
     { value: 'title', label: 'Title' },
@@ -446,6 +451,7 @@ const DataImporterAdvanced: React.FC = () => {
               onCategorySelect={handleAiCategorySelect}
               onMappingsGenerated={handleAiMappingsGenerated}
               isImporting={isImporting}
+              onDone={handleAiDone}
             />
           </TabsContent>
         </Tabs>
