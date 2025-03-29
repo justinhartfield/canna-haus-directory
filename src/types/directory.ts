@@ -16,7 +16,6 @@ export interface DirectoryItem {
   createdAt: string;
   updatedAt: string;
   metaData?: Record<string, any>;
-  hasExamples?: boolean;
 }
 
 export interface DirectoryCategory {
@@ -26,6 +25,11 @@ export interface DirectoryCategory {
   slug: string;
   count?: number;
   iconName?: string;
+}
+
+export interface DirectoryFilter {
+  categories: boolean[];
+  searchTerm: string;
 }
 
 export interface ImportProgress {

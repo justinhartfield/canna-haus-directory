@@ -1,20 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AuthButtons } from './AuthButtons';
 import { useAuth } from '@/context/AuthContext';
-import { Menu, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
-  
-  // Log the user object to check if it's properly loaded
-  console.log("Current user in Navbar:", user);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -24,54 +18,15 @@ const Navbar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
-  useEffect(() => {
-    const checkAuthorizedRole = async () => {
-      if (!user) {
-        setIsAuthorized(false);
-        return;
-      }
-      
-      try {
-        console.log("Checking roles for user:", user.id);
-        
-        // Check if the user has either admin or user role
-        const adminCheck = await supabase.rpc('has_role', {
-          required_role: 'admin'
-        });
-        
-        const userCheck = await supabase.rpc('has_role', {
-          required_role: 'user'
-        });
-        
-        if (adminCheck.error && userCheck.error) {
-          console.error("Error checking roles:", adminCheck.error);
-          setIsAuthorized(false);
-        } else {
-          console.log("Role check results - Admin:", adminCheck.data, "User:", userCheck.data);
-          setIsAuthorized(!!(adminCheck.data || userCheck.data));
-        }
-      } catch (error) {
-        console.error("Error in role check:", error);
-        setIsAuthorized(false);
-      }
-    };
-    
-    checkAuthorizedRole();
-  }, [user]);
 
-  // Always include base navigation links
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Directory', path: '/directory' },
     { name: 'API Docs', path: '/api-docs' },
     { name: 'Analytics', path: '/analytics' },
+    // Only show Admin link if user is logged in
+    ...(user ? [{ name: 'Admin', path: '/admin' }] : []),
   ];
-  
-  // Add Admin link if user is authorized
-  const allLinks = isAuthorized 
-    ? [...navLinks, { name: 'Admin', path: '/admin' }] 
-    : navLinks;
 
   return (
     <header className={cn(
@@ -100,9 +55,8 @@ const Navbar: React.FC = () => {
             <span className="hidden sm:inline-block">CannaHaus</span>
           </Link>
           
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            {allLinks.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
@@ -118,44 +72,10 @@ const Navbar: React.FC = () => {
             ))}
           </nav>
           
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
-            <button 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-muted-foreground p-2"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-          
           <div className="flex items-center space-x-2">
             <AuthButtons />
           </div>
         </div>
-        
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pt-4 pb-3">
-            <nav className="flex flex-col space-y-4">
-              {allLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary py-2",
-                    location.pathname === link.path 
-                      ? "text-primary" 
-                      : "text-muted-foreground"
-                  )}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   );

@@ -60,7 +60,6 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
-          role: string
           updated_at: string
           username: string | null
           website: string | null
@@ -70,7 +69,6 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
-          role?: string
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -80,7 +78,6 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
-          role?: string
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -116,12 +113,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          required_role: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

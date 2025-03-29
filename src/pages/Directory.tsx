@@ -1,30 +1,18 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SearchFilter from '@/components/SearchFilter';
 import DirectoryResults from '@/components/directory/DirectoryResults';
 import { useDirectoryFilters } from '@/hooks/useDirectoryFilters';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 const Directory = () => {
-  const [showUntitled, setShowUntitled] = useState(false);
-  
   const { 
     filteredData, 
     handleSearch, 
     handleFilter, 
     clearFilters 
-  } = useDirectoryFilters({
-    filterUntitled: !showUntitled
-  });
-
-  // Helper function to convert filter object to categories array
-  const handleFilterChange = (filters: Record<string, boolean>) => {
-    const selectedCategories = Object.keys(filters).filter(key => filters[key]);
-    handleFilter(selectedCategories);
-  };
+  } = useDirectoryFilters();
 
   return (
     <>
@@ -40,18 +28,9 @@ const Directory = () => {
             <div className="mt-8">
               <SearchFilter
                 onSearch={handleSearch}
-                onFilter={handleFilterChange}
+                onFilter={handleFilter}
                 className="mb-8"
               />
-              
-              <div className="flex items-center space-x-2 mt-4">
-                <Switch 
-                  id="show-untitled" 
-                  checked={showUntitled}
-                  onCheckedChange={setShowUntitled}
-                />
-                <Label htmlFor="show-untitled">Show untitled items</Label>
-              </div>
             </div>
           </div>
           

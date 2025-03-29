@@ -1,85 +1,96 @@
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import CategoryBadge from './directory/CategoryBadge';
+import ActionButton from './directory/ActionButton';
 import DirectoryCardFooter from './directory/DirectoryCardFooter';
 
 interface DirectoryCardProps {
-  id: string; // Change from number to string to match the UUID in the database
   title: string;
   description: string;
   category: string;
-  subcategory?: string;
-  jsonLd?: Record<string, any>;
+  imageUrl?: string;
+  jsonLd: Record<string, any>;
+  className?: string;
+  id: number;
   hasExamples?: boolean;
 }
 
 const DirectoryCard: React.FC<DirectoryCardProps> = ({
-  id,
   title,
   description,
   category,
-  subcategory,
+  imageUrl,
   jsonLd,
-  hasExamples
+  className,
+  id,
+  hasExamples = false,
 }) => {
-  // Truncate description if it's too long
-  const truncatedDescription = description && description.length > 120
-    ? `${description.substring(0, 120)}...`
-    : description;
-
-  // Apply proper capitalization to category
-  const formattedCategory = category
-    ? category.charAt(0).toUpperCase() + category.slice(1)
-    : '';
-
-  // Apply proper capitalization to subcategory
-  const formattedSubcategory = subcategory
-    ? subcategory.charAt(0).toUpperCase() + subcategory.slice(1)
-    : '';
-
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-              {formattedCategory}
-            </Badge>
-            {subcategory && (
-              <Badge variant="outline" className="ml-2 bg-secondary/10 text-secondary border-secondary/20">
-                {formattedSubcategory}
-              </Badge>
-            )}
-          </div>
+    <div 
+      className={cn(
+        "glass-card rounded-xl overflow-hidden hover-card-animation", 
+        className
+      )}
+    >
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <CategoryBadge category={category} />
+          
+          <ActionButton 
+            icon={
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="19" cy="12" r="1" />
+                <circle cx="5" cy="12" r="1" />
+              </svg>
+            }
+            ariaLabel="View details"
+          />
         </div>
-        <CardTitle className="text-xl mt-3 line-clamp-2">{title}</CardTitle>
-        <CardDescription className="line-clamp-3 mt-1">
-          {truncatedDescription || "No description available"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1">
-        {jsonLd && (
-          <div className="text-xs rounded-md bg-muted p-3 font-mono">
-            <pre className="overflow-x-auto">{JSON.stringify(jsonLd, null, 2).substring(0, 200)}...</pre>
+        
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+          {description}
+        </p>
+        
+        {hasExamples && (
+          <div className="mb-4">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="mr-1"
+              >
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+              Examples Available
+            </span>
           </div>
         )}
-      </CardContent>
-      <CardFooter className="pt-0">
-        <div className="w-full flex justify-between items-center">
-          <DirectoryCardFooter hasExamples={hasExamples} />
-          <Button asChild variant="ghost" size="sm">
-            <Link to={`/directory/${id}`} className="flex items-center">
-              View Details
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
+        
+        <DirectoryCardFooter id={id} />
+      </div>
+    </div>
   );
 };
 

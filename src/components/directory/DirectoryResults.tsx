@@ -2,7 +2,15 @@
 import React from 'react';
 import DirectoryCard from '@/components/DirectoryCard';
 import NoResultsView from './NoResultsView';
-import { DirectoryItem } from '@/types/directory';
+
+interface DirectoryItem {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  jsonLd: Record<string, any>;
+  hasExamples?: boolean;
+}
 
 interface DirectoryResultsProps {
   items: DirectoryItem[];
