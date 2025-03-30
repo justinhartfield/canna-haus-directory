@@ -21,31 +21,31 @@ export function transformDataRow(
     // Skip if the mapping is to be ignored
     if (targetField === 'ignore') continue;
     
-    // Check if the source field exists in the raw data
-    if (!(sourceField in rawItem)) {
-      console.warn(`Source field "${sourceField}" not found in data for mapping to "${targetField}"`);
-      
-      // For additionalFields, we still want to create the field with an empty value
-      if (targetField.startsWith('additionalFields.')) {
-        const fieldName = targetField.replace('additionalFields.', '');
-        if (!baseItem.additionalFields) {
-          baseItem.additionalFields = {};
-        }
-        // Set an empty string for missing additional fields
-        baseItem.additionalFields[fieldName] = '';
-      }
-      continue;
-    }
-    
-    // Handle additional fields mapping
+    // For additionalFields mappings, make sure we create the field even if the source is missing
     if (targetField.startsWith('additionalFields.')) {
       const fieldName = targetField.replace('additionalFields.', '');
       if (!baseItem.additionalFields) {
         baseItem.additionalFields = {};
       }
-      baseItem.additionalFields[fieldName] = rawItem[sourceField];
-    } else {
+      
+      // Set the value from the source field or empty string if missing
+      baseItem.additionalFields[fieldName] = sourceField in rawItem ? 
+        rawItem[sourceField] : 
+        '';
+      
+      // Log missing fields but continue processing
+      if (!(sourceField in rawItem)) {
+        console.log(`Creating empty additionalField ${fieldName} for missing source field "${sourceField}"`);
+      }
+    } 
+    // Regular field mapping
+    else if (sourceField in rawItem) {
       baseItem[targetField] = rawItem[sourceField];
+    }
+    // Missing required fields should use defaults
+    else if (['title', 'description'].includes(targetField)) {
+      console.log(`Missing required field "${targetField}", using default value`);
+      // Default values will be applied below
     }
   }
   
@@ -86,6 +86,11 @@ export function transformDataRow(
     // Use default description or generate one
     finalDescription = baseItem.defaultDescription || defaultValues.description || `No description provided for item ${rowIndex + 1}`;
   }
+
+  // Ensure additionalFields is always an object, never null
+  if (!baseItem.additionalFields) {
+    baseItem.additionalFields = {};
+  }
   
   // Construct the final directory item
   const directoryItem: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -98,7 +103,7 @@ export function transformDataRow(
     thumbnailUrl: baseItem.thumbnailUrl,
     jsonLd,
     metaData: baseItem.metaData || {},
-    additionalFields: baseItem.additionalFields || {}
+    additionalFields: baseItem.additionalFields
   };
   
   return directoryItem;

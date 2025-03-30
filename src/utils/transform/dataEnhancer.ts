@@ -11,10 +11,11 @@ export function enhanceRawItemWithPlaceholders(
   
   // For each missing column that maps to an additional field, add a placeholder
   missingColumnsMap.forEach((targetField, sourceField) => {
-    if (targetField.startsWith('additionalFields.')) {
+    if (!enhancedRawItem[sourceField]) {
       // Add an empty placeholder for the missing field
-      // This ensures the additional field is still created in the output
+      // This ensures the field is created in the output
       enhancedRawItem[sourceField] = '';
+      console.log(`Adding placeholder for missing field: ${sourceField} -> ${targetField}`);
     }
   });
   

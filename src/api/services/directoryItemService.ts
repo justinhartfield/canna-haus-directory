@@ -137,22 +137,47 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
     if (!item.title || !item.description || !item.category) {
       throw new Error("All items must have title, description and category");
     }
+    
+    // Ensure additionalFields is an object, not null
+    if (!item.additionalFields) {
+      item.additionalFields = {};
+    }
+    
+    // Ensure metaData is an object, not null
+    if (!item.metaData) {
+      item.metaData = {};
+    }
   }
   
-  // Format items for insertion - match database column naming
-  const insertData = items.map(item => transformDirectoryItemToDatabaseRow(item)) as DirectoryItemInsert[];
-  
-  const { data, error } = await apiClient.bulkInsert(TABLE_NAME, insertData);
-  
-  if (error) {
+  try {
+    console.log(`Attempting to insert ${items.length} items`);
+    
+    // Format items for insertion - match database column naming
+    const insertData = items.map(item => {
+      const dbItem = transformDirectoryItemToDatabaseRow(item);
+      return dbItem as DirectoryItemInsert;
+    });
+    
+    // Check the first item for debugging
+    if (insertData.length > 0) {
+      console.log('Sample item for insertion:', JSON.stringify(insertData[0]));
+    }
+    
+    const { data, error } = await apiClient.bulkInsert(TABLE_NAME, insertData);
+    
+    if (error) {
+      console.error("Error bulk inserting directory items:", error);
+      throw error;
+    }
+    
+    // Transform the data to match our DirectoryItem interface
+    const transformedData: DirectoryItem[] = Array.isArray(data) 
+      ? data.map(transformDatabaseRowToDirectoryItem)
+      : [];
+    
+    return transformedData;
+  } catch (error) {
     console.error("Error bulk inserting directory items:", error);
     throw error;
   }
-  
-  // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = Array.isArray(data) 
-    ? data.map(transformDatabaseRowToDirectoryItem)
-    : [];
-  
-  return transformedData;
 }

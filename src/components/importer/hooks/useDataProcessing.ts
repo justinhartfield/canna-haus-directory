@@ -119,6 +119,10 @@ export function useDataProcessing() {
       // Batch upload to Supabase if there are successful items
       if (result.items.length > 0) {
         try {
+          console.log(`Uploading ${result.items.length} items to Supabase`);
+          // Sample the first item for debugging
+          console.log('Sample item:', JSON.stringify(result.items[0]));
+          
           // Upload processed items to Supabase
           setUploadProgress(10);
           const uploadedItems = await bulkInsertDirectoryItems(result.items as unknown as DirectoryItem[]);
@@ -136,9 +140,14 @@ export function useDataProcessing() {
           };
         } catch (uploadError) {
           console.error("Error uploading to Supabase:", uploadError);
+          
+          const errorMessage = uploadError instanceof Error 
+            ? uploadError.message 
+            : "Failed to upload data to the database";
+            
           toast({
             title: "Upload Failed",
-            description: uploadError instanceof Error ? uploadError.message : "Failed to upload data to the database",
+            description: errorMessage,
             variant: "destructive"
           });
           
