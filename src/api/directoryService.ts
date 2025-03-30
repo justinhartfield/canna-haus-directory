@@ -23,13 +23,13 @@ export async function getDirectoryItems(): Promise<DirectoryItem[]> {
     category: item.category,
     subcategory: item.subcategory || undefined,
     tags: item.tags || [],
-    imageUrl: item.imageUrl || undefined,
-    thumbnailUrl: item.thumbnailUrl || undefined,
-    jsonLd: item.jsonLd || {},
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-    metaData: item.metaData || {},
-    additionalFields: item.additionalFields || {}
+    imageUrl: item.imageurl || undefined,
+    thumbnailUrl: item.thumbnailurl || undefined,
+    jsonLd: item.jsonld || {},
+    createdAt: item.createdat,
+    updatedAt: item.updatedat,
+    metaData: item.metadata || {},
+    additionalFields: item.additionalfields || {}
   }));
   
   return transformedData;
@@ -64,13 +64,13 @@ export async function getDirectoryItemById(id: string): Promise<DirectoryItem | 
     category: data.category,
     subcategory: data.subcategory || undefined,
     tags: data.tags || [],
-    imageUrl: data.imageUrl || undefined,
-    thumbnailUrl: data.thumbnailUrl || undefined,
-    jsonLd: data.jsonLd || {},
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
-    metaData: data.metaData || {},
-    additionalFields: data.additionalFields || {}
+    imageUrl: data.imageurl || undefined,
+    thumbnailUrl: data.thumbnailurl || undefined,
+    jsonLd: data.jsonld || {},
+    createdAt: data.createdat,
+    updatedAt: data.updatedat,
+    metaData: data.metadata || {},
+    additionalFields: data.additionalfields || {}
   };
   
   return transformedData;
@@ -98,13 +98,13 @@ export async function getDirectoryItemsByCategory(category: string): Promise<Dir
     category: item.category,
     subcategory: item.subcategory || undefined,
     tags: item.tags || [],
-    imageUrl: item.imageUrl || undefined,
-    thumbnailUrl: item.thumbnailUrl || undefined,
-    jsonLd: item.jsonLd || {},
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-    metaData: item.metaData || {},
-    additionalFields: item.additionalFields || {}
+    imageUrl: item.imageurl || undefined,
+    thumbnailUrl: item.thumbnailurl || undefined,
+    jsonLd: item.jsonld || {},
+    createdAt: item.createdat,
+    updatedAt: item.updatedat,
+    metaData: item.metadata || {},
+    additionalFields: item.additionalfields || {}
   }));
   
   return transformedData;
@@ -122,11 +122,11 @@ export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'crea
       category: item.category,
       subcategory: item.subcategory,
       tags: item.tags,
-      imageUrl: item.imageUrl,
-      thumbnailUrl: item.thumbnailUrl,
-      jsonLd: item.jsonLd,
-      metaData: item.metaData,
-      additionalFields: item.additionalFields,
+      imageurl: item.imageUrl,
+      thumbnailurl: item.thumbnailUrl,
+      jsonld: item.jsonLd,
+      metadata: item.metaData,
+      additionalfields: item.additionalFields,
     })
     .select('*')
     .single();
@@ -144,13 +144,13 @@ export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'crea
     category: data.category,
     subcategory: data.subcategory || undefined,
     tags: data.tags || [],
-    imageUrl: data.imageUrl || undefined,
-    thumbnailUrl: data.thumbnailUrl || undefined,
-    jsonLd: data.jsonLd || {},
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
-    metaData: data.metaData || {},
-    additionalFields: data.additionalFields || {}
+    imageUrl: data.imageurl || undefined,
+    thumbnailUrl: data.thumbnailurl || undefined,
+    jsonLd: data.jsonld || {},
+    createdAt: data.createdat,
+    updatedAt: data.updatedat,
+    metaData: data.metadata || {},
+    additionalFields: data.additionalfields || {}
   };
   
   return transformedData;
@@ -160,9 +160,23 @@ export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'crea
  * Updates an existing directory item in Supabase
  */
 export async function updateDirectoryItem(id: string, item: Partial<DirectoryItem>): Promise<DirectoryItem | null> {
+  // Transform the input data to match the database column names
+  const updateData: Record<string, any> = {};
+  
+  if (item.title !== undefined) updateData.title = item.title;
+  if (item.description !== undefined) updateData.description = item.description;
+  if (item.category !== undefined) updateData.category = item.category;
+  if (item.subcategory !== undefined) updateData.subcategory = item.subcategory;
+  if (item.tags !== undefined) updateData.tags = item.tags;
+  if (item.imageUrl !== undefined) updateData.imageurl = item.imageUrl;
+  if (item.thumbnailUrl !== undefined) updateData.thumbnailurl = item.thumbnailUrl;
+  if (item.jsonLd !== undefined) updateData.jsonld = item.jsonLd;
+  if (item.metaData !== undefined) updateData.metadata = item.metaData;
+  if (item.additionalFields !== undefined) updateData.additionalfields = item.additionalFields;
+  
   const { data, error } = await supabase
     .from('directory_items')
-    .update(item)
+    .update(updateData)
     .eq('id', id)
     .select('*')
     .single();
@@ -182,13 +196,13 @@ export async function updateDirectoryItem(id: string, item: Partial<DirectoryIte
     category: data.category,
     subcategory: data.subcategory || undefined,
     tags: data.tags || [],
-    imageUrl: data.imageUrl || undefined,
-    thumbnailUrl: data.thumbnailUrl || undefined,
-    jsonLd: data.jsonLd || {},
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
-    metaData: data.metaData || {},
-    additionalFields: data.additionalFields || {}
+    imageUrl: data.imageurl || undefined,
+    thumbnailUrl: data.thumbnailurl || undefined,
+    jsonLd: data.jsonld || {},
+    createdAt: data.createdat,
+    updatedAt: data.updatedat,
+    metaData: data.metadata || {},
+    additionalFields: data.additionalfields || {}
   };
   
   return transformedData;
@@ -215,18 +229,18 @@ export async function deleteDirectoryItem(id: string): Promise<boolean> {
  * Bulk inserts directory items into Supabase
  */
 export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<DirectoryItem[]> {
-  // Format items for insertion
+  // Format items for insertion - match database column naming
   const insertData = items.map(item => ({
     title: item.title,
     description: item.description,
     category: item.category,
     subcategory: item.subcategory,
     tags: item.tags,
-    imageUrl: item.imageUrl,
-    thumbnailUrl: item.thumbnailUrl,
-    jsonLd: item.jsonLd,
-    metaData: item.metaData || {},
-    additionalFields: item.additionalFields || {}
+    imageurl: item.imageUrl,
+    thumbnailurl: item.thumbnailUrl,
+    jsonld: item.jsonLd,
+    metadata: item.metaData || {},
+    additionalfields: item.additionalFields || {}
   }));
   
   const { data, error } = await supabase
@@ -247,13 +261,13 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
     category: item.category,
     subcategory: item.subcategory || undefined,
     tags: item.tags || [],
-    imageUrl: item.imageUrl || undefined,
-    thumbnailUrl: item.thumbnailUrl || undefined,
-    jsonLd: item.jsonLd || {},
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-    metaData: item.metaData || {},
-    additionalFields: item.additionalFields || {}
+    imageUrl: item.imageurl || undefined,
+    thumbnailUrl: item.thumbnailurl || undefined,
+    jsonLd: item.jsonld || {},
+    createdAt: item.createdat,
+    updatedAt: item.updatedat,
+    metaData: item.metadata || {},
+    additionalFields: item.additionalfields || {}
   }));
   
   return transformedData;
