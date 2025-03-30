@@ -1,13 +1,16 @@
 
 import React, { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImportProgress } from '@/types/directory';
 import { processAndImportFile } from '@/utils/importUtils';
+import { useDropzone } from 'react-dropzone';
+
+// Import the new components
+import CategorySelector from './import/CategorySelector';
+import FileDropzone from './import/FileDropzone';
+import ImportProgressDisplay from './import/ImportProgress';
 
 const DEFAULT_CATEGORIES = [
   'Strains',
@@ -108,15 +111,23 @@ const DataImporter: React.FC = () => {
     });
   }, [category]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+  const { isDragActive } = useDropzone({ 
     onDrop,
     disabled: isImporting || !category,
-    accept: {
-      'text/csv': ['.csv'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls']
-    }
+    noClick: true, // We'll use our own dropzone component
+    noKeyboard: true
   });
+
+  const handleClearResults = () => {
+    setProgress({
+      totalFiles: 0,
+      processedFiles: 0,
+      successCount: 0,
+      errorCount: 0,
+      errors: [],
+      status: 'idle'
+    });
+  };
 
   return (
     <Card className="w-full">
@@ -127,104 +138,25 @@ const DataImporter: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Select Category</label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {DEFAULT_CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CategorySelector 
+          categories={DEFAULT_CATEGORIES}
+          selectedCategory={category}
+          onChange={setCategory}
+        />
         
-        <div 
-          {...getRootProps()} 
-          className={`border-2 border-dashed rounded-md p-8 text-center cursor-pointer transition-colors ${
-            isDragActive ? 'border-visual-500 bg-visual-500/10' : 'border-gray-600'
-          } ${isImporting || !category ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center space-y-2">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              className="text-gray-400"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <p className="text-sm text-gray-300">
-              {isDragActive
-                ? 'Drop the files here...'
-                : 'Drag & drop CSV or Excel files here, or click to select files'}
-            </p>
-            <p className="text-xs text-gray-400">
-              Supported formats: .csv, .xlsx, .xls
-            </p>
-          </div>
-        </div>
+        <FileDropzone 
+          onDrop={onDrop}
+          isDisabled={isImporting || !category}
+          isDragActive={isDragActive}
+        />
         
-        {progress.status !== 'idle' && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Progress: {progress.processedFiles} of {progress.totalFiles} files</span>
-              <span>
-                {Math.round((progress.processedFiles / progress.totalFiles) * 100)}%
-              </span>
-            </div>
-            <Progress 
-              value={(progress.processedFiles / progress.totalFiles) * 100} 
-              className="h-2"
-            />
-            
-            <div className="flex justify-between text-sm mt-2">
-              <span className="text-green-400">Success: {progress.successCount} items</span>
-              {progress.errorCount > 0 && (
-                <span className="text-red-400">Errors: {progress.errorCount}</span>
-              )}
-            </div>
-            
-            {progress.errors.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-red-400 mb-2">Errors:</h4>
-                <div className="max-h-40 overflow-y-auto text-xs bg-gray-800/50 rounded p-2">
-                  {progress.errors.map((error, index) => (
-                    <div key={index} className="mb-1 pb-1 border-b border-gray-700">
-                      <span className="font-medium">{error.file}:</span> {error.error}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <ImportProgressDisplay progress={progress} />
       </CardContent>
       <CardFooter>
         <div className="flex justify-end w-full">
           <Button 
             variant="outline" 
-            onClick={() => {
-              setProgress({
-                totalFiles: 0,
-                processedFiles: 0,
-                successCount: 0,
-                errorCount: 0,
-                errors: [],
-                status: 'idle'
-              });
-            }}
+            onClick={handleClearResults}
             disabled={isImporting}
           >
             Clear Results
