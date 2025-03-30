@@ -57,6 +57,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     customFields,
     availableColumns,
     manualMappingMode,
+    setManualMappingMode,
     handleMappingChange,
     handleCustomFieldNameChange,
     handleSourceColumnChange,

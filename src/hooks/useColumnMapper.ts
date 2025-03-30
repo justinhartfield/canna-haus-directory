@@ -173,11 +173,13 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
     customFields,
     availableColumns,
     manualMappingMode,
+    setManualMappingMode,  // Export setManualMappingMode
     handleMappingChange,
     handleCustomFieldNameChange,
     handleSourceColumnChange,
     handleAddMapping,
     handleRemoveMapping,
-    toggleManualMode
+    toggleManualMode,
+    analyzeFile  // Export analyzeFile
   };
 }
