@@ -16,7 +16,6 @@ import CategoryView from '@/pages/CategoryView';
 import Analytics from '@/pages/Analytics';
 import Admin from '@/pages/Admin';
 import DataManagement from '@/pages/DataManagement';
-import DataStandardization from '@/pages/DataStandardization';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -45,7 +44,6 @@ function App() {
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/data-management" element={<DataManagement />} />
-              <Route path="/data-standardization" element={<DataStandardization />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster position="bottom-right" />

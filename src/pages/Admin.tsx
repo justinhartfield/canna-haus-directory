@@ -5,10 +5,8 @@ import Footer from '@/components/Footer';
 import SmartImporter from '@/components/importer/SmartImporter';
 import FolderBasedImporter from '@/components/admin/FolderBasedImporter';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Database, FileSpreadsheet, RefreshCcw } from 'lucide-react';
 
 const Admin: React.FC = () => {
   const auth = useAuth();
@@ -43,30 +41,12 @@ const Admin: React.FC = () => {
       <main className="min-h-screen pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-                <p className="text-muted-foreground">
-                  Manage your data and content
-                </p>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="outline" asChild>
-                  <Link to="/data-management">
-                    <Database className="mr-2 h-4 w-4" />
-                    Data Management
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/data-standardization">
-                    <RefreshCcw className="mr-2 h-4 w-4" />
-                    Data Standardization
-                  </Link>
-                </Button>
-              </div>
-            </div>
+            <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+            <p className="text-muted-foreground mb-8">
+              Manage your data and content
+            </p>
             
-            <Tabs defaultValue="smart" className="mt-6">
+            <Tabs defaultValue="smart">
               <TabsList className="mb-6">
                 <TabsTrigger value="smart">Smart AI Import</TabsTrigger>
                 <TabsTrigger value="folder">Folder-Based Import</TabsTrigger>
