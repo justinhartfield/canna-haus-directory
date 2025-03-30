@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -49,7 +48,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
               toast({
                 title: "Processing may be stalled",
                 description: "The process hasn't made progress in 10 seconds. You can continue waiting or cancel.",
-                variant: "warning"
+                variant: "default"
               });
             }
             return newValue;

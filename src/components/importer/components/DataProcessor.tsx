@@ -57,7 +57,7 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
           toast({
             title: 'Processing Issue',
             description: 'Processing seems to be taking longer than expected. You can wait or try again.',
-            variant: 'warning'
+            variant: 'default'
           });
         }
       }, 10000);

@@ -15,6 +15,9 @@ interface UseDataProcessingProps {
   onComplete?: (result: ProcessingResult) => void;
 }
 
+// For creating temp items without ID, createdAt and updatedAt
+type TempDirectoryItem = Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>;
+
 export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -57,12 +60,15 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
       setProgress(5);
       
       // Transform data for duplicate checking
-      const itemsForDuplicateCheck = data.map(item => ({
+      const itemsForDuplicateCheck: TempDirectoryItem[] = data.map(item => ({
         title: (mappings.title && item[mappings.title]) ? String(item[mappings.title]) : 'Untitled',
         description: (mappings.description && item[mappings.description]) ? String(item[mappings.description]) : '',
         category: category,
         subcategory: subcategory,
-        jsonLd: {}
+        tags: [],
+        jsonLd: {},
+        metaData: {},
+        additionalFields: {}
       }));
       
       addProcessingStep(`Checking ${itemsForDuplicateCheck.length} items for duplicates`);
@@ -96,7 +102,7 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
       setProgress(30);
       
       // Transform the data to DirectoryItem format
-      const transformedItems: DirectoryItem[] = nonDuplicates.map(rawItem => {
+      const transformedItems: TempDirectoryItem[] = nonDuplicates.map(rawItem => {
         const title = mappings.title ? String(rawItem[mappings.title] || 'Untitled') : 'Untitled';
         const description = mappings.description ? String(rawItem[mappings.description] || '') : '';
         const tags = mappings.tags ? 
