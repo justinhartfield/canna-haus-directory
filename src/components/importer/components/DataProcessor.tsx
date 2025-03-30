@@ -5,6 +5,7 @@ import { processFileContent } from '@/utils/dataProcessingUtils';
 import { DirectoryItem } from '@/types/directory';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
 import { bulkInsertDirectoryItems } from '@/api/directoryService';
 
@@ -31,12 +32,14 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
   const [progress, setProgress] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'uploading'>('idle');
+  const [missingColumns, setMissingColumns] = useState<string[]>([]);
 
   const handleProcessFile = async () => {
     setIsProcessing(true);
     setProgress(0);
     setUploadProgress(0);
     setCurrentStatus('processing');
+    setMissingColumns([]);
     
     try {
       // Validate mappings
@@ -91,6 +94,17 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
       
       setProgress(100);
       
+      // Handle missing columns and show warnings
+      if (result.missingColumns && result.missingColumns.length > 0) {
+        setMissingColumns(result.missingColumns);
+        
+        toast({
+          title: "Warning: Some columns not found",
+          description: `${result.missingColumns.length} mapped columns were not found in your data file.`,
+          variant: "warning"
+        });
+      }
+      
       if (!result.success && result.processedRows === 0) {
         throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
       }
@@ -144,6 +158,21 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
 
   return (
     <div className="space-y-4">
+      {missingColumns.length > 0 && (
+        <Alert variant="warning">
+          <AlertTitle>Missing Columns</AlertTitle>
+          <AlertDescription>
+            <p>The following columns were not found in your data file:</p>
+            <ul className="list-disc pl-5 mt-2">
+              {missingColumns.map((column, index) => (
+                <li key={index}>{column}</li>
+              ))}
+            </ul>
+            <p className="mt-2">Your data will be imported without these fields.</p>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {isProcessing && (
         <div className="space-y-4">
           {currentStatus === 'processing' && (

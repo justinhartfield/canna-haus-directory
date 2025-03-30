@@ -18,6 +18,7 @@ export interface ProcessingResult {
     data?: Record<string, any>;
   }>;
   items: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>[];
+  missingColumns?: string[]; // New field to track missing columns
 }
 
 /**
@@ -34,7 +35,8 @@ export function transformData(
     processedFiles: 1,
     errorCount: 0,
     errors: [],
-    items: []
+    items: [],
+    missingColumns: [] // Initialize missing columns array
   };
   
   if (!rawData.length) {
@@ -77,10 +79,37 @@ export function transformData(
     mappingConfig.defaultValues.description = "No description provided";
   }
   
+  // Check for missing columns in the first row
+  const firstRow = rawData[0];
+  const missingColumnsMap = new Map<string, string>();
+  
+  for (const [targetField, sourceField] of Object.entries(mappingConfig.columnMappings)) {
+    if (!(sourceField in firstRow)) {
+      // Track missing columns and their target fields
+      missingColumnsMap.set(sourceField, targetField);
+      console.warn(`Source field "${sourceField}" not found in data for mapping to "${targetField}"`);
+    }
+  }
+  
+  // Store missing columns in the result
+  result.missingColumns = Array.from(missingColumnsMap.keys());
+  
   for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
     try {
       const rawItem = rawData[rowIndex];
-      const transformedItem = transformDataRow(rawItem, mappingConfig, rowIndex);
+      
+      // Filter out missing columns from mapping config for this row
+      const filteredMappingConfig = {
+        ...mappingConfig,
+        columnMappings: { ...mappingConfig.columnMappings }
+      };
+      
+      // Remove missing column mappings to avoid warnings
+      missingColumnsMap.forEach((targetField, sourceField) => {
+        delete filteredMappingConfig.columnMappings[targetField];
+      });
+      
+      const transformedItem = transformDataRow(rawItem, filteredMappingConfig, rowIndex);
       result.items.push(transformedItem);
       result.processedRows++;
     } catch (error) {

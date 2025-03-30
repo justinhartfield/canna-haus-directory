@@ -2,11 +2,7 @@
 import React from 'react';
 import { DirectoryItem } from '@/types/directory';
 import { 
-  Table, 
-  TableBody, 
   TableCell, 
-  TableHead, 
-  TableHeader, 
   TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -28,6 +24,7 @@ interface DataTableProps {
   onSaveEdit: (id: string) => void;
   onDeleteItem: (id: string) => void;
   onEditField: (field: string, value: any) => void;
+  additionalFieldKeys: string[];
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -38,17 +35,26 @@ const DataTable: React.FC<DataTableProps> = ({
   onCancelEdit,
   onSaveEdit,
   onDeleteItem,
-  onEditField
+  onEditField,
+  additionalFieldKeys
 }) => {
   if (items.length === 0) {
     return (
       <TableRow>
-        <TableCell colSpan={4} className="h-24 text-center">
+        <TableCell colSpan={4 + additionalFieldKeys.length} className="h-24 text-center">
           No results found.
         </TableCell>
       </TableRow>
     );
   }
+
+  // Handle additional field updates
+  const handleAdditionalFieldEdit = (key: string, value: string) => {
+    onEditField('additionalFields', {
+      ...(editedData.additionalFields || {}),
+      [key]: value
+    });
+  };
 
   return (
     <>
@@ -58,20 +64,32 @@ const DataTable: React.FC<DataTableProps> = ({
             value={item.title}
             isEditing={editingItemId === item.id}
             onEdit={(value) => onEditField('title', value)}
-            initialEditValue={editedData.title || item.title}
+            initialEditValue={editedData.title}
           />
           <EditableCell
             value={item.category}
             isEditing={editingItemId === item.id}
             onEdit={(value) => onEditField('category', value)}
-            initialEditValue={editedData.category || item.category}
+            initialEditValue={editedData.category}
           />
           <EditableCell
             value={item.description}
             isEditing={editingItemId === item.id}
             onEdit={(value) => onEditField('description', value)}
-            initialEditValue={editedData.description || item.description}
+            initialEditValue={editedData.description}
           />
+          
+          {/* Render all additional fields */}
+          {additionalFieldKeys.map(key => (
+            <EditableCell
+              key={key}
+              value={item.additionalFields?.[key] || ''}
+              isEditing={editingItemId === item.id}
+              onEdit={(value) => handleAdditionalFieldEdit(key, value)}
+              initialEditValue={editedData.additionalFields?.[key]}
+            />
+          ))}
+          
           <TableCell>
             {editingItemId === item.id ? (
               <div className="flex space-x-2">

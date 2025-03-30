@@ -31,6 +31,17 @@ const DataTableContainer: React.FC<DataTableContainerProps> = ({
   onDeleteItem,
   onEditField
 }) => {
+  // Find all unique additional field keys across all items
+  const additionalFieldKeys = React.useMemo(() => {
+    const keys = new Set<string>();
+    items.forEach(item => {
+      if (item.additionalFields) {
+        Object.keys(item.additionalFields).forEach(key => keys.add(key));
+      }
+    });
+    return Array.from(keys);
+  }, [items]);
+
   return (
     <div className="rounded-md border mt-6 overflow-hidden">
       <div className="overflow-x-auto">
@@ -40,6 +51,9 @@ const DataTableContainer: React.FC<DataTableContainerProps> = ({
               <TableHead>Title</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Description</TableHead>
+              {additionalFieldKeys.map(key => (
+                <TableHead key={key}>{key}</TableHead>
+              ))}
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -53,6 +67,7 @@ const DataTableContainer: React.FC<DataTableContainerProps> = ({
               onSaveEdit={onSaveEdit}
               onDeleteItem={onDeleteItem}
               onEditField={onEditField}
+              additionalFieldKeys={additionalFieldKeys}
             />
           </TableBody>
         </Table>
