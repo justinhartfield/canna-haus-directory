@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DirectoryItem } from '@/types/directory';
 import CategoryCard from './CategoryCard';
 import DirectoryResults from './DirectoryResults';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, X } from 'lucide-react';
 
 interface DirectoryCategoriesProps {
   items: DirectoryItem[];
@@ -22,6 +24,33 @@ const DirectoryCategories: React.FC<DirectoryCategoriesProps> = ({
   error,
   onClearFilters
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<DirectoryItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!searchQuery.trim()) {
+      setIsSearching(false);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const results = items.filter(item => 
+      item.title.toLowerCase().includes(query) || 
+      item.description.toLowerCase().includes(query)
+    );
+    
+    setSearchResults(results);
+    setIsSearching(true);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setIsSearching(false);
+  };
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -42,8 +71,64 @@ const DirectoryCategories: React.FC<DirectoryCategoriesProps> = ({
     );
   }
 
+  // Show search results if we're searching, otherwise continue with normal flow
+  if (isSearching) {
+    return (
+      <>
+        <div className="mb-6">
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search directory by title or description..."
+              className="pl-9 pr-16"
+            />
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearSearch}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+        <DirectoryResults 
+          items={searchResults} 
+          onClearFilters={clearSearch} 
+        />
+      </>
+    );
+  }
+
   if (isSearchMode) {
-    return <DirectoryResults items={filteredItems} onClearFilters={onClearFilters} />;
+    return (
+      <>
+        <div className="mb-6">
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search directory by title or description..."
+              className="pl-9 pr-16"
+            />
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearSearch}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+        <DirectoryResults items={filteredItems} onClearFilters={onClearFilters} />
+      </>
+    );
   }
 
   // Group items by category
@@ -65,15 +150,36 @@ const DirectoryCategories: React.FC<DirectoryCategoriesProps> = ({
   categoryList.sort((a, b) => a.category.localeCompare(b.category));
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {categoryList.map(({ category, count }) => (
-        <CategoryCard
-          key={category}
-          category={category}
-          count={count}
-        />
-      ))}
-    </div>
+    <>
+      <div className="mb-6">
+        <form onSubmit={handleSearch} className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search directory by title or description..."
+            className="pl-9 pr-16"
+          />
+          <Button 
+            type="submit" 
+            variant="ghost" 
+            size="sm" 
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {categoryList.map(({ category, count }) => (
+          <CategoryCard
+            key={category}
+            category={category}
+            count={count}
+          />
+        ))}
+      </div>
+    </>
   );
 };
 
