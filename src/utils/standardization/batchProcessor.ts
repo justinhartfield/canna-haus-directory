@@ -49,6 +49,20 @@ export async function batchProcessDirectoryItems(
         // Apply standardization
         const standardizedItem = standardizeDirectoryItem(item);
         
+        // Log standardization differences for debugging
+        console.log(`Standardizing item ${item.id}:`, {
+          original: {
+            category: item.category,
+            tags: item.tags,
+            additionalFields: item.additionalFields
+          },
+          standardized: {
+            category: standardizedItem.category,
+            tags: standardizedItem.tags,
+            additionalFields: standardizedItem.additionalFields
+          }
+        });
+        
         // Update the item in the database
         await updateDirectoryItem(item.id, standardizedItem);
         
@@ -58,6 +72,8 @@ export async function batchProcessDirectoryItems(
         result.failed++;
         const errorMessage = error instanceof Error ? error.message : String(error);
         result.errors.push({ id: item.id, error: errorMessage });
+        
+        console.error(`Error processing item ${item.id}:`, error);
         
         if (options.onError) {
           options.onError(error instanceof Error ? error : new Error(errorMessage), item);

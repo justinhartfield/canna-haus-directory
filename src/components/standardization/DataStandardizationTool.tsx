@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { DirectoryItem } from '@/types/directory';
 import { batchProcessDirectoryItems } from '@/utils/standardization/batchProcessor';
 import { analyzeDirectoryData, findPotentialDuplicates } from '@/utils/standardization/dataAnalyzer';
 import { standardizeDirectoryItem } from '@/utils/standardization/standardizationFunctions';
-import { AlertCircle, CheckCircle2, Settings2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, RefreshCw, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DataStandardizationTool: React.FC = () => {
@@ -39,10 +38,20 @@ const DataStandardizationTool: React.FC = () => {
       return;
     }
     
-    const analysis = analyzeDirectoryData(directoryItems);
-    setAnalysisResult(analysis);
+    // Make sure additionalFields exists on all items
+    const itemsWithDefaults = directoryItems.map(item => ({
+      ...item,
+      additionalFields: item.additionalFields || {}
+    }));
     
-    toast.success(`Analysis completed on ${analysis.totalItems} items`);
+    try {
+      const analysis = analyzeDirectoryData(itemsWithDefaults);
+      setAnalysisResult(analysis);
+      toast.success(`Analysis completed on ${analysis.totalItems} items`);
+    } catch (error) {
+      console.error('Error during analysis:', error);
+      toast.error('Error analyzing data. Check console for details.');
+    }
   };
   
   const handleStandardizeData = async () => {
@@ -51,12 +60,20 @@ const DataStandardizationTool: React.FC = () => {
       return;
     }
     
+    // Make sure additionalFields exists on all items
+    const itemsWithDefaults = directoryItems.map(item => ({
+      ...item,
+      additionalFields: item.additionalFields || {}
+    }));
+    
     setIsProcessing(true);
     setProgress(0);
     setResult(null);
     
     try {
-      const processingResult = await batchProcessDirectoryItems(directoryItems, {
+      toast.info('Starting standardization process. This may take a while...');
+      
+      const processingResult = await batchProcessDirectoryItems(itemsWithDefaults, {
         batchSize,
         pauseBetweenBatches,
         onProgress: (processed, total) => {
@@ -94,14 +111,19 @@ const DataStandardizationTool: React.FC = () => {
       return;
     }
     
-    const duplicates = findPotentialDuplicates(directoryItems, 0.8);
-    
-    toast.success(`Found ${duplicates.length} potential duplicate groups`);
-    
-    setAnalysisResult({
-      ...analysisResult,
-      duplicates
-    });
+    try {
+      const duplicates = findPotentialDuplicates(directoryItems, 0.8);
+      
+      toast.success(`Found ${duplicates.length} potential duplicate groups`);
+      
+      setAnalysisResult({
+        ...analysisResult,
+        duplicates
+      });
+    } catch (error) {
+      console.error('Error finding duplicates:', error);
+      toast.error('Error finding duplicates. Check console for details.');
+    }
   };
   
   const renderAnalysisResults = () => {
