@@ -1,36 +1,29 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { MOCK_DIRECTORY_DATA } from '@/data/directory';
 import DispensaryExamples from '@/components/directory/examples/DispensaryExamples';
 import ConsumptionMethodsExamples from '@/components/directory/examples/ConsumptionMethodsExamples';
 import ExtractionTechniquesExamples from '@/components/directory/examples/ExtractionTechniquesExamples';
 import DefaultExamples from '@/components/directory/examples/DefaultExamples';
 import JsonLdDisplay from '@/components/directory/JsonLdDisplay';
 import ImplementationGuide from '@/components/directory/ImplementationGuide';
+import { getDirectoryItemById } from '@/api/services/directoryItemService';
 
 const DirectoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [item, setItem] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: item, isLoading, error } = useQuery({
+    queryKey: ['directoryItem', id],
+    queryFn: () => id ? getDirectoryItemById(id) : null,
+    enabled: !!id
+  });
 
-  useEffect(() => {
-    // In a real app, this would be an API call
-    if (id) {
-      const numId = parseInt(id, 10);
-      const found = MOCK_DIRECTORY_DATA.find(item => item.id === numId);
-      
-      if (found) {
-        setItem(found);
-      }
-      setLoading(false);
-    }
-  }, [id]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <>
         <Navbar />
@@ -51,7 +44,7 @@ const DirectoryDetail: React.FC = () => {
     );
   }
 
-  if (!item) {
+  if (error || !item) {
     return (
       <>
         <Navbar />
@@ -73,8 +66,10 @@ const DirectoryDetail: React.FC = () => {
     );
   }
 
+  const hasExamples = !!item.additionalFields && Object.keys(item.additionalFields).length > 0;
+
   const renderExamples = () => {
-    if (!item.hasExamples) return null;
+    if (!hasExamples) return null;
 
     switch (item.category) {
       case 'Dispensaries':
@@ -84,7 +79,7 @@ const DirectoryDetail: React.FC = () => {
       case 'Extraction Techniques':
         return <ExtractionTechniquesExamples />;
       default:
-        return item.hasExamples ? <DefaultExamples jsonLd={item.jsonLd} /> : null;
+        return <DefaultExamples jsonLd={item.jsonLd} />;
     }
   };
 

@@ -1,18 +1,37 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SearchFilter from '@/components/SearchFilter';
-import DirectoryResults from '@/components/directory/DirectoryResults';
+import { getDirectoryItems } from '@/api/services/directoryItemService';
+import DirectoryCategories from '@/components/directory/DirectoryCategories';
 import { useDirectoryFilters } from '@/hooks/useDirectoryFilters';
 
 const Directory = () => {
+  const [searchMode, setSearchMode] = useState(false);
   const { 
     filteredData, 
     handleSearch, 
     handleFilter, 
-    clearFilters 
+    clearFilters,
+    searchTerm
   } = useDirectoryFilters();
+
+  const { data: directoryItems = [], isLoading, error } = useQuery({
+    queryKey: ['directoryItems'],
+    queryFn: getDirectoryItems
+  });
+
+  const handleSearchInput = (term: string) => {
+    handleSearch(term);
+    setSearchMode(!!term);
+  };
+
+  const handleFilterChange = (filters: Record<string, boolean>) => {
+    handleFilter(filters);
+    setSearchMode(Object.values(filters).some(value => value === true));
+  };
 
   return (
     <>
@@ -27,16 +46,20 @@ const Directory = () => {
             
             <div className="mt-8">
               <SearchFilter
-                onSearch={handleSearch}
-                onFilter={handleFilter}
+                onSearch={handleSearchInput}
+                onFilter={handleFilterChange}
                 className="mb-8"
               />
             </div>
           </div>
           
-          <DirectoryResults 
-            items={filteredData} 
-            onClearFilters={clearFilters} 
+          <DirectoryCategories 
+            items={directoryItems} 
+            filteredItems={filteredData}
+            isSearchMode={searchMode}
+            isLoading={isLoading}
+            error={error instanceof Error ? error : null}
+            onClearFilters={clearFilters}
           />
         </div>
       </main>

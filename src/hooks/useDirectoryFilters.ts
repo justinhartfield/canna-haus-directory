@@ -1,22 +1,20 @@
 
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MOCK_DIRECTORY_DATA } from '@/data/mockDirectoryData';
+import { useQuery } from '@tanstack/react-query';
 import { DirectoryItem } from '@/types/directory';
-
-// Convert the mock data to match the DirectoryItem interface
-const convertedMockData: DirectoryItem[] = MOCK_DIRECTORY_DATA.map(item => ({
-  ...item,
-  id: item.id.toString(), // Convert number id to string
-  createdAt: new Date().toISOString(), // Add missing required field
-  updatedAt: new Date().toISOString(), // Add missing required field
-}));
+import { getDirectoryItems } from '@/api/services/directoryItemService';
 
 export const useDirectoryFilters = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, boolean>>({});
-  const [filteredData, setFilteredData] = useState<DirectoryItem[]>(convertedMockData);
+  const [filteredData, setFilteredData] = useState<DirectoryItem[]>([]);
+  
+  const { data: directoryItems = [] } = useQuery({
+    queryKey: ['directoryItems'],
+    queryFn: getDirectoryItems
+  });
   
   // Parse query parameters (for direct links to filtered categories)
   useEffect(() => {
@@ -24,22 +22,14 @@ export const useDirectoryFilters = () => {
     const categoryParam = params.get('category');
     
     if (categoryParam) {
-      const categoryMap: Record<string, string> = {
-        'medical': 'Medical',
-        'genetics': 'Genetics',
-        'labdata': 'Lab Data',
-        'cultivation': 'Cultivation',
-        'compliance': 'Compliance',
-        'consumer': 'Consumer'
-      };
-      
-      const category = categoryMap[categoryParam.toLowerCase()];
-      if (category) {
-        setActiveFilters({ [categoryParam.toLowerCase()]: true });
-        setFilteredData(convertedMockData.filter(item => item.category === category));
-      }
+      setActiveFilters({ [categoryParam.toLowerCase()]: true });
     }
   }, [location.search]);
+  
+  // Update filtered data when directory items change
+  useEffect(() => {
+    applyFilters(searchTerm, activeFilters);
+  }, [directoryItems, searchTerm, activeFilters]);
   
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -54,7 +44,7 @@ export const useDirectoryFilters = () => {
   const applyFilters = (term: string, filters: Record<string, boolean>) => {
     const filterKeys = Object.keys(filters).filter(key => filters[key]);
     
-    let result = [...convertedMockData];
+    let result = [...directoryItems];
     
     // Apply search term filter
     if (term) {
@@ -92,7 +82,7 @@ export const useDirectoryFilters = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setActiveFilters({});
-    setFilteredData(convertedMockData);
+    setFilteredData(directoryItems);
   };
 
   return {

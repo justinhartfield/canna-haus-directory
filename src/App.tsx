@@ -1,64 +1,54 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/context/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
-import Directory from "./pages/Directory";
-import DirectoryDetail from "./pages/DirectoryDetail";
-import ApiDocs from "./pages/ApiDocs";
-import Analytics from "./pages/Analytics";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import Admin from "./pages/Admin";
-import DataManagement from "./pages/DataManagement";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@/components/theme-provider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner'; // Shadcn toast provider
 
-const queryClient = new QueryClient();
+import Index from '@/pages/Index';
+import Auth from '@/pages/Auth';
+import Profile from '@/pages/Profile';
+import ApiDocs from '@/pages/ApiDocs';
+import NotFound from '@/pages/NotFound';
+import Directory from '@/pages/Directory';
+import DirectoryDetail from '@/pages/DirectoryDetail';
+import CategoryView from '@/pages/CategoryView';
+import Analytics from '@/pages/Analytics';
+import Admin from '@/pages/Admin';
+import DataManagement from '@/pages/DataManagement';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="cannahaus-theme">
+        <Router>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/directory" element={<Directory />} />
-            <Route path="/directory/:id" element={<DirectoryDetail />} />
-            <Route path="/api-docs" element={<ApiDocs />} />
-            <Route path="/analytics" element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            } />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-              <ProtectedRoute>
-                <Admin />
-              </ProtectedRoute>
-            } />
-            <Route path="/data-management" element={
-              <ProtectedRoute>
-                <DataManagement />
-              </ProtectedRoute>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/api-docs/*" element={<ApiDocs />} />
+            <Route path="/directory" element={<Directory />} />
+            <Route path="/directory/detail/:id" element={<DirectoryDetail />} />
+            <Route path="/directory/category/:category" element={<CategoryView />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/data-management" element={<DataManagement />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </TooltipProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+          <Toaster position="bottom-right" />
+        </Router>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
