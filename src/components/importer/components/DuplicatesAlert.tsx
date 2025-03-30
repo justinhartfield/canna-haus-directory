@@ -1,75 +1,59 @@
 
-import React, { useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React from 'react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface DuplicatesAlertProps {
-  duplicates: Array<{item: any, error: string}>;
-  onContinue: () => void;
+  duplicates: any[];
+  duplicateHandlingMode: 'skip' | 'replace' | 'merge' | 'variant';
+  onModeChange: (mode: 'skip' | 'replace' | 'merge' | 'variant') => void;
 }
 
 export const DuplicatesAlert: React.FC<DuplicatesAlertProps> = ({ 
-  duplicates,
-  onContinue
+  duplicates, 
+  duplicateHandlingMode,
+  onModeChange
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
-  
-  if (!duplicates || duplicates.length === 0) return null;
-  
   return (
-    <Alert variant="destructive" className="border-red-600">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle className="flex items-center gap-2">
-        Duplicate Entries Detected
-        <Badge variant="outline" className="text-white border-white">
-          {duplicates.length}
-        </Badge>
-      </AlertTitle>
+    <Alert variant="warning" className="border-yellow-500/50 bg-yellow-500/10">
+      <AlertCircle className="h-4 w-4 text-yellow-500" />
+      <AlertTitle className="text-yellow-500">Duplicate Items Detected</AlertTitle>
       <AlertDescription>
-        <div className="text-sm mt-1">
-          Found {duplicates.length} items that already exist in the database or have duplicates within the file.
-        </div>
+        <p className="mb-2">
+          Found {duplicates.length} items that already exist in the database. 
+          Choose how to handle these duplicates:
+        </p>
         
-        <div className="flex justify-between items-center mt-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs border-white text-white"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? "Hide Details" : "Show Details"}
-          </Button>
+        <RadioGroup 
+          value={duplicateHandlingMode} 
+          onValueChange={(value) => onModeChange(value as any)}
+          className="space-y-2"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="skip" id="skip" />
+            <Label htmlFor="skip">Skip duplicates</Label>
+          </div>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs border-white text-white"
-            onClick={onContinue}
-          >
-            Skip Duplicates & Continue
-          </Button>
-        </div>
-        
-        {showDetails && (
-          <ScrollArea className="mt-3 max-h-40 border border-red-400/30 rounded p-2 bg-red-500/10">
-            <ul className="text-xs space-y-1">
-              {duplicates.slice(0, 20).map((item, idx) => (
-                <li key={idx} className="pb-1 border-b border-red-400/30">
-                  <strong>{item.item.title}</strong> in <em>{item.item.category}</em>: {item.error}
-                </li>
-              ))}
-              {duplicates.length > 20 && (
-                <li className="pt-1 text-center font-medium">
-                  ... and {duplicates.length - 20} more duplicates
-                </li>
-              )}
-            </ul>
-          </ScrollArea>
-        )}
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="replace" id="replace" />
+            <Label htmlFor="replace">Replace existing with new data</Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="merge" id="merge" />
+            <Label htmlFor="merge">Merge new data with existing</Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="variant" id="variant" />
+            <Label htmlFor="variant">Create as variants (append to title)</Label>
+          </div>
+        </RadioGroup>
       </AlertDescription>
     </Alert>
   );
 };
+
+export default DuplicatesAlert;

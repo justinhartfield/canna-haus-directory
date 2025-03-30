@@ -10,4 +10,9 @@ export * from './crudOperations';
 export * from './bulkOperations';
 
 // Export duplicate checking utilities
-export * from './duplicateChecking';
+// Explicitly re-export to avoid ambiguity
+export { 
+  checkBatchForDuplicates,
+  checkForDuplicate,
+  processBatchWithDuplicateHandling
+} from './bulkOperations';

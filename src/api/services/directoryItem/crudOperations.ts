@@ -1,24 +1,43 @@
 
-import { DirectoryItem } from "@/types/directory";
-import { apiClient } from "../../core/supabaseClient";
+import { DirectoryItem, DirectoryFilter } from '@/types/directory';
+import { apiClient } from '../../core/supabaseClient';
 
 const TABLE_NAME = 'directory_items' as const;
 
 /**
- * Get all directory items
+ * Get directory items with optional filtering
  */
-export async function getDirectoryItems(): Promise<DirectoryItem[]> {
+export async function getDirectoryItems(
+  filters?: DirectoryFilter
+): Promise<DirectoryItem[]> {
   try {
-    const { data, error } = await apiClient.select(TABLE_NAME);
+    const queryFilters: Record<string, any> = {};
+    
+    if (filters) {
+      if (filters.category) {
+        queryFilters.category = filters.category;
+      }
+      
+      if (filters.subcategory) {
+        queryFilters.subcategory = filters.subcategory;
+      }
+      
+      // Add more filters as needed
+    }
+    
+    const { data, error } = await apiClient.select(
+      TABLE_NAME,
+      { filters: Object.keys(queryFilters).length > 0 ? queryFilters : undefined }
+    );
     
     if (error) {
-      console.error("Error fetching directory items:", error);
+      console.error('Error fetching directory items:', error);
       throw error;
     }
     
     return data as DirectoryItem[];
   } catch (error) {
-    console.error("Error in getDirectoryItems:", error);
+    console.error('Error in getDirectoryItems:', error);
     throw error;
   }
 }
@@ -26,63 +45,69 @@ export async function getDirectoryItems(): Promise<DirectoryItem[]> {
 /**
  * Get a single directory item by ID
  */
-export async function getDirectoryItemById(id: string): Promise<DirectoryItem | null> {
+export async function getDirectoryItemById(id: string): Promise<DirectoryItem> {
   try {
-    const { data, error } = await apiClient.select(TABLE_NAME, {
-      filters: { id }
-    });
+    const { data, error } = await apiClient.select(
+      TABLE_NAME,
+      { filters: { id }, single: true }
+    );
     
     if (error) {
-      console.error(`Error fetching directory item with ID ${id}:`, error);
+      console.error(`Error fetching directory item ${id}:`, error);
       throw error;
     }
     
-    return data && data.length > 0 ? data[0] as DirectoryItem : null;
+    // Fix the typing issue by properly casting
+    if (!data) {
+      throw new Error(`Directory item with id ${id} not found`);
+    }
+    
+    return data as DirectoryItem;
   } catch (error) {
-    console.error(`Error in getDirectoryItemById(${id}):`, error);
+    console.error('Error in getDirectoryItemById:', error);
     throw error;
   }
 }
 
 /**
- * Get directory items by category
+ * Create a new directory item
  */
-export async function getDirectoryItemsByCategory(category: string): Promise<DirectoryItem[]> {
-  try {
-    const { data, error } = await apiClient.select(TABLE_NAME, {
-      filters: { category }
-    });
-    
-    if (error) {
-      console.error(`Error fetching directory items for category ${category}:`, error);
-      throw error;
-    }
-    
-    return data as DirectoryItem[];
-  } catch (error) {
-    console.error(`Error in getDirectoryItemsByCategory(${category}):`, error);
-    throw error;
-  }
-}
-
-/**
- * Update a directory item
- */
-export async function updateDirectoryItem(
-  id: string, 
-  data: Partial<DirectoryItem>
+export async function createDirectoryItem(
+  item: Partial<DirectoryItem>
 ): Promise<DirectoryItem> {
   try {
-    const { data: updatedItem, error } = await apiClient.update(TABLE_NAME, id, data);
+    const { data, error } = await apiClient.insert(TABLE_NAME, item);
     
     if (error) {
-      console.error(`Error updating directory item with ID ${id}:`, error);
+      console.error('Error creating directory item:', error);
       throw error;
     }
     
-    return updatedItem as DirectoryItem;
+    return data as DirectoryItem;
   } catch (error) {
-    console.error(`Error in updateDirectoryItem(${id}):`, error);
+    console.error('Error in createDirectoryItem:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing directory item
+ */
+export async function updateDirectoryItem(
+  id: string,
+  updates: Partial<DirectoryItem>
+): Promise<DirectoryItem> {
+  try {
+    const { data, error } = await apiClient.update(TABLE_NAME, id, updates);
+    
+    if (error) {
+      console.error(`Error updating directory item ${id}:`, error);
+      throw error;
+    }
+    
+    return data as DirectoryItem;
+  } catch (error) {
+    console.error('Error in updateDirectoryItem:', error);
     throw error;
   }
 }
@@ -95,11 +120,38 @@ export async function deleteDirectoryItem(id: string): Promise<void> {
     const { error } = await apiClient.delete(TABLE_NAME, id);
     
     if (error) {
-      console.error(`Error deleting directory item with ID ${id}:`, error);
+      console.error(`Error deleting directory item ${id}:`, error);
       throw error;
     }
   } catch (error) {
-    console.error(`Error in deleteDirectoryItem(${id}):`, error);
+    console.error('Error in deleteDirectoryItem:', error);
+    throw error;
+  }
+}
+
+/**
+ * Search directory items by term
+ */
+export async function searchDirectoryItems(
+  searchTerm: string,
+  category?: string
+): Promise<DirectoryItem[]> {
+  try {
+    // This is a simplified implementation
+    // In a real app, you'd use a more sophisticated search mechanism
+    const allItems = await getDirectoryItems(
+      category ? { category } : undefined
+    );
+    
+    const term = searchTerm.toLowerCase();
+    
+    return allItems.filter(item => 
+      item.title.toLowerCase().includes(term) ||
+      item.description.toLowerCase().includes(term) ||
+      (item.tags && item.tags.some(tag => tag.toLowerCase().includes(term)))
+    );
+  } catch (error) {
+    console.error('Error in searchDirectoryItems:', error);
     throw error;
   }
 }

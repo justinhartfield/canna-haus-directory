@@ -1,4 +1,3 @@
-
 import { DirectoryItem } from "@/types/directory";
 import { apiClient } from "../../core/supabaseClient";
 
@@ -32,17 +31,25 @@ export async function updateDirectoryItems(
   items: Array<{ id: string; data: Partial<DirectoryItem> }>
 ): Promise<DirectoryItem[]> {
   try {
-    const { data, error } = await apiClient.bulkUpdate(
-      TABLE_NAME,
-      items.map(item => ({ id: item.id, ...item.data }))
-    );
+    // Since bulkUpdate doesn't exist, we'll update items one by one
+    const results: DirectoryItem[] = [];
     
-    if (error) {
-      console.error("Error updating directory items:", error);
-      throw error;
+    for (const item of items) {
+      const { data, error } = await apiClient.update(
+        TABLE_NAME,
+        item.id,
+        item.data
+      );
+      
+      if (error) {
+        console.error(`Error updating directory item ${item.id}:`, error);
+        throw error;
+      }
+      
+      results.push(data as DirectoryItem);
     }
     
-    return data as DirectoryItem[];
+    return results;
   } catch (error) {
     console.error("Error in updateDirectoryItems:", error);
     throw error;
@@ -54,16 +61,28 @@ export async function updateDirectoryItems(
  */
 export async function deleteDirectoryItems(ids: string[]): Promise<void> {
   try {
-    const { error } = await apiClient.bulkDelete(TABLE_NAME, ids);
-    
-    if (error) {
-      console.error("Error deleting directory items:", error);
-      throw error;
+    // Since bulkDelete doesn't exist, we'll delete items one by one
+    for (const id of ids) {
+      const { error } = await apiClient.delete(TABLE_NAME, id);
+      
+      if (error) {
+        console.error(`Error deleting directory item ${id}:`, error);
+        throw error;
+      }
     }
   } catch (error) {
     console.error("Error in deleteDirectoryItems:", error);
     throw error;
   }
+}
+
+/**
+ * Bulk insert directory items
+ */
+export async function bulkInsertDirectoryItems(
+  items: Partial<DirectoryItem>[]
+): Promise<DirectoryItem[]> {
+  return createDirectoryItems(items);
 }
 
 /**

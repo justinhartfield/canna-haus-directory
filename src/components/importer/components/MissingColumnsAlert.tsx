@@ -1,26 +1,22 @@
 
 import React from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface MissingColumnsAlertProps {
   missingColumns: string[];
 }
 
 export const MissingColumnsAlert: React.FC<MissingColumnsAlertProps> = ({ missingColumns }) => {
-  if (missingColumns.length === 0) return null;
-  
   return (
-    <Alert variant="default">
-      <AlertTitle>Missing Columns</AlertTitle>
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Missing Required Mappings</AlertTitle>
       <AlertDescription>
-        <p>The following columns were not found in your data file:</p>
-        <ul className="list-disc pl-5 mt-2">
-          {missingColumns.map((column, index) => (
-            <li key={index}>{column}</li>
-          ))}
-        </ul>
-        <p className="mt-2">Your data will be imported without these fields.</p>
+        The following fields must be mapped: {missingColumns.join(', ')}
       </AlertDescription>
     </Alert>
   );
 };
+
+export default MissingColumnsAlert;

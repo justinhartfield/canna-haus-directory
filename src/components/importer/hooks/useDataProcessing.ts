@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { DirectoryItem, ColumnMapping } from '@/types/directory';
 import { processBatchWithDuplicateHandling, checkBatchForDuplicates } from '@/api/services/directoryItem/bulkOperations';
-import { transformData } from '@/utils/transform';
+import { transformData, ProcessingResult } from '@/utils/transform';
+import { parseFileContent } from '@/utils/fileProcessing';
 
 export interface ProcessingHookResult {
   isProcessing: boolean;
@@ -110,16 +111,19 @@ export function useDataProcessing(): ProcessingHookResult {
       setCurrentStatus('Transforming data');
       setUploadProgress(25);
 
-      // Transform the data
-      const transformResult = await transformData(file, mappingConfig);
+      // First parse the file content
+      const parsedData = await parseFileContent(file);
+      
+      // Then transform the data
+      const transformResult = await transformData(parsedData, mappingConfig);
 
-      if (transformResult.success && transformResult.data) {
+      if (transformResult.success) {
         setCurrentStatus('Checking for duplicates');
         setUploadProgress(50);
 
         // Check for duplicates
         const compositeKeyFields = ['title', 'category', 'additionalFields.breeder', 'subcategory'];
-        const duplicateCheck = await checkBatchForDuplicates(transformResult.data, compositeKeyFields);
+        const duplicateCheck = await checkBatchForDuplicates(transformResult.items, compositeKeyFields);
 
         if (duplicateCheck.duplicates.length > 0) {
           setDuplicates(duplicateCheck.duplicates);
@@ -134,7 +138,7 @@ export function useDataProcessing(): ProcessingHookResult {
 
         // Process with duplicate handling
         const result = await processBatchWithDuplicateHandling(
-          transformResult.data,
+          transformResult.items,
           'skip', // Default handling mode
           compositeKeyFields
         );
@@ -143,7 +147,7 @@ export function useDataProcessing(): ProcessingHookResult {
         setUploadProgress(100);
         setProgress(prev => ({
           ...prev,
-          processed: transformResult.data.length,
+          processed: transformResult.items.length,
           succeeded: result.processed.length,
           skipped: result.skipped.length,
           duplicates: duplicateCheck.duplicates.length
@@ -155,7 +159,7 @@ export function useDataProcessing(): ProcessingHookResult {
           duplicates: duplicateCheck.duplicates
         };
       } else {
-        throw new Error(transformResult.error || 'Unknown error during transformation');
+        throw new Error(transformResult.errors?.[0]?.message || 'Unknown error during transformation');
       }
     } catch (error) {
       setCurrentStatus('Error');

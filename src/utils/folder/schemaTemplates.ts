@@ -1,112 +1,116 @@
 
 /**
- * Schema templates for common data types following schema.org specifications
+ * Predefined schema templates for different entity types
  */
 export const schemaTemplates = {
   Product: {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": "",
-    "description": "",
-    "image": "",
-    "brand": {
-      "@type": "Brand",
-      "name": ""
+    '@type': 'Product',
+    name: '',
+    description: '',
+    image: '',
+    brand: {
+      '@type': 'Brand',
+      name: ''
     },
-    "offers": {
-      "@type": "Offer",
-      "price": "",
-      "priceCurrency": "USD",
-      "availability": "https://schema.org/InStock"
-    }
-  },
-  
-  Article: {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": "",
-    "description": "",
-    "image": "",
-    "datePublished": "",
-    "author": {
-      "@type": "Person",
-      "name": ""
-    }
-  },
-  
-  Organization: {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "",
-    "description": "",
-    "url": "",
-    "logo": "",
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "telephone": "",
-      "email": "",
-      "contactType": "Customer Service"
+    offers: {
+      '@type': 'Offer',
+      price: '',
+      priceCurrency: 'USD'
     }
   },
   
   LocalBusiness: {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "",
-    "description": "",
-    "image": "",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "",
-      "addressLocality": "",
-      "addressRegion": "",
-      "postalCode": "",
-      "addressCountry": "US"
+    '@type': 'LocalBusiness',
+    name: '',
+    description: '',
+    image: '',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '',
+      addressLocality: '',
+      addressRegion: '',
+      postalCode: '',
+      addressCountry: 'US'
     },
-    "telephone": "",
-    "openingHours": ""
+    telephone: '',
+    openingHours: ''
   },
   
   Person: {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "",
-    "description": "",
-    "image": "",
-    "jobTitle": "",
-    "affiliation": {
-      "@type": "Organization",
-      "name": ""
+    '@type': 'Person',
+    name: '',
+    description: '',
+    image: '',
+    jobTitle: '',
+    worksFor: {
+      '@type': 'Organization',
+      name: ''
+    }
+  },
+  
+  Organization: {
+    '@type': 'Organization',
+    name: '',
+    description: '',
+    logo: '',
+    url: '',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '',
+      addressLocality: '',
+      addressRegion: '',
+      postalCode: '',
+      addressCountry: 'US'
     }
   },
   
   MedicalEntity: {
-    "@context": "https://schema.org",
-    "@type": "MedicalEntity",
-    "name": "",
-    "description": "",
-    "code": {
-      "@type": "MedicalCode",
-      "codeValue": "",
-      "codingSystem": ""
+    '@type': 'MedicalEntity',
+    name: '',
+    description: '',
+    medicineSystem: '',
+    relevantSpecialty: ''
+  },
+  
+  Article: {
+    '@type': 'Article',
+    headline: '',
+    description: '',
+    image: '',
+    datePublished: '',
+    author: {
+      '@type': 'Person',
+      name: ''
+    }
+  },
+  
+  Event: {
+    '@type': 'Event',
+    name: '',
+    description: '',
+    image: '',
+    startDate: '',
+    endDate: '',
+    location: {
+      '@type': 'Place',
+      name: '',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '',
+        addressLocality: '',
+        addressRegion: '',
+        postalCode: '',
+        addressCountry: 'US'
+      }
     }
   },
   
   Drug: {
-    "@context": "https://schema.org",
-    "@type": "Drug",
-    "name": "",
-    "description": "",
-    "activeIngredient": "",
-    "administrationRoute": "",
-    "nonProprietaryName": "",
-    "drugClass": ""
+    '@type': 'Drug',
+    name: '',
+    description: '',
+    activeIngredient: '',
+    administrationRoute: '',
+    dosageForm: ''
   }
 };
-
-/**
- * Get a schema template for a specific schema type
- */
-export function getSchemaTemplate(schemaType: string): Record<string, any> {
-  return schemaTemplates[schemaType] || schemaTemplates.Product;
-}

@@ -1,6 +1,6 @@
 
 import { DirectoryItem, ImportProgress } from '@/types/directory';
-import { bulkInsertDirectoryItems } from '@/api/directoryService';
+import { bulkInsertDirectoryItems } from '@/api/services/directoryItem/bulkOperations';
 import { parseFileContent } from '../fileProcessing';
 import { DataMappingConfig } from '../mappingUtils';
 import { transformData, ProcessingResult } from '../transformUtils';

@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useDataProcessing } from '../hooks/useDataProcessing';
 import { ColumnMapping, DirectoryItem } from '@/types/directory';
-import ProgressIndicator from './ProgressIndicator';
-import MissingColumnsAlert from './MissingColumnsAlert';
-import DuplicatesAlert from './DuplicatesAlert';
+import { ProgressIndicator } from './ProgressIndicator';
+import { MissingColumnsAlert } from './MissingColumnsAlert';
+import { DuplicatesAlert } from './DuplicatesAlert';
 
 interface DataProcessorProps {
   file: File;
