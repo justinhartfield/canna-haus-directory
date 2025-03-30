@@ -1,3 +1,4 @@
+
 import { DirectoryItem } from "@/types/directory";
 import { apiClient } from "../../core/supabaseClient";
 import { transformDirectoryItemToDatabaseRow } from "../../transformers/directoryTransformer";
@@ -126,7 +127,7 @@ async function processItemByMode(
       const { data, error } = await apiClient.insert(TABLE_NAME, databaseRow);
       
       if (error) throw error;
-      return { action: 'inserted', item: data };
+      return { action: 'inserted', item: data as DirectoryItem };
     } catch (error) {
       console.error("Error inserting item:", error);
       throw error;
@@ -159,7 +160,7 @@ async function processItemByMode(
         const { data, error: updateError } = await apiClient.update(TABLE_NAME, existingId, updateData);
         
         if (updateError) throw updateError;
-        return { action: 'replaced', item: data };
+        return { action: 'replaced', item: data as DirectoryItem };
       } catch (error) {
         console.error("Error replacing item:", error);
         throw error;
@@ -180,14 +181,14 @@ async function processItemByMode(
         }
         
         // Merge with the first matching item
-        const existingItem = existingItems[0];
+        const existingItem = existingItems[0] as DirectoryItem;
         const mergedItem = mergeItems(existingItem, item);
         
         const updateData = transformDirectoryItemToDatabaseRow(mergedItem);
         const { data, error: updateError } = await apiClient.update(TABLE_NAME, existingItem.id, updateData);
         
         if (updateError) throw updateError;
-        return { action: 'merged', item: data };
+        return { action: 'merged', item: data as DirectoryItem };
       } catch (error) {
         console.error("Error merging item:", error);
         throw error;
@@ -202,7 +203,7 @@ async function processItemByMode(
         const { data, error } = await apiClient.insert(TABLE_NAME, databaseRow);
         
         if (error) throw error;
-        return { action: 'variant-created', item: data };
+        return { action: 'variant-created', item: data as DirectoryItem };
       } catch (error) {
         console.error("Error creating variant:", error);
         throw error;

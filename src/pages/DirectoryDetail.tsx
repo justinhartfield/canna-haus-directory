@@ -11,7 +11,7 @@ import ExtractionTechniquesExamples from '@/components/directory/examples/Extrac
 import DefaultExamples from '@/components/directory/examples/DefaultExamples';
 import JsonLdDisplay from '@/components/directory/JsonLdDisplay';
 import ImplementationGuide from '@/components/directory/ImplementationGuide';
-import { getDirectoryItemById } from '@/api/services/directoryItemService';
+import { getDirectoryItemById } from '@/api/services/directoryItem/crudOperations';
 
 const DirectoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();

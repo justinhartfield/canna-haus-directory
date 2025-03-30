@@ -2,8 +2,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DirectoryItem } from '@/types/directory';
-import { getDirectoryItems, updateDirectoryItem, deleteDirectoryItem } from '@/api/services/directoryItemService';
-import { toast } from '@/hooks/use-toast';
+import { 
+  getDirectoryItems, 
+  updateDirectoryItem, 
+  deleteDirectoryItem 
+} from '@/api/services/directoryItem/crudOperations';
+import { toast } from '@/components/ui/use-toast';
 
 export const useDataManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,7 +86,7 @@ export const useDataManagement = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const categories = [...new Set(items.map(item => item.category))];
+  const categories = Array.from(new Set(items.map(item => item.category)));
 
   return {
     items,

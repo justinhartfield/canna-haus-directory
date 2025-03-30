@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DirectoryItem } from '@/types/directory';
-import { getDirectoryItems } from '@/api/services/directoryItemService';
+import { getDirectoryItems } from '@/api/services/directoryItem/crudOperations';
 
 export const useDirectoryFilters = () => {
   const location = useLocation();

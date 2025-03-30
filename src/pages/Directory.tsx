@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SearchFilter from '@/components/SearchFilter';
-import { getDirectoryItems } from '@/api/services/directoryItemService';
+import { getDirectoryItems } from '@/api/services/directoryItem/crudOperations';
 import DirectoryCategories from '@/components/directory/DirectoryCategories';
 import { useDirectoryFilters } from '@/hooks/useDirectoryFilters';
 

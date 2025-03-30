@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DirectoryResults from '@/components/directory/DirectoryResults';
 import { Button } from '@/components/ui/button';
-import { getDirectoryItemsByCategory } from '@/api/services/directoryItemService';
+import { getDirectoryItemsByCategory } from '@/api/services/directoryItem/crudOperations';
 
 const CategoryView = () => {
   const { category } = useParams<{ category: string }>();

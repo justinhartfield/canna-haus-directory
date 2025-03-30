@@ -1,252 +1,190 @@
 
-import { useState } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { processFileContent } from '@/utils/dataProcessingUtils';
+import { useState, useCallback } from 'react';
 import { DirectoryItem } from '@/types/directory';
-import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
-import { bulkInsertDirectoryItems, checkBatchForDuplicates } from '@/api/services/directoryItemService';
+import { bulkInsertDirectoryItems, checkBatchForDuplicates } from '@/api/services/directoryItem/bulkOperations';
+import { toast } from 'sonner';
+import Papa from 'papaparse';
+import { read, utils } from 'xlsx';
 
-export interface ProcessingOptions {
-  file: File;
-  columnMappings: MappingConfiguration[];
-  customFields: Record<string, string>;
-  selectedCategory: string;
-  schemaType: string;
-  skipDuplicates?: boolean;
+interface ProcessingHookResult {
+  isProcessing: boolean;
+  progress: {
+    processed: number;
+    total: number;
+    current: number;
+    succeeded: number;
+    failed: number;
+    skipped: number;
+    duplicates: number;
+    errors: string[];
+  };
+  processFile: (
+    file: File,
+    columnMappings: any[],
+    customFields: any[],
+    category: string,
+    schemaType: string
+  ) => Promise<DirectoryItem[]>;
 }
 
-export interface ProcessingResult {
-  success: boolean;
-  items: DirectoryItem[];
-  missingColumns: string[];
-  duplicates?: Array<{item: any, error: string}>;
-}
-
-export function useDataProcessing() {
+export const useDataProcessing = (): ProcessingHookResult => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'uploading' | 'checking-duplicates'>('idle');
-  const [missingColumns, setMissingColumns] = useState<string[]>([]);
-  const [duplicates, setDuplicates] = useState<Array<{item: any, error: string}>>([]);
+  const [progress, setProgress] = useState({
+    processed: 0,
+    total: 0,
+    current: 0,
+    succeeded: 0,
+    failed: 0,
+    skipped: 0,
+    duplicates: 0,
+    errors: [] as string[]
+  });
 
-  const validateMappings = (mappings: MappingConfiguration[]) => {
-    const hasTitleMapping = mappings.some(
-      mapping => mapping.targetField === 'title' && mapping.sourceColumn
-    );
-    
-    const hasDescriptionMapping = mappings.some(
-      mapping => mapping.targetField === 'description' && mapping.sourceColumn
-    );
-    
-    if (!hasTitleMapping) {
-      throw new Error("You must map a column to the Title field");
-    }
-    
-    if (!hasDescriptionMapping) {
-      toast({
-        title: "Warning: No Description Field",
-        description: "No column is mapped to Description. A default value will be used.",
-        variant: "default"
-      });
-    }
-    
-    return { hasTitleMapping, hasDescriptionMapping };
-  };
-
-  const createMappingConfig = (options: ProcessingOptions): DataMappingConfig => {
-    const { columnMappings, customFields, selectedCategory, schemaType } = options;
-    
-    const mappingConfig: DataMappingConfig = {
-      columnMappings: {},
-      defaultValues: {
-        category: selectedCategory,
-        description: "No description provided"
-      },
-      schemaType
-    };
-    
-    columnMappings.forEach(mapping => {
-      if (!mapping.targetField || mapping.targetField === 'ignore') return;
-      
-      if (mapping.isCustomField) {
-        const customFieldName = customFields[mapping.sourceColumn] || mapping.sourceColumn;
-        mappingConfig.columnMappings[`additionalFields.${customFieldName}`] = mapping.sourceColumn;
-      } else {
-        mappingConfig.columnMappings[mapping.targetField] = mapping.sourceColumn;
-      }
-    });
-    
-    return mappingConfig;
-  };
-
-  const processFile = async (options: ProcessingOptions): Promise<ProcessingResult> => {
+  const processFile = useCallback(async (
+    file: File,
+    columnMappings: any[],
+    customFields: any[],
+    category: string,
+    schemaType: string
+  ): Promise<DirectoryItem[]> => {
     setIsProcessing(true);
-    setProgress(0);
-    setUploadProgress(0);
-    setCurrentStatus('processing');
-    setMissingColumns([]);
-    setDuplicates([]);
-    
+    setProgress({
+      processed: 0,
+      total: 0,
+      current: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      duplicates: 0,
+      errors: []
+    });
+
     try {
-      // Validate mappings
-      validateMappings(options.columnMappings);
+      // Parse the file based on its type
+      let data: any[] = [];
       
-      // Create mapping configuration
-      const mappingConfig = createMappingConfig(options);
-      
-      console.log("Processing with mapping config:", mappingConfig);
-      
-      // Process the file with progress updates
-      const result = await processFileContent(options.file, mappingConfig);
-      
-      setProgress(100);
-      
-      // Handle missing columns and show warnings
-      if (result.missingColumns && result.missingColumns.length > 0) {
-        setMissingColumns(result.missingColumns);
-        
-        toast({
-          title: "Warning: Some columns not found",
-          description: `${result.missingColumns.length} mapped columns were not found in your data file.`,
-          variant: "destructive"
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        const result = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: resolve,
+            error: reject
+          });
         });
+        data = result.data;
+      } else if (
+        file.name.toLowerCase().endsWith('.xlsx') || 
+        file.name.toLowerCase().endsWith('.xls')
+      ) {
+        const buffer = await file.arrayBuffer();
+        const workbook = read(buffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = utils.sheet_to_json(worksheet);
       }
-      
-      if (!result.success && result.processedRows === 0) {
-        throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
-      }
-      
-      // Check for duplicates before uploading
-      if (result.items.length > 0) {
-        setCurrentStatus('checking-duplicates');
-        try {
-          const duplicateItems = await checkBatchForDuplicates(result.items as unknown as DirectoryItem[]);
-          
-          if (duplicateItems.length > 0) {
-            setDuplicates(duplicateItems);
-            
-            if (!options.skipDuplicates) {
-              toast({
-                title: "Duplicate Items Detected",
-                description: `Found ${duplicateItems.length} items that already exist in the database.`,
-                variant: "destructive"
-              });
-              
-              return {
-                success: false,
-                items: result.items as unknown as DirectoryItem[],
-                missingColumns: result.missingColumns || [],
-                duplicates: duplicateItems
-              };
-            } else {
-              // Filter out duplicates if skipDuplicates is true
-              const uniqueItems = result.items.filter(item => 
-                !duplicateItems.some(d => 
-                  d.item.title === item.title && d.item.category === item.category
-                )
-              );
-              
-              toast({
-                title: "Skipping Duplicates",
-                description: `Skipping ${duplicateItems.length} duplicate items. Proceeding with ${uniqueItems.length} unique items.`,
-              });
-              
-              result.items = uniqueItems;
+
+      // Update progress total
+      setProgress(prev => ({
+        ...prev,
+        total: data.length
+      }));
+
+      // Apply column mappings to create directory items
+      const items: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>[] = data.map((row, index) => {
+        // Create the base item
+        const item: Partial<DirectoryItem> = {
+          title: '',
+          description: '',
+          category,
+          jsonLd: { '@type': schemaType },
+          additionalFields: {},
+          metaData: { importSource: file.name }
+        };
+
+        // Apply standard field mappings
+        columnMappings.forEach(mapping => {
+          if (mapping.sourceColumn && mapping.targetField && !mapping.isCustomField) {
+            const value = row[mapping.sourceColumn];
+            if (value !== undefined && value !== null) {
+              if (mapping.targetField.includes('.')) {
+                // Handle nested fields (e.g., jsonLd.name)
+                const [parent, child] = mapping.targetField.split('.');
+                if (parent === 'jsonLd') {
+                  item.jsonLd = { ...item.jsonLd, [child]: value };
+                }
+              } else {
+                // Handle top-level fields
+                (item as any)[mapping.targetField] = value;
+              }
             }
           }
-        } catch (error) {
-          console.error("Error checking for duplicates:", error);
-          toast({
-            title: "Error Checking Duplicates",
-            description: error instanceof Error ? error.message : "Failed to check for duplicate items",
-            variant: "destructive"
-          });
-        }
-      }
-      
-      // Now upload to Supabase
-      if (result.items.length > 0) {
-        setCurrentStatus('uploading');
-        try {
-          console.log(`Uploading ${result.items.length} items to Supabase`);
-          // Sample the first item for debugging
-          console.log('Sample item:', JSON.stringify(result.items[0]));
-          
-          // Upload processed items to Supabase
-          setUploadProgress(10);
-          const uploadedItems = await bulkInsertDirectoryItems(result.items as unknown as DirectoryItem[]);
-          setUploadProgress(100);
-          
-          toast({
-            title: "Upload Complete",
-            description: `Successfully uploaded ${uploadedItems.length} items to database`,
-          });
-          
-          return {
-            success: true,
-            items: uploadedItems,
-            missingColumns: result.missingColumns || [],
-            duplicates: duplicates
-          };
-        } catch (uploadError) {
-          console.error("Error uploading to Supabase:", uploadError);
-          
-          const errorMessage = uploadError instanceof Error 
-            ? uploadError.message 
-            : "Failed to upload data to the database";
-            
-          toast({
-            title: "Upload Failed",
-            description: errorMessage,
-            variant: "destructive"
-          });
-          
-          return {
-            success: false,
-            items: result.items as unknown as DirectoryItem[],
-            missingColumns: result.missingColumns || [],
-            duplicates: duplicates
-          };
-        }
-      } else {
-        return {
-          success: true,
-          items: [],
-          missingColumns: result.missingColumns || [],
-          duplicates: duplicates
-        };
-      }
-      
-    } catch (error) {
-      console.error("Error processing file:", error);
-      toast({
-        title: "Processing Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
+        });
+
+        // Apply custom field mappings
+        customFields.forEach(customField => {
+          if (customField.sourceColumn && customField.fieldName) {
+            const value = row[customField.sourceColumn];
+            if (value !== undefined && value !== null) {
+              if (!item.additionalFields) {
+                item.additionalFields = {};
+              }
+              item.additionalFields[customField.fieldName] = value;
+            }
+          }
+        });
+
+        // Update progress
+        setProgress(prev => ({
+          ...prev,
+          current: index + 1
+        }));
+
+        return item as Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>;
       });
-      setProgress(0);
-      setUploadProgress(0);
-      
-      return {
-        success: false,
-        items: [],
-        missingColumns: [],
-        duplicates: []
-      };
+
+      // Check for duplicates
+      const duplicates = await checkBatchForDuplicates(items);
+      setProgress(prev => ({
+        ...prev,
+        duplicates: duplicates.length
+      }));
+
+      // Insert the items to the database
+      const insertedItems = await bulkInsertDirectoryItems(items, {
+        duplicateHandlingMode: 'skip',
+        batchSize: 10
+      });
+
+      // Update final progress
+      setProgress(prev => ({
+        ...prev,
+        processed: items.length,
+        succeeded: insertedItems.length,
+        failed: items.length - insertedItems.length - duplicates.length,
+        skipped: duplicates.length,
+      }));
+
+      toast.success(`Processed ${items.length} items: ${insertedItems.length} imported, ${duplicates.length} skipped as duplicates`);
+      return insertedItems;
+    } catch (error) {
+      console.error('Error processing file:', error);
+      setProgress(prev => ({
+        ...prev,
+        errors: [...prev.errors, error instanceof Error ? error.message : String(error)]
+      }));
+      toast.error(error instanceof Error ? error.message : 'An error occurred while processing the file');
+      return [];
     } finally {
       setIsProcessing(false);
-      setCurrentStatus('idle');
     }
-  };
+  }, []);
 
   return {
     isProcessing,
     progress,
-    uploadProgress,
-    currentStatus,
-    missingColumns,
-    duplicates,
     processFile
   };
-}
+};
+
+export default useDataProcessing;
