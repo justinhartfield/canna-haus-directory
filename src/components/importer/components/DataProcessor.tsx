@@ -59,7 +59,7 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
         toast({
           title: "Warning: No Description Field",
           description: "No column is mapped to Description. A default value will be used.",
-          variant: "default" 
+          variant: "default" // Changed from "warning" to "default"
         });
       }
       
@@ -101,7 +101,7 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
         toast({
           title: "Warning: Some columns not found",
           description: `${result.missingColumns.length} mapped columns were not found in your data file.`,
-          variant: "warning"
+          variant: "destructive" // Changed from "warning" to "destructive" since it's more critical
         });
       }
       
@@ -159,7 +159,7 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
   return (
     <div className="space-y-4">
       {missingColumns.length > 0 && (
-        <Alert variant="warning">
+        <Alert variant="default"> {/* Changed from "warning" to "default" */}
           <AlertTitle>Missing Columns</AlertTitle>
           <AlertDescription>
             <p>The following columns were not found in your data file:</p>
