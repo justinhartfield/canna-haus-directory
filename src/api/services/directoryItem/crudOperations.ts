@@ -1,6 +1,7 @@
 
 import { DirectoryItem, DirectoryFilter } from '@/types/directory';
 import { apiClient } from '../../core/supabaseClient';
+import { transformDatabaseRowToDirectoryItem } from '@/api/transformers/directoryTransformer';
 
 const TABLE_NAME = 'directory_items' as const;
 
@@ -35,7 +36,10 @@ export async function getDirectoryItems(
       throw error;
     }
     
-    return data as DirectoryItem[];
+    // Transform data from database format to DirectoryItem
+    return Array.isArray(data) 
+      ? data.map(item => transformDatabaseRowToDirectoryItem(item)) 
+      : [];
   } catch (error) {
     console.error('Error in getDirectoryItems:', error);
     throw error;
@@ -66,12 +70,11 @@ export async function getDirectoryItemById(id: string): Promise<DirectoryItem> {
       throw error;
     }
     
-    // Fix the typing issue by properly casting
     if (!data) {
       throw new Error(`Directory item with id ${id} not found`);
     }
     
-    return data as DirectoryItem;
+    return transformDatabaseRowToDirectoryItem(data);
   } catch (error) {
     console.error('Error in getDirectoryItemById:', error);
     throw error;
@@ -92,7 +95,11 @@ export async function createDirectoryItem(
       throw error;
     }
     
-    return data as DirectoryItem;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('No data returned from insert operation');
+    }
+    
+    return transformDatabaseRowToDirectoryItem(data[0]);
   } catch (error) {
     console.error('Error in createDirectoryItem:', error);
     throw error;
@@ -114,7 +121,11 @@ export async function updateDirectoryItem(
       throw error;
     }
     
-    return data as DirectoryItem;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('No data returned from update operation');
+    }
+    
+    return transformDatabaseRowToDirectoryItem(data[0]);
   } catch (error) {
     console.error('Error in updateDirectoryItem:', error);
     throw error;

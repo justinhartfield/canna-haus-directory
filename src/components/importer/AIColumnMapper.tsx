@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { DirectoryItem } from '@/types/directory';
 import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
 import DataProcessor from './components/DataProcessor';
 import { AIColumnMapperProps } from './types/importerTypes';
@@ -44,6 +43,16 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     toggleManualMode,
     analyzeFile
   } = useColumnMapper({ file, category });
+
+  // Handle completion of data processing
+  const handleProcessComplete = (results: {
+    success: any[];
+    errors: Array<{ item: any; error: string }>;
+    duplicates: Array<{ item: any; error: string }>;
+  }) => {
+    // Convert the success results to the expected format
+    onComplete(results.success);
+  };
 
   if (isAnalyzing) {
     return <AnalyzingState />;
@@ -92,11 +101,11 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       />
       
       <DataProcessor
-        data={[]}
+        data={[]} // We'll populate this when ready to process
         mappings={{}}
         category={selectedCategory}
         subcategory={undefined}
-        onProcessComplete={onComplete}
+        onProcessComplete={handleProcessComplete}
         onProgress={setProgress}
       />
     </div>

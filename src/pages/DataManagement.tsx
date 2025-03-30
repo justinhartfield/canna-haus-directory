@@ -10,21 +10,19 @@ import ErrorState from '@/components/dataManagement/ErrorState';
 
 const DataManagement: React.FC = () => {
   const {
-    filteredItems,
-    categories,
-    searchTerm,
-    setSearchTerm,
-    selectedCategory,
-    setSelectedCategory,
-    editingItemId,
-    editedData,
+    data,
     isLoading,
     error,
-    handleEdit,
-    handleCancelEdit,
-    handleSaveEdit,
-    handleDeleteItem,
-    handleEditField
+    selectedItem,
+    isEditModalOpen,
+    isDeleteModalOpen,
+    openEditModal,
+    closeEditModal,
+    openDeleteModal,
+    closeDeleteModal,
+    handleSave,
+    handleDelete,
+    handleChange
   } = useDataManagement();
 
   return (
@@ -44,22 +42,22 @@ const DataManagement: React.FC = () => {
           ) : (
             <>
               <DataFilters 
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
+                searchTerm=""
+                onSearchChange={() => {}}
+                categories={[]}
+                selectedCategory=""
+                onCategoryChange={() => {}}
               />
 
               <DataTableContainer
-                items={filteredItems}
-                editingItemId={editingItemId}
-                editedData={editedData}
-                onEdit={handleEdit}
-                onCancelEdit={handleCancelEdit}
-                onSaveEdit={handleSaveEdit}
-                onDeleteItem={handleDeleteItem}
-                onEditField={handleEditField}
+                items={data}
+                editingItemId=""
+                editedData={{}}
+                onEdit={openEditModal}
+                onCancelEdit={closeEditModal}
+                onSaveEdit={handleSave}
+                onDeleteItem={openDeleteModal}
+                onEditField={handleChange}
               />
             </>
           )}

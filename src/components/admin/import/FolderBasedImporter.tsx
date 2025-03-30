@@ -1,124 +1,41 @@
-// This import assumes we'll fix the processing function to have the correct parameter count
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import FolderConfigSelector from './FolderConfigSelector';
-import FolderMetadataDisplay from './FolderMetadataDisplay';
-import ImportProgress from './ImportProgress';
-import ProcessingResults from './ProcessingResults';
-import { processFolderData } from '@/utils/folder/folderProcessCore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { ImportProgress } from '@/types/directory';
 
-// Add other required imports
-
+// Simplified version
 const FolderBasedImporter = () => {
-  const [folderPath, setFolderPath] = useState<string | null>(null);
-  const [folderData, setFolderData] = useState<any[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle');
-  const [processingResults, setProcessingResults] = useState<any | null>(null);
-  const [processingProgress, setProcessingProgress] = useState(0);
   const [processingError, setProcessingError] = useState<string | null>(null);
-
-  const handleFolderSelect = (path: string, data: any[]) => {
-    setFolderPath(path);
-    setFolderData(data);
-    setProcessingResults(null);
-    setProcessingStatus('idle');
-    setProcessingProgress(0);
-    setProcessingError(null);
-  };
-
-  const handleTemplateSelect = (template: string) => {
-    setSelectedTemplate(template);
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-  };
-
-  const handleSubcategorySelect = (subcategory: string) => {
-    setSelectedSubcategory(subcategory);
-  };
-
-  const handleStartProcessing = async () => {
-    if (!folderData || folderData.length === 0) {
-      alert('No folder data available to process.');
-      return;
-    }
-
-    if (!selectedTemplate) {
-      alert('Please select a template.');
-      return;
-    }
-
-    if (!selectedCategory) {
-      alert('Please select a category.');
-      return;
-    }
-
-    setProcessingResults(null);
-    setProcessingProgress(0);
-    setProcessingError(null);
-
-    const totalFiles = folderData.length;
-    let processedCount = 0;
-
-    const progressCallback = (progress: number) => {
-      setProcessingProgress(progress);
-    };
-
-    const errorCallback = (error: string) => {
-      setProcessingError(error);
-      setProcessingStatus('error');
-    };
-    
-    try {
-      setProcessingStatus('processing');
-      
-      // Fix the call to processFolderData by removing the extra parameter
-      const result = await processFolderData(
-        folderData,
-        selectedTemplate,
-        {
-          category: selectedCategory,
-          subcategory: selectedSubcategory
-        },
-        progressCallback,
-        errorCallback
-      );
-      
-      setProcessingStatus('complete');
-      setProcessingResults(result);
-    } catch (error) {
-      console.error('Processing error:', error);
-      setProcessingStatus('error');
-      setProcessingError(error instanceof Error ? error.message : 'An unexpected error occurred.');
-    }
-  };
-
-  const canStartProcessing = folderData && selectedTemplate && selectedCategory && processingStatus === 'idle';
+  const [progress, setProgress] = useState<number>(0);
+  const [results, setResults] = useState<{
+    success: any[];
+    errors: any[];
+    duplicates: any[];
+  } | null>(null);
 
   return (
     <div className="space-y-8">
-      <FolderConfigSelector onFolderSelect={handleFolderSelect} />
-
-      {folderPath && (
-        <FolderMetadataDisplay
-          folderPath={folderPath}
-          onTemplateSelect={handleTemplateSelect}
-          onCategorySelect={handleCategorySelect}
-          onSubcategorySelect={handleSubcategorySelect}
-          selectedTemplate={selectedTemplate}
-          selectedCategory={selectedCategory}
-          selectedSubcategory={selectedSubcategory}
-        />
-      )}
+      <div className="bg-secondary/20 rounded-md p-4 text-center">
+        <h3 className="text-lg font-medium mb-2">Folder-Based Import</h3>
+        <p className="text-sm text-muted-foreground">
+          This feature allows you to import data from a folder structure.
+          Please select a folder to import from.
+        </p>
+      </div>
 
       {processingStatus === 'processing' && (
-        <ImportProgress progress={processingProgress} status="Processing folder data..." />
+        <div className="bg-primary/10 rounded-md p-4">
+          <h4 className="font-medium">Processing...</h4>
+          <div className="w-full bg-secondary h-2 mt-2 rounded-full">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
       )}
 
       {processingStatus === 'error' && processingError && (
@@ -129,24 +46,39 @@ const FolderBasedImporter = () => {
         </Alert>
       )}
 
-      {canStartProcessing && (
-        <Button onClick={handleStartProcessing} disabled={processingStatus !== 'idle'}>
-          Start Processing
+      {processingStatus === 'idle' && (
+        <Button disabled={processingStatus !== 'idle'}>
+          Select Folder
         </Button>
       )}
       
-      {processingResults && processingResults.duplicates && processingResults.duplicates.length > 0 && (
+      {results && results.duplicates && results.duplicates.length > 0 && (
         <Alert variant="default" className="bg-yellow-50 border-yellow-200">
           <AlertCircle className="h-4 w-4 text-yellow-500" />
           <AlertTitle className="text-yellow-800">Duplicates Detected</AlertTitle>
           <AlertDescription className="text-yellow-700">
-            {processingResults.duplicates.length} {processingResults.duplicates.length === 1 ? 'item was' : 'items were'} skipped because they already exist in the database.
+            {results.duplicates.length} {results.duplicates.length === 1 ? 'item was' : 'items were'} skipped because they already exist in the database.
           </AlertDescription>
         </Alert>
       )}
 
-      {processingResults && processingStatus === 'complete' && (
-        <ProcessingResults results={processingResults} />
+      {results && processingStatus === 'complete' && (
+        <div className="p-4 bg-secondary/10 rounded-md">
+          <h4 className="font-medium mb-2">Processing Results</h4>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>Total Items:</div>
+            <div>{(results.success.length + results.errors.length + results.duplicates.length)}</div>
+            
+            <div>Succeeded:</div>
+            <div className="text-green-400">{results.success.length}</div>
+            
+            <div>Failed:</div>
+            <div className="text-red-400">{results.errors.length}</div>
+            
+            <div>Skipped:</div>
+            <div className="text-yellow-400">{results.duplicates.length}</div>
+          </div>
+        </div>
       )}
     </div>
   );

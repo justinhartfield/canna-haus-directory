@@ -179,3 +179,6 @@ export async function checkBatchForDuplicates(
     return [];
   }
 }
+
+// Function alias to maintain backward compatibility
+export const checkForDuplicates = checkBatchForDuplicates;

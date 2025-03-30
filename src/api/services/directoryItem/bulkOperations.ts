@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { DirectoryItem } from '@/types/directory';
 import { v4 as uuidv4 } from 'uuid';
+import { transformDatabaseRowToDirectoryItem } from '@/api/transformers/directoryTransformer';
 
 /**
  * Insert multiple directory items in a single batch operation
@@ -53,12 +54,13 @@ export const bulkInsertDirectoryItems = async (
               error: individualError.message
             });
           } else if (individualData && individualData.length > 0) {
-            successItems.push(individualData[0] as DirectoryItem);
+            successItems.push(transformDatabaseRowToDirectoryItem(individualData[0]));
           }
         }
       } else if (data) {
         // Add successfully inserted items
-        successItems.push(...data as DirectoryItem[]);
+        const transformedItems = data.map(item => transformDatabaseRowToDirectoryItem(item));
+        successItems.push(...transformedItems);
       }
     }
     

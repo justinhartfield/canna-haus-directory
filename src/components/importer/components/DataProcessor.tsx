@@ -1,6 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { DirectoryItem } from '@/types/directory';
+import { useDataProcessing } from '@/components/importer/hooks/useDataProcessing';
 
 interface DataProcessorProps {
   data: Array<Record<string, any>>;
@@ -23,33 +24,21 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
   onProcessComplete,
   onProgress
 }) => {
+  const { processData, progress } = useDataProcessing({
+    onComplete: onProcessComplete
+  });
+
   useEffect(() => {
-    // Mock processing logic for now
-    // In a real implementation, this would process the data based on mappings
-    const mockProcess = async () => {
-      // Simulate progress
-      onProgress(10);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      onProgress(30);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      onProgress(60);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      onProgress(90);
-      await new Promise(resolve => setTimeout(resolve, 300));
+    // Update parent component with progress
+    onProgress(progress);
+  }, [progress, onProgress]);
 
-      // Return mock results
-      onProcessComplete({
-        success: [],
-        errors: [],
-        duplicates: []
-      });
-    };
-
-    // Run the mock process if there's data to process
-    if (data.length > 0) {
-      mockProcess();
+  useEffect(() => {
+    // Only process data if there's actual data to process
+    if (data && data.length > 0) {
+      processData(data, mappings, category, subcategory);
     }
-  }, [data, mappings, category, subcategory]);
+  }, [data, mappings, category, subcategory, processData]);
 
   // This component is used to process data in the background
   // It doesn't render anything visible to the user

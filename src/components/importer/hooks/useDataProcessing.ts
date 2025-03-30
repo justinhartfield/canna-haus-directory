@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { DirectoryItem } from '@/types/directory';
 import { toast } from '@/hooks/use-toast';
 import { bulkInsertDirectoryItems } from '@/api/services/directoryItem/bulkOperations';
-import { checkForDuplicates } from '@/api/services/directoryItem/duplicateChecking';
+import { checkBatchForDuplicates } from '@/api/services/directoryItem/duplicateChecking';
 
 type ProcessingResult = {
   success: DirectoryItem[];
@@ -34,7 +34,15 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
     try {
       // Step 1: Check for duplicates (20% progress)
       setProgress(10);
-      const duplicateResults = await checkForDuplicates(data, category);
+      const duplicateResults = await checkBatchForDuplicates(
+        data.map(item => ({
+          title: item.title || '',
+          description: item.description || '',
+          category: category,
+          subcategory: subcategory,
+          jsonLd: {}
+        }))
+      );
       setProgress(20);
 
       // Step 2: Filter out duplicates
@@ -57,9 +65,11 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
         try {
           // Prepare items with category and subcategory
           const itemsToInsert = nonDuplicates.map(item => ({
-            ...item,
+            title: item.title || 'Untitled',
+            description: item.description || 'No description',
             category,
-            subcategory: subcategory || undefined
+            subcategory: subcategory || undefined,
+            jsonLd: {}
           }));
 
           // Insert in batches
