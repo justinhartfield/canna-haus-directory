@@ -26,6 +26,7 @@ const DuplicateRemovalSection: React.FC<DuplicateRemovalSectionProps> = ({ onRem
     setIsLoading(true);
     try {
       const result = await removeExactDuplicates();
+      console.log("Duplicate removal results:", result);
       setResult(result);
       
       if (result.removedCount > 0) {
@@ -34,6 +35,7 @@ const DuplicateRemovalSection: React.FC<DuplicateRemovalSectionProps> = ({ onRem
         toast.info('No exact duplicates were found');
       }
       
+      // Call the onRemoved callback to trigger a data refresh
       if (onRemoved) {
         onRemoved();
       }
@@ -69,6 +71,14 @@ const DuplicateRemovalSection: React.FC<DuplicateRemovalSectionProps> = ({ onRem
             <p className="text-sm text-gray-700">
               {result.removedCount} duplicate records were removed.
             </p>
+            {result.removedIds.length > 0 && (
+              <div className="mt-2">
+                <h5 className="text-xs font-medium text-gray-600">Removed IDs:</h5>
+                <div className="text-xs text-gray-500 break-all mt-1">
+                  {result.removedIds.join(', ')}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
