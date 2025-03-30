@@ -175,10 +175,10 @@ Data Quality Report:
 - Consistency: ${qualityReport.consistency.score.toFixed(1)}%
 
 Issues found:
-- Missing fields: ${Object.values(qualityReport.completeness.missingFields).reduce((a, b) => a + b, 0)} instances
+- Missing fields: ${Object.values(qualityReport.completeness.missingFields).reduce((a, b) => a + (b as number), 0)} instances
 - Schema errors: ${qualityReport.validity.errors} errors
 - Schema warnings: ${qualityReport.validity.warnings} warnings
-- Consistency issues: ${qualityReport.consistency.issues.reduce((a, b) => a + b.count, 0)} issues
+- Consistency issues: ${qualityReport.consistency.issues.reduce((a, b) => a + (b.count as number), 0)} issues
 `;
   }
   
