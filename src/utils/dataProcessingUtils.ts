@@ -49,6 +49,7 @@ export {
   incrementalBatchProcessing,
   generateDataQualityMetrics
 } from './batchProcessingUtils';
+export type { BatchProcessingConfig } from './batchProcessingUtils';
 
 // Folder processing utilities
 export {
