@@ -14,6 +14,6 @@ export {
 } from './transform';
 export type { ProcessingResult } from './transform/core';
 
-// Import the generateJsonLd function from mappingUtils to re-export
-import { generateJsonLd } from './mappingUtils';
+// Import the generateJsonLd function from mapping module to re-export
+import { generateJsonLd } from './mapping/core';
 export { generateJsonLd };

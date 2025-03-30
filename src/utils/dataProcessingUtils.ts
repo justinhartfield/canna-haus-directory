@@ -18,8 +18,8 @@ export {
   generateJsonLd,
   formatJsonLdKey,
   validateRequiredField
-} from './mappingUtils';
-export type { DataMappingConfig } from './mappingUtils';
+} from './mapping';
+export type { DataMappingConfig } from './mapping/types';
 
 // Transformation utilities
 export {
