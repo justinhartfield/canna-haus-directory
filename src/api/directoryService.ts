@@ -3,6 +3,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { DirectoryItem } from "@/types/directory";
 
 /**
+ * Safely converts a JSON value to a Record<string, any>
+ */
+function ensureRecord(value: any): Record<string, any> {
+  if (typeof value === 'object' && value !== null) {
+    return value as Record<string, any>;
+  }
+  return {}; // Return empty object if value isn't an object
+}
+
+/**
+ * Transform database row to DirectoryItem
+ */
+function transformDatabaseRowToDirectoryItem(data: any): DirectoryItem {
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    subcategory: data.subcategory || undefined,
+    tags: data.tags || [],
+    imageUrl: data.imageurl || undefined,
+    thumbnailUrl: data.thumbnailurl || undefined,
+    jsonLd: ensureRecord(data.jsonld),
+    createdAt: data.createdat,
+    updatedAt: data.updatedat,
+    metaData: ensureRecord(data.metadata),
+    additionalFields: ensureRecord(data.additionalfields)
+  };
+}
+
+/**
  * Fetches all directory items from Supabase
  */
 export async function getDirectoryItems(): Promise<DirectoryItem[]> {
@@ -16,21 +47,7 @@ export async function getDirectoryItems(): Promise<DirectoryItem[]> {
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = (data || []).map(item => ({
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.category,
-    subcategory: item.subcategory || undefined,
-    tags: item.tags || [],
-    imageUrl: item.imageurl || undefined,
-    thumbnailUrl: item.thumbnailurl || undefined,
-    jsonLd: item.jsonld || {},
-    createdAt: item.createdat,
-    updatedAt: item.updatedat,
-    metaData: item.metadata || {},
-    additionalFields: item.additionalfields || {}
-  }));
+  const transformedData: DirectoryItem[] = (data || []).map(transformDatabaseRowToDirectoryItem);
   
   return transformedData;
 }
@@ -57,23 +74,7 @@ export async function getDirectoryItemById(id: string): Promise<DirectoryItem | 
   if (!data) return null;
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem = {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    category: data.category,
-    subcategory: data.subcategory || undefined,
-    tags: data.tags || [],
-    imageUrl: data.imageurl || undefined,
-    thumbnailUrl: data.thumbnailurl || undefined,
-    jsonLd: data.jsonld || {},
-    createdAt: data.createdat,
-    updatedAt: data.updatedat,
-    metaData: data.metadata || {},
-    additionalFields: data.additionalfields || {}
-  };
-  
-  return transformedData;
+  return transformDatabaseRowToDirectoryItem(data);
 }
 
 /**
@@ -91,21 +92,7 @@ export async function getDirectoryItemsByCategory(category: string): Promise<Dir
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = (data || []).map(item => ({
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.category,
-    subcategory: item.subcategory || undefined,
-    tags: item.tags || [],
-    imageUrl: item.imageurl || undefined,
-    thumbnailUrl: item.thumbnailurl || undefined,
-    jsonLd: item.jsonld || {},
-    createdAt: item.createdat,
-    updatedAt: item.updatedat,
-    metaData: item.metadata || {},
-    additionalFields: item.additionalfields || {}
-  }));
+  const transformedData: DirectoryItem[] = (data || []).map(transformDatabaseRowToDirectoryItem);
   
   return transformedData;
 }
@@ -124,9 +111,9 @@ export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'crea
       tags: item.tags,
       imageurl: item.imageUrl,
       thumbnailurl: item.thumbnailUrl,
-      jsonld: item.jsonLd,
-      metadata: item.metaData,
-      additionalfields: item.additionalFields,
+      jsonld: item.jsonLd || {},
+      metadata: item.metaData || {},
+      additionalfields: item.additionalFields || {},
     })
     .select('*')
     .single();
@@ -137,23 +124,7 @@ export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'crea
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem = {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    category: data.category,
-    subcategory: data.subcategory || undefined,
-    tags: data.tags || [],
-    imageUrl: data.imageurl || undefined,
-    thumbnailUrl: data.thumbnailurl || undefined,
-    jsonLd: data.jsonld || {},
-    createdAt: data.createdat,
-    updatedAt: data.updatedat,
-    metaData: data.metadata || {},
-    additionalFields: data.additionalfields || {}
-  };
-  
-  return transformedData;
+  return transformDatabaseRowToDirectoryItem(data);
 }
 
 /**
@@ -189,23 +160,7 @@ export async function updateDirectoryItem(id: string, item: Partial<DirectoryIte
   if (!data) return null;
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem = {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    category: data.category,
-    subcategory: data.subcategory || undefined,
-    tags: data.tags || [],
-    imageUrl: data.imageurl || undefined,
-    thumbnailUrl: data.thumbnailurl || undefined,
-    jsonLd: data.jsonld || {},
-    createdAt: data.createdat,
-    updatedAt: data.updatedat,
-    metaData: data.metadata || {},
-    additionalFields: data.additionalfields || {}
-  };
-  
-  return transformedData;
+  return transformDatabaseRowToDirectoryItem(data);
 }
 
 /**
@@ -238,7 +193,7 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
     tags: item.tags,
     imageurl: item.imageUrl,
     thumbnailurl: item.thumbnailUrl,
-    jsonld: item.jsonLd,
+    jsonld: item.jsonLd || {},
     metadata: item.metaData || {},
     additionalfields: item.additionalFields || {}
   }));
@@ -254,21 +209,7 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = (data || []).map(item => ({
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.category,
-    subcategory: item.subcategory || undefined,
-    tags: item.tags || [],
-    imageUrl: item.imageurl || undefined,
-    thumbnailUrl: item.thumbnailurl || undefined,
-    jsonLd: item.jsonld || {},
-    createdAt: item.createdat,
-    updatedAt: item.updatedat,
-    metaData: item.metadata || {},
-    additionalFields: item.additionalfields || {}
-  }));
+  const transformedData: DirectoryItem[] = (data || []).map(transformDatabaseRowToDirectoryItem);
   
   return transformedData;
 }
