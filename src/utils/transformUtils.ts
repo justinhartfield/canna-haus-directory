@@ -46,6 +46,27 @@ export function transformData(
     return result;
   }
   
+  // Validate mapping config
+  if (!mappingConfig.columnMappings.title) {
+    result.success = false;
+    result.errors.push({
+      row: 0,
+      message: 'No column mapped to "title" field'
+    });
+  }
+  
+  if (!mappingConfig.columnMappings.description) {
+    result.success = false;
+    result.errors.push({
+      row: 0,
+      message: 'No column mapped to "description" field'
+    });
+  }
+  
+  if (!result.success) {
+    return result;
+  }
+  
   for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
     try {
       const rawItem = rawData[rowIndex];
@@ -77,11 +98,24 @@ export function transformDataRow(
   const { columnMappings, defaultValues = {}, transformations = {}, categoryAssignment } = mappingConfig;
   
   // Create a base item with default values
-  const baseItem: Record<string, any> = { ...defaultValues };
+  const baseItem: Record<string, any> = { ...defaultValues, additionalFields: {} };
   
   // Apply column mappings
   for (const [targetField, sourceField] of Object.entries(columnMappings)) {
-    if (sourceField in rawItem) {
+    // Check if the source field exists in the raw data
+    if (!(sourceField in rawItem)) {
+      console.warn(`Source field "${sourceField}" not found in data for mapping to "${targetField}"`);
+      continue;
+    }
+    
+    // Handle additional fields mapping
+    if (targetField.startsWith('additionalFields.')) {
+      const fieldName = targetField.replace('additionalFields.', '');
+      if (!baseItem.additionalFields) {
+        baseItem.additionalFields = {};
+      }
+      baseItem.additionalFields[fieldName] = rawItem[sourceField];
+    } else {
       baseItem[targetField] = rawItem[sourceField];
     }
   }
@@ -111,10 +145,19 @@ export function transformDataRow(
   const normalizedTitle = typeof baseItem.title === 'string' ? baseItem.title.trim() : String(baseItem.title || '');
   const normalizedDesc = typeof baseItem.description === 'string' ? baseItem.description.trim() : String(baseItem.description || '');
   
+  // Validate required fields
+  if (!normalizedTitle) {
+    throw new Error(`Missing required field 'title' at row ${rowIndex + 1}`);
+  }
+  
+  if (!normalizedDesc) {
+    throw new Error(`Missing required field 'description' at row ${rowIndex + 1}`);
+  }
+  
   // Construct the final directory item
   const directoryItem: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
-    title: validateRequiredField(normalizedTitle, 'title', rowIndex),
-    description: validateRequiredField(normalizedDesc, 'description', rowIndex),
+    title: normalizedTitle,
+    description: normalizedDesc,
     category,
     subcategory: baseItem.subcategory,
     tags,
@@ -122,7 +165,7 @@ export function transformDataRow(
     thumbnailUrl: baseItem.thumbnailUrl,
     jsonLd,
     metaData: baseItem.metaData || {},
-    additionalFields: baseItem.additionalFields
+    additionalFields: baseItem.additionalFields || {}
   };
   
   return directoryItem;

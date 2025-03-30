@@ -83,7 +83,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       
       // Process column mappings, handling custom fields
       columnMappings.forEach(mapping => {
-        if (!mapping.targetField) return; // Skip unmapped columns
+        if (!mapping.targetField || mapping.targetField === 'ignore') return; // Skip unmapped columns
         
         if (mapping.isCustomField) {
           // For custom fields, use the custom name or the source column
@@ -95,11 +95,22 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         }
       });
       
+      console.log("Processing with mapping config:", mappingConfig);
+      
+      // Make sure we have at least title and description mapped
+      if (!mappingConfig.columnMappings.title) {
+        throw new Error("Title field must be mapped");
+      }
+      
+      if (!mappingConfig.columnMappings.description) {
+        throw new Error("Description field must be mapped");
+      }
+      
       // Process the file
       const result = await processFileContent(file.file, mappingConfig);
       
       if (!result.success) {
-        throw new Error(`File processing failed with ${result.errorCount} errors`);
+        throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
       }
       
       setProgress(100);
