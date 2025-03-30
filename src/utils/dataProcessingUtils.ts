@@ -37,7 +37,8 @@ export {
   processBatchFiles,
   updateImportProgress,
   commonValidationRules
-} from './importUtils';
+} from './import';
+export type { ImportProgress } from './import/types';
 
 // Batch processing utilities
 export {
