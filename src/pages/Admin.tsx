@@ -2,8 +2,7 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import DataImporter from '@/components/admin/DataImporter';
-import DataImporterAdvanced from '@/components/admin/DataImporterAdvanced';
+import SmartImporter from '@/components/importer/SmartImporter';
 import FolderBasedImporter from '@/components/admin/FolderBasedImporter';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -47,19 +46,14 @@ const Admin: React.FC = () => {
               Manage your data and content
             </p>
             
-            <Tabs defaultValue="simple">
+            <Tabs defaultValue="smart">
               <TabsList className="mb-6">
-                <TabsTrigger value="simple">Simple Import</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced Import</TabsTrigger>
+                <TabsTrigger value="smart">Smart AI Import</TabsTrigger>
                 <TabsTrigger value="folder">Folder-Based Import</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="simple">
-                <DataImporter />
-              </TabsContent>
-              
-              <TabsContent value="advanced">
-                <DataImporterAdvanced />
+              <TabsContent value="smart">
+                <SmartImporter />
               </TabsContent>
               
               <TabsContent value="folder">

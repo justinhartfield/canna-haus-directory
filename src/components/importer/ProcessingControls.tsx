@@ -44,7 +44,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
           disabled={isProcessing}
         >
           <UploadCloud className="h-4 w-4 mr-2" />
-          {isProcessing ? "Processing..." : "Process & Upload Data"}
+          {isProcessing ? "Processing..." : "Upload Data"}
         </Button>
       </div>
     </div>

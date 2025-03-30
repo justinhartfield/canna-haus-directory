@@ -30,6 +30,7 @@ const MappingHeader: React.FC<MappingHeaderProps> = ({
             id="mapping-mode"
             checked={manualMappingMode}
             onCheckedChange={onToggleMode}
+            aria-label="Toggle manual mapping mode"
           />
         </div>
       )}
