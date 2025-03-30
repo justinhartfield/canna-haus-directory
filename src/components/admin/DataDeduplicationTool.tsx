@@ -7,6 +7,7 @@ import { useDataDeduplication } from '@/hooks/deduplication/useDataDeduplication
 import DuplicateGroupCard from './deduplication/DuplicateGroupCard';
 import PreviewDialog from './deduplication/PreviewDialog';
 import ProcessingResults from './deduplication/ProcessingResults';
+import DuplicateRemovalSection from './deduplication/DuplicateRemovalSection';
 
 const DataDeduplicationTool: React.FC = () => {
   const {
@@ -41,50 +42,57 @@ const DataDeduplicationTool: React.FC = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {duplicateGroups.length > 0 ? (
-          <Tabs defaultValue="duplicates">
-            <TabsList>
-              <TabsTrigger value="duplicates">Duplicate Records</TabsTrigger>
-              {processingResults && (
-                <TabsTrigger value="results">Processing Results</TabsTrigger>
-              )}
-            </TabsList>
-            
-            <TabsContent value="duplicates">
-              {duplicateGroups.map((group, groupIndex) => (
-                <DuplicateGroupCard
-                  key={group.primaryRecord.id}
-                  group={group}
-                  groupIndex={groupIndex}
-                  onToggleSelection={toggleDuplicateSelection}
-                  onSetAction={setAction}
-                  onPreview={openPreview}
-                />
-              ))}
-              
-              <div className="mt-6 flex justify-end">
-                <Button 
-                  onClick={processDuplicates} 
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Processing...' : 'Process Selected Duplicates'}
-                </Button>
+        <Tabs defaultValue="duplicates">
+          <TabsList>
+            <TabsTrigger value="duplicates">Duplicate Records</TabsTrigger>
+            <TabsTrigger value="removal">Auto-Remove Duplicates</TabsTrigger>
+            {processingResults && (
+              <TabsTrigger value="results">Processing Results</TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="duplicates">
+            {duplicateGroups.length > 0 ? (
+              <>
+                {duplicateGroups.map((group, groupIndex) => (
+                  <DuplicateGroupCard
+                    key={group.primaryRecord.id}
+                    group={group}
+                    groupIndex={groupIndex}
+                    onToggleSelection={toggleDuplicateSelection}
+                    onSetAction={setAction}
+                    onPreview={openPreview}
+                  />
+                ))}
+                
+                <div className="mt-6 flex justify-end">
+                  <Button 
+                    onClick={processDuplicates} 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Processing...' : 'Process Selected Duplicates'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  Click "Find Potential Duplicates" to begin the deduplication process
+                </p>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="results">
-              {processingResults && (
-                <ProcessingResults results={processingResults} />
-              )}
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              Click "Find Potential Duplicates" to begin the deduplication process
-            </p>
-          </div>
-        )}
+            )}
+          </TabsContent>
+          
+          <TabsContent value="removal">
+            <DuplicateRemovalSection onRemoved={findDuplicates} />
+          </TabsContent>
+          
+          <TabsContent value="results">
+            {processingResults && (
+              <ProcessingResults results={processingResults} />
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
 
       <PreviewDialog 

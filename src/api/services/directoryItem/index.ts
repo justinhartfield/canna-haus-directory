@@ -11,3 +11,6 @@ export * from './bulkOperations';
 
 // Export duplicate checking utilities
 export * from './duplicateChecking';
+
+// Export duplicate removal utilities
+export * from './duplicateRemoval';
