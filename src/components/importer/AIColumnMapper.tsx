@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { DataMappingConfig, processFileContent } from '@/utils/dataProcessingUtils';
 import { DirectoryItem } from '@/types/directory';
 import { toast } from '@/hooks/use-toast';
-import { useColumnMapper } from '@/hooks/useColumnMapper';
+import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
 
 // Import the extracted components
 import MappingHeader from './MappingHeader';
