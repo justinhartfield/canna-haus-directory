@@ -1,192 +1,159 @@
 
-import { useState } from 'react';
-import { DirectoryItem, ColumnMapping } from '@/types/directory';
-import { processBatchWithDuplicateHandling, checkBatchForDuplicates } from '@/api/services/directoryItem/bulkOperations';
-import { transformData, ProcessingResult } from '@/utils/transform';
-import { parseFileContent } from '@/utils/fileProcessing';
+import { useState, useCallback } from 'react';
+import { DirectoryItem } from '@/types/directory';
+import { toast } from '@/hooks/use-toast';
+import { bulkInsertDirectoryItems } from '@/api/services/directoryItem/bulkOperations';
+import { checkForDuplicates } from '@/api/services/directoryItem/duplicateChecking';
 
-export interface ProcessingHookResult {
-  isProcessing: boolean;
-  progress: {
-    processed: number;
-    total: number;
-    current: number;
-    succeeded: number;
-    failed: number;
-    skipped: number;
-    duplicates: number;
-    errors: string[];
-  };
-  uploadProgress: number;
-  currentStatus: string;
-  missingColumns: string[];
-  duplicates: Partial<DirectoryItem>[];
-  startProcessing: (file: File, columnMappings: ColumnMapping[], customFields: Record<string, string>, category: string, schemaType: string) => Promise<{
-    items: DirectoryItem[];
-    errors: string[];
-    duplicates: Partial<DirectoryItem>[];
-  }>;
-  reset: () => void;
+type ProcessingResult = {
+  success: DirectoryItem[];
+  errors: Array<{ item: any; error: string }>;
+  duplicates: Array<{ item: any; error: string }>;
+};
+
+interface UseDataProcessingProps {
+  onComplete?: (result: ProcessingResult) => void;
 }
 
-export function useDataProcessing(): ProcessingHookResult {
+export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState({
-    processed: 0,
-    total: 0,
-    current: 0,
-    succeeded: 0,
-    failed: 0,
-    skipped: 0,
-    duplicates: 0,
-    errors: [] as string[]
-  });
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState('');
-  const [missingColumns, setMissingColumns] = useState<string[]>([]);
-  const [duplicates, setDuplicates] = useState<Partial<DirectoryItem>[]>([]);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<ProcessingResult | null>(null);
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
 
-  const reset = () => {
-    setIsProcessing(false);
-    setProgress({
-      processed: 0,
-      total: 0,
-      current: 0,
-      succeeded: 0,
-      failed: 0,
-      skipped: 0,
-      duplicates: 0,
-      errors: []
-    });
-    setUploadProgress(0);
-    setCurrentStatus('');
-    setMissingColumns([]);
-    setDuplicates([]);
-  };
-
-  const startProcessing = async (
-    file: File,
-    columnMappings: ColumnMapping[],
-    customFields: Record<string, string>,
+  const processData = useCallback(async (
+    data: Array<Record<string, any>>,
+    mappings: Record<string, string>,
     category: string,
-    schemaType: string
+    subcategory?: string
   ) => {
     setIsProcessing(true);
-    setCurrentStatus('Analyzing file');
-    setProgress(prev => ({ ...prev, total: 1, current: 0 }));
+    setProgress(0);
+    setResults(null);
 
     try {
-      // First, check that all required mappings exist
-      const requiredFields = ['title'];
-      const missingRequiredFields = requiredFields.filter(field => 
-        !columnMappings.some(mapping => mapping.targetField === field)
+      // Step 1: Check for duplicates (20% progress)
+      setProgress(10);
+      const duplicateResults = await checkForDuplicates(data, category);
+      setProgress(20);
+
+      // Step 2: Filter out duplicates
+      const nonDuplicates = data.filter(item => 
+        !duplicateResults.some(dup => dup.item === item)
       );
 
-      if (missingRequiredFields.length > 0) {
-        setMissingColumns(missingRequiredFields);
-        throw new Error(`Missing required column mappings: ${missingRequiredFields.join(', ')}`);
-      }
+      // Step 3: Process and transform data (40% progress)
+      setProgress(30);
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setProgress(40);
 
-      // Create a mapping configuration from column mappings
-      const mappingConfig = {
-        columnMappings: {},
-        defaultValues: { category },
-        schemaType
-      };
+      // Step 4: Upload to database (30% progress)
+      setProgress(50);
+      let successItems: DirectoryItem[] = [];
+      let errorItems: Array<{ item: any; error: string }> = [];
 
-      // Convert our UI representation to the format transformData expects
-      columnMappings.forEach(mapping => {
-        if (mapping.targetField && mapping.sourceColumn) {
-          mappingConfig.columnMappings[mapping.targetField] = mapping.sourceColumn;
-        }
-      });
+      if (nonDuplicates.length > 0) {
+        try {
+          // Prepare items with category and subcategory
+          const itemsToInsert = nonDuplicates.map(item => ({
+            ...item,
+            category,
+            subcategory: subcategory || undefined
+          }));
 
-      // Add custom fields
-      Object.entries(customFields).forEach(([field, value]) => {
-        if (value) {
-          mappingConfig.defaultValues[field] = value;
-        }
-      });
-
-      setCurrentStatus('Transforming data');
-      setUploadProgress(25);
-
-      // First parse the file content
-      const parsedData = await parseFileContent(file);
-      
-      // Then transform the data
-      const transformResult = await transformData(parsedData, mappingConfig);
-
-      if (transformResult.success) {
-        setCurrentStatus('Checking for duplicates');
-        setUploadProgress(50);
-
-        // Check for duplicates
-        const compositeKeyFields = ['title', 'category', 'additionalFields.breeder', 'subcategory'];
-        const duplicateCheck = await checkBatchForDuplicates(transformResult.items, compositeKeyFields);
-
-        if (duplicateCheck.duplicates.length > 0) {
-          setDuplicates(duplicateCheck.duplicates);
-          setProgress(prev => ({ 
-            ...prev, 
-            duplicates: duplicateCheck.duplicates.length 
+          // Insert in batches
+          const insertResult = await bulkInsertDirectoryItems(itemsToInsert);
+          successItems = insertResult.success;
+          errorItems = insertResult.errors;
+        } catch (error) {
+          console.error('Error inserting items:', error);
+          errorItems = nonDuplicates.map(item => ({
+            item,
+            error: error instanceof Error ? error.message : 'Unknown error during insertion'
           }));
         }
-
-        setCurrentStatus('Processing data');
-        setUploadProgress(75);
-
-        // Process with duplicate handling
-        const result = await processBatchWithDuplicateHandling(
-          transformResult.items,
-          'skip', // Default handling mode
-          compositeKeyFields
-        );
-
-        setCurrentStatus('Complete');
-        setUploadProgress(100);
-        setProgress(prev => ({
-          ...prev,
-          processed: transformResult.items.length,
-          succeeded: result.processed.length,
-          skipped: result.skipped.length,
-          duplicates: duplicateCheck.duplicates.length
-        }));
-
-        return {
-          items: result.existingItems,
-          errors: [],
-          duplicates: duplicateCheck.duplicates
-        };
-      } else {
-        throw new Error(transformResult.errors?.[0]?.message || 'Unknown error during transformation');
       }
+
+      setProgress(80);
+
+      // Step 5: Finalize results
+      const finalResults: ProcessingResult = {
+        success: successItems,
+        errors: errorItems,
+        duplicates: duplicateResults
+      };
+
+      setResults(finalResults);
+      setProgress(100);
+
+      // Call onComplete callback if provided
+      if (onComplete) {
+        onComplete(finalResults);
+      }
+
+      // Show toast with results
+      toast({
+        title: 'Processing Complete',
+        description: `${successItems.length} items imported, ${errorItems.length} errors, ${duplicateResults.length} duplicates`,
+        variant: successItems.length > 0 ? 'default' : 'destructive'
+      });
+
+      // Show duplicates modal if there are duplicates
+      if (duplicateResults.length > 0) {
+        setShowDuplicatesModal(true);
+      }
+
+      return finalResults;
     } catch (error) {
-      setCurrentStatus('Error');
-      console.error('Processing error:', error);
-      setProgress(prev => ({
-        ...prev,
-        errors: [...prev.errors, error instanceof Error ? error.message : 'Unknown error']
-      }));
+      console.error('Error processing data:', error);
+      setProgress(100);
       
-      return {
-        items: [],
-        errors: [error instanceof Error ? error.message : 'Unknown error'],
+      // Create error result
+      const errorResult: ProcessingResult = {
+        success: [],
+        errors: [{
+          item: null,
+          error: error instanceof Error ? error.message : 'Unknown error during processing'
+        }],
         duplicates: []
       };
+      
+      setResults(errorResult);
+      
+      // Call onComplete callback if provided
+      if (onComplete) {
+        onComplete(errorResult);
+      }
+      
+      // Show error toast
+      toast({
+        title: 'Processing Failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive'
+      });
+      
+      return errorResult;
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [onComplete]);
+
+  const handleCloseDuplicatesModal = useCallback(() => {
+    setShowDuplicatesModal(false);
+  }, []);
+
+  const handleViewDuplicatesDetails = useCallback(() => {
+    setShowDuplicatesModal(true);
+  }, []);
 
   return {
     isProcessing,
     progress,
-    uploadProgress,
-    currentStatus,
-    missingColumns,
-    duplicates,
-    startProcessing,
-    reset
+    results,
+    showDuplicatesModal,
+    processData,
+    handleCloseDuplicatesModal,
+    handleViewDuplicatesDetails
   };
-}
+};

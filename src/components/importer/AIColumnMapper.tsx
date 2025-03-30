@@ -2,7 +2,7 @@
 import React from 'react';
 import { DirectoryItem } from '@/types/directory';
 import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
-import { DataProcessor } from './components/DataProcessor';
+import DataProcessor from './components/DataProcessor';
 import { AIColumnMapperProps } from './types/importerTypes';
 import { DEFAULT_CATEGORIES, SCHEMA_TYPE_OPTIONS } from './constants/importerConstants';
 
@@ -92,13 +92,12 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       />
       
       <DataProcessor
-        file={file.file}
-        columnMappings={columnMappings}
-        customFields={customFields}
-        selectedCategory={selectedCategory}
-        schemaType={schemaType}
-        onComplete={onComplete}
-        onCancel={onCancel}
+        data={[]}
+        mappings={{}}
+        category={selectedCategory}
+        subcategory={undefined}
+        onProcessComplete={onComplete}
+        onProgress={setProgress}
       />
     </div>
   );

@@ -1,95 +1,79 @@
 
+import { supabase } from '@/integrations/supabase/client';
 import { DirectoryItem } from '@/types/directory';
-import { apiClient } from '../../core/supabaseClient';
-import { checkBatchForDuplicates, checkForDuplicate } from './duplicateChecking';
-
-const TABLE_NAME = 'directory_items' as const;
+import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Insert multiple directory items in a single batch
+ * Insert multiple directory items in a single batch operation
  */
-export async function bulkInsertDirectoryItems(
+export const bulkInsertDirectoryItems = async (
   items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>
-): Promise<{ success: DirectoryItem[]; errors: Array<{ item: any; error: string }> }> {
-  try {
-    const { data, error } = await apiClient.insertBatch(TABLE_NAME, items);
-    
-    if (error) {
-      console.error('Error in bulk insert:', error);
-      throw error;
-    }
-    
-    return {
-      success: data as DirectoryItem[],
-      errors: []
-    };
-  } catch (error) {
-    console.error('Error in bulkInsertDirectoryItems:', error);
-    return {
-      success: [],
-      errors: [{ item: items, error: error instanceof Error ? error.message : String(error) }]
-    };
-  }
-}
-
-/**
- * Process a batch of items with duplicate checking
- */
-export async function processBatchWithDuplicateHandling(
-  items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>,
-  options?: { skipDuplicateCheck?: boolean }
-): Promise<{ 
-  success: DirectoryItem[]; 
+): Promise<{
+  success: DirectoryItem[];
   errors: Array<{ item: any; error: string }>;
-  duplicates: Array<{ item: any; error: string }>;
-}> {
+}> => {
+  const now = new Date().toISOString();
+  const preparedItems = items.map(item => ({
+    ...item,
+    id: uuidv4(),
+    createdAt: now,
+    updatedAt: now,
+  }));
+
   try {
-    // Skip duplicate check if requested
-    const skipDuplicateCheck = options?.skipDuplicateCheck || false;
+    // Insert items in batches of 50
+    const batchSize = 50;
+    const batches = [];
     
-    let duplicates: Array<{ item: any; error: string }> = [];
+    for (let i = 0; i < preparedItems.length; i += batchSize) {
+      batches.push(preparedItems.slice(i, i + batchSize));
+    }
     
-    if (!skipDuplicateCheck) {
-      duplicates = await checkBatchForDuplicates(items);
+    const successItems: DirectoryItem[] = [];
+    const errorItems: Array<{ item: any; error: string }> = [];
+    
+    // Process each batch
+    for (const batch of batches) {
+      const { data, error } = await supabase
+        .from('directory_items')
+        .insert(batch)
+        .select();
       
-      // Filter out items that are duplicates
-      items = items.filter(item => 
-        !duplicates.some(d => 
-          d.item.title === item.title && 
-          d.item.category === item.category
-        )
-      );
+      if (error) {
+        // If batch insert fails, try inserting items individually
+        for (const item of batch) {
+          const { data: individualData, error: individualError } = await supabase
+            .from('directory_items')
+            .insert(item)
+            .select();
+          
+          if (individualError) {
+            errorItems.push({
+              item: item,
+              error: individualError.message
+            });
+          } else if (individualData && individualData.length > 0) {
+            successItems.push(individualData[0] as DirectoryItem);
+          }
+        }
+      } else if (data) {
+        // Add successfully inserted items
+        successItems.push(...data as DirectoryItem[]);
+      }
     }
-    
-    // If no items left after duplicate filtering, return early
-    if (items.length === 0) {
-      return { 
-        success: [], 
-        errors: [],
-        duplicates
-      };
-    }
-    
-    // Process the filtered items
-    const result = await bulkInsertDirectoryItems(items);
     
     return {
-      success: result.success,
-      errors: result.errors,
-      duplicates
+      success: successItems,
+      errors: errorItems
     };
   } catch (error) {
-    console.error('Error in processBatchWithDuplicateHandling:', error);
+    console.error('Error in bulk insert operation:', error);
     return {
       success: [],
-      errors: [{ 
-        item: items, 
-        error: error instanceof Error ? error.message : String(error) 
-      }],
-      duplicates: []
+      errors: items.map(item => ({
+        item,
+        error: error instanceof Error ? error.message : 'Unknown error during bulk insert'
+      }))
     };
   }
-}
-
-// Re-export functions from duplicateChecking.ts to maintain backward compatibility
-export { checkBatchForDuplicates, checkForDuplicate };
+};
