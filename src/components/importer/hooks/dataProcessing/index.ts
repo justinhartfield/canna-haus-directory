@@ -1,5 +1,5 @@
 
-// Re-export all hooks and utilities from this directory
+// Re-export hooks from this directory
 export { useDataProcessing } from './useDataProcessing';
 export { useProcessingSteps } from './useProcessingSteps';
 export { useProcessingState } from './useProcessingState';
