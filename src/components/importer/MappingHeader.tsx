@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface MappingHeaderProps {
   title: string;
@@ -17,13 +18,20 @@ const MappingHeader: React.FC<MappingHeaderProps> = ({
   showModeToggle = true
 }) => {
   return (
-    <div className="flex justify-between items-center">
-      <h3 className="text-lg font-semibold">{title}</h3>
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+      <h3 className="text-lg font-medium">{title}</h3>
+      
       {showModeToggle && (
-        <Button variant="outline" size="sm" onClick={onToggleMode} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          {manualMappingMode ? "Use AI Suggestions" : "Manual Override"}
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="mapping-mode" className="text-sm">
+            {manualMappingMode ? "Manual Mapping" : "AI-Assisted Mapping"}
+          </Label>
+          <Switch
+            id="mapping-mode"
+            checked={manualMappingMode}
+            onCheckedChange={onToggleMode}
+          />
+        </div>
       )}
     </div>
   );

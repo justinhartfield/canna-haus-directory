@@ -2,8 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Label } from '@/components/ui/label';
-import { Check, Loader2 } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 
 interface ProcessingControlsProps {
   isProcessing: boolean;
@@ -19,37 +18,36 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
   onCancel
 }) => {
   return (
-    <>
+    <div className="space-y-4">
       {isProcessing && (
         <div className="space-y-2">
-          <Label>Processing File</Label>
+          <div className="flex justify-between text-sm">
+            <span>Uploading and processing data...</span>
+            <span>{progress}%</span>
+          </div>
           <Progress value={progress} className="h-2" />
         </div>
       )}
       
-      <div className="flex justify-between space-x-2 pt-2">
-        <Button variant="outline" onClick={onCancel} disabled={isProcessing}>
+      <div className="flex justify-end space-x-3">
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          disabled={isProcessing}
+        >
+          <X className="h-4 w-4 mr-2" />
           Cancel
         </Button>
-        <Button 
-          onClick={onProcess} 
+        
+        <Button
+          onClick={onProcess}
           disabled={isProcessing}
-          className="gap-2"
         >
-          {isProcessing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Check className="h-4 w-4" />
-              Process File
-            </>
-          )}
+          <UploadCloud className="h-4 w-4 mr-2" />
+          {isProcessing ? "Processing..." : "Process & Upload Data"}
         </Button>
       </div>
-    </>
+    </div>
   );
 };
 

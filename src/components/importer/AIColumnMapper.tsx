@@ -144,7 +144,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         title="Data Mapping Configuration"
         manualMappingMode={manualMappingMode}
         onToggleMode={toggleManualMode}
-        showModeToggle={!manualMappingMode && analysis !== null}
+        showModeToggle={true} // Always show mode toggle to allow overriding AI recommendations
       />
       
       <CategorySchemaSelector

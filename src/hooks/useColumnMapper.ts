@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { ImportAnalysis, ColumnMapping } from '@/types/directory';
@@ -91,13 +90,13 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
       
       toast({
         title: "Analysis Complete",
-        description: `AI suggests ${data.recommendedCategory} category with ${suggestedMappings.length} mapped fields`,
+        description: `AI suggests ${data.recommendedCategory} category with ${suggestedMappings.length} mapped fields. You can override these recommendations manually.`,
       });
     } catch (error) {
       console.error("Error analyzing file:", error);
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: error instanceof Error ? error.message : "An unknown error occurred. Switching to manual mapping mode.",
         variant: "destructive"
       });
       
@@ -150,7 +149,24 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
   };
 
   const toggleManualMode = () => {
+    // If switching to manual mode from AI mode, preserve the current mappings
+    if (!manualMappingMode && analysis) {
+      // Keep existing mappings
+    } else if (manualMappingMode && availableColumns.length > 0) {
+      // When switching back to AI mode, attempt to restore AI recommendations
+      if (analysis) {
+        setColumnMappings(analysis.suggestedMappings);
+      }
+    }
+    
     setManualMappingMode(!manualMappingMode);
+    
+    toast({
+      title: !manualMappingMode ? "Manual Mapping Enabled" : "AI-Assisted Mapping Enabled",
+      description: !manualMappingMode 
+        ? "You can now manually configure all column mappings." 
+        : "AI recommendations have been restored. You can still modify these mappings."
+    });
   };
 
   // Trigger file analysis on mount
@@ -173,13 +189,13 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
     customFields,
     availableColumns,
     manualMappingMode,
-    setManualMappingMode,  // Export setManualMappingMode
+    setManualMappingMode,
     handleMappingChange,
     handleCustomFieldNameChange,
     handleSourceColumnChange,
     handleAddMapping,
     handleRemoveMapping,
     toggleManualMode,
-    analyzeFile  // Export analyzeFile
+    analyzeFile
   };
 }
