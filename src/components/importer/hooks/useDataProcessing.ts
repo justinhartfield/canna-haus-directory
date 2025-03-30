@@ -4,7 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { processFileContent } from '@/utils/dataProcessingUtils';
 import { DirectoryItem } from '@/types/directory';
 import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
-import { bulkInsertDirectoryItems } from '@/api/directoryService';
+import { bulkInsertDirectoryItems, checkBatchForDuplicates } from '@/api/services/directoryItemService';
 
 export interface ProcessingOptions {
   file: File;
@@ -12,20 +12,23 @@ export interface ProcessingOptions {
   customFields: Record<string, string>;
   selectedCategory: string;
   schemaType: string;
+  skipDuplicates?: boolean;
 }
 
 export interface ProcessingResult {
   success: boolean;
   items: DirectoryItem[];
   missingColumns: string[];
+  duplicates?: Array<{item: any, error: string}>;
 }
 
 export function useDataProcessing() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'uploading'>('idle');
+  const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'uploading' | 'checking-duplicates'>('idle');
   const [missingColumns, setMissingColumns] = useState<string[]>([]);
+  const [duplicates, setDuplicates] = useState<Array<{item: any, error: string}>>([]);
 
   const validateMappings = (mappings: MappingConfiguration[]) => {
     const hasTitleMapping = mappings.some(
@@ -83,6 +86,7 @@ export function useDataProcessing() {
     setUploadProgress(0);
     setCurrentStatus('processing');
     setMissingColumns([]);
+    setDuplicates([]);
     
     try {
       // Validate mappings
@@ -113,11 +117,57 @@ export function useDataProcessing() {
         throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
       }
       
-      // Now upload to Supabase
-      setCurrentStatus('uploading');
-      
-      // Batch upload to Supabase if there are successful items
+      // Check for duplicates before uploading
       if (result.items.length > 0) {
+        setCurrentStatus('checking-duplicates');
+        try {
+          const duplicateItems = await checkBatchForDuplicates(result.items as unknown as DirectoryItem[]);
+          
+          if (duplicateItems.length > 0) {
+            setDuplicates(duplicateItems);
+            
+            if (!options.skipDuplicates) {
+              toast({
+                title: "Duplicate Items Detected",
+                description: `Found ${duplicateItems.length} items that already exist in the database.`,
+                variant: "destructive"
+              });
+              
+              return {
+                success: false,
+                items: result.items as unknown as DirectoryItem[],
+                missingColumns: result.missingColumns || [],
+                duplicates: duplicateItems
+              };
+            } else {
+              // Filter out duplicates if skipDuplicates is true
+              const uniqueItems = result.items.filter(item => 
+                !duplicateItems.some(d => 
+                  d.item.title === item.title && d.item.category === item.category
+                )
+              );
+              
+              toast({
+                title: "Skipping Duplicates",
+                description: `Skipping ${duplicateItems.length} duplicate items. Proceeding with ${uniqueItems.length} unique items.`,
+              });
+              
+              result.items = uniqueItems;
+            }
+          }
+        } catch (error) {
+          console.error("Error checking for duplicates:", error);
+          toast({
+            title: "Error Checking Duplicates",
+            description: error instanceof Error ? error.message : "Failed to check for duplicate items",
+            variant: "destructive"
+          });
+        }
+      }
+      
+      // Now upload to Supabase
+      if (result.items.length > 0) {
+        setCurrentStatus('uploading');
         try {
           console.log(`Uploading ${result.items.length} items to Supabase`);
           // Sample the first item for debugging
@@ -136,7 +186,8 @@ export function useDataProcessing() {
           return {
             success: true,
             items: uploadedItems,
-            missingColumns: result.missingColumns || []
+            missingColumns: result.missingColumns || [],
+            duplicates: duplicates
           };
         } catch (uploadError) {
           console.error("Error uploading to Supabase:", uploadError);
@@ -154,14 +205,16 @@ export function useDataProcessing() {
           return {
             success: false,
             items: result.items as unknown as DirectoryItem[],
-            missingColumns: result.missingColumns || []
+            missingColumns: result.missingColumns || [],
+            duplicates: duplicates
           };
         }
       } else {
         return {
           success: true,
           items: [],
-          missingColumns: result.missingColumns || []
+          missingColumns: result.missingColumns || [],
+          duplicates: duplicates
         };
       }
       
@@ -178,7 +231,8 @@ export function useDataProcessing() {
       return {
         success: false,
         items: [],
-        missingColumns: []
+        missingColumns: [],
+        duplicates: []
       };
     } finally {
       setIsProcessing(false);
@@ -192,6 +246,7 @@ export function useDataProcessing() {
     uploadProgress,
     currentStatus,
     missingColumns,
+    duplicates,
     processFile
   };
 }

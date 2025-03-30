@@ -1,10 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useDataProcessing } from '../hooks/useDataProcessing';
 import { ProgressIndicator } from './ProgressIndicator';
 import { MissingColumnsAlert } from './MissingColumnsAlert';
+import { DuplicatesAlert } from './DuplicatesAlert';
 import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface DataProcessorProps {
   file: File;
@@ -25,12 +28,15 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
   onComplete,
   onCancel
 }) => {
+  const [skipDuplicates, setSkipDuplicates] = useState(false);
+  
   const {
     isProcessing,
     progress,
     uploadProgress,
     currentStatus,
     missingColumns,
+    duplicates,
     processFile
   } = useDataProcessing();
 
@@ -40,7 +46,8 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
       columnMappings,
       customFields,
       selectedCategory,
-      schemaType
+      schemaType,
+      skipDuplicates
     });
     
     onComplete(result.items);
@@ -49,6 +56,25 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
   return (
     <div className="space-y-4">
       <MissingColumnsAlert missingColumns={missingColumns} />
+      
+      {duplicates && duplicates.length > 0 && (
+        <DuplicatesAlert 
+          duplicates={duplicates} 
+          onContinue={() => {
+            setSkipDuplicates(true);
+            handleProcessFile();
+          }}
+        />
+      )}
+      
+      <div className="flex items-center space-x-2 py-2">
+        <Switch
+          id="skip-duplicates"
+          checked={skipDuplicates}
+          onCheckedChange={setSkipDuplicates}
+        />
+        <Label htmlFor="skip-duplicates">Skip duplicate items during import</Label>
+      </div>
       
       <ProgressIndicator 
         isProcessing={isProcessing}
@@ -71,7 +97,9 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
           disabled={isProcessing}
         >
           {isProcessing ? 
-            (currentStatus === 'processing' ? "Processing..." : "Uploading...") 
+            (currentStatus === 'processing' ? "Processing..." : 
+             currentStatus === 'checking-duplicates' ? "Checking Duplicates..." :
+             "Uploading...") 
             : "Upload Data"}
         </Button>
       </div>
