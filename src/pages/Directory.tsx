@@ -23,7 +23,7 @@ const Directory = () => {
 
   const { data: directoryItems = [], isLoading, error } = useQuery({
     queryKey: ['directoryItems'],
-    queryFn: getDirectoryItems
+    queryFn: () => getDirectoryItems()
   });
 
   // Check URL for search parameters on mount and navigation
@@ -36,7 +36,7 @@ const Directory = () => {
       setSearchMode(true);
       handleSearch(searchParam);
     }
-  }, [location.search]);
+  }, [location.search, handleSearch]);
 
   const handleSearchInput = (term: string) => {
     handleSearch(term);

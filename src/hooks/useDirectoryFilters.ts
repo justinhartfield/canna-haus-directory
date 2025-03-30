@@ -1,124 +1,74 @@
 
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DirectoryItem } from '@/types/directory';
 import { getDirectoryItems } from '@/api/services/directoryItem/crudOperations';
 
 export const useDirectoryFilters = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  // States for filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Record<string, boolean>>({});
-  const [filteredData, setFilteredData] = useState<DirectoryItem[]>([]);
+  const [categoryFilters, setCategoryFilters] = useState<Record<string, boolean>>({});
   const [isSearching, setIsSearching] = useState(false);
-  
-  const { data: directoryItems = [] } = useQuery({
+
+  // Fetch all directory items
+  const { data: allItems = [] } = useQuery({
     queryKey: ['directoryItems'],
-    queryFn: getDirectoryItems
+    queryFn: () => getDirectoryItems(),
   });
-  
-  // Parse query parameters (for direct links to filtered categories or search)
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const categoryParam = params.get('category');
-    const searchParam = params.get('search');
-    
-    if (categoryParam) {
-      setActiveFilters({ [categoryParam.toLowerCase()]: true });
-    }
-    
-    if (searchParam) {
-      setSearchTerm(searchParam);
-      setIsSearching(true);
-    }
-  }, [location.search]);
-  
-  // Update filtered data when directory items change
-  useEffect(() => {
-    applyFilters(searchTerm, activeFilters);
-  }, [directoryItems, searchTerm, activeFilters]);
-  
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    setIsSearching(!!term);
-    
-    // Update URL with search parameter
-    if (term) {
-      const params = new URLSearchParams(location.search);
-      params.set('search', term);
-      navigate({ search: params.toString() }, { replace: true });
-    } else {
-      const params = new URLSearchParams(location.search);
-      params.delete('search');
-      navigate({ search: params.toString() }, { replace: true });
-    }
-    
-    applyFilters(term, activeFilters);
-  };
-  
-  const handleFilter = (filters: Record<string, boolean>) => {
-    setActiveFilters(filters);
-    applyFilters(searchTerm, filters);
-  };
-  
-  const applyFilters = (term: string, filters: Record<string, boolean>) => {
-    const filterKeys = Object.keys(filters).filter(key => filters[key]);
-    
-    let result = [...directoryItems];
-    
-    // Apply search term filter
-    if (term) {
-      const lowercaseTerm = term.toLowerCase();
-      result = result.filter(item => 
-        item.title.toLowerCase().includes(lowercaseTerm) || 
-        item.description.toLowerCase().includes(lowercaseTerm)
+
+  // Apply filters to get filtered data
+  const filteredData = useMemo(() => {
+    let filtered = [...allItems];
+
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.title.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term) ||
+        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(term)))
       );
     }
-    
-    // Apply category filters
-    if (filterKeys.length > 0) {
-      const categoryMap: Record<string, string> = {
-        'medical': 'Medical',
-        'genetics': 'Genetics',
-        'labData': 'Lab Data',
-        'cultivation': 'Cultivation',
-        'compliance': 'Compliance',
-        'consumer': 'Consumer'
-      };
-      
-      result = result.filter(item => {
-        for (const key of filterKeys) {
-          if (categoryMap[key] === item.category) {
-            return true;
-          }
-        }
-        return false;
-      });
-    }
-    
-    setFilteredData(result);
-  };
 
-  const clearFilters = () => {
+    // Apply category filters
+    const activeCategories = Object.entries(categoryFilters)
+      .filter(([_, isActive]) => isActive)
+      .map(([category]) => category);
+
+    if (activeCategories.length > 0) {
+      filtered = filtered.filter(item => 
+        activeCategories.includes(item.category)
+      );
+    }
+
+    return filtered;
+  }, [allItems, searchTerm, categoryFilters]);
+
+  // Handler for search
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    setIsSearching(!!term);
+  }, []);
+
+  // Handler for category filter
+  const handleFilter = useCallback((filters: Record<string, boolean>) => {
+    setCategoryFilters(filters);
+  }, []);
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
-    setActiveFilters({});
+    setCategoryFilters({});
     setIsSearching(false);
-    setFilteredData(directoryItems);
-    
-    // Clear search parameter from URL
-    const params = new URLSearchParams(location.search);
-    params.delete('search');
-    navigate({ search: params.toString() }, { replace: true });
-  };
+  }, []);
 
   return {
-    searchTerm,
-    activeFilters,
     filteredData,
-    isSearching,
     handleSearch,
     handleFilter,
-    clearFilters
+    clearFilters,
+    searchTerm,
+    categoryFilters,
+    isSearching
   };
 };

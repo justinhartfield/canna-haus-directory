@@ -43,6 +43,15 @@ export async function getDirectoryItems(
 }
 
 /**
+ * Get directory items by category
+ */
+export async function getDirectoryItemsByCategory(
+  category: string
+): Promise<DirectoryItem[]> {
+  return getDirectoryItems({ category });
+}
+
+/**
  * Get a single directory item by ID
  */
 export async function getDirectoryItemById(id: string): Promise<DirectoryItem> {

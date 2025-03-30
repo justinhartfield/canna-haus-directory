@@ -1,109 +1,92 @@
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DirectoryItem } from '@/types/directory';
 import { 
   getDirectoryItems, 
+  createDirectoryItem, 
   updateDirectoryItem, 
   deleteDirectoryItem 
 } from '@/api/services/directoryItem/crudOperations';
-import { toast } from '@/components/ui/use-toast';
 
 export const useDataManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editedData, setEditedData] = useState<Partial<DirectoryItem>>({});
+  const [selectedItem, setSelectedItem] = useState<DirectoryItem | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: items = [], isLoading, error, refetch } = useQuery({
+  // Fetch data
+  const { data = [], isLoading, error } = useQuery({
     queryKey: ['directoryItems'],
-    queryFn: getDirectoryItems
+    queryFn: () => getDirectoryItems()
   });
 
-  const handleEdit = (item: DirectoryItem) => {
-    setEditingItemId(item.id);
-    setEditedData({ ...item });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingItemId(null);
-    setEditedData({});
-  };
-
-  const handleSaveEdit = async (id: string) => {
-    try {
-      await updateDirectoryItem(id, editedData);
-      toast({
-        title: "Changes saved",
-        description: "Item was updated successfully."
-      });
-      setEditingItemId(null);
-      setEditedData({});
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error saving changes",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
-      });
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: createDirectoryItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['directoryItems'] });
     }
-  };
-
-  const handleDeleteItem = async (id: string) => {
-    try {
-      await deleteDirectoryItem(id);
-      toast({
-        title: "Item deleted",
-        description: "Item was removed successfully."
-      });
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error deleting item",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleEditField = (field: string, value: any) => {
-    setEditedData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const filteredItems = items.filter(item => {
-    const matchesSearch = searchTerm 
-      ? item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase())
-      : true;
-    
-    const matchesCategory = selectedCategory 
-      ? item.category === selectedCategory 
-      : true;
-    
-    return matchesSearch && matchesCategory;
   });
 
-  const categories = Array.from(new Set(items.map(item => item.category)));
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<DirectoryItem> }) => 
+      updateDirectoryItem(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['directoryItems'] });
+    }
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteDirectoryItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['directoryItems'] });
+      setIsDeleteModalOpen(false);
+    }
+  });
+
+  const openEditModal = (item: DirectoryItem) => {
+    setSelectedItem(item);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedItem(null);
+  };
+
+  const openDeleteModal = (item: DirectoryItem) => {
+    setSelectedItem(item);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedItem(null);
+  };
+
+  const confirmDelete = () => {
+    if (selectedItem) {
+      deleteMutation.mutate(selectedItem.id);
+    }
+  };
 
   return {
-    items,
-    filteredItems,
-    categories,
-    searchTerm,
-    setSearchTerm,
-    selectedCategory,
-    setSelectedCategory,
-    editingItemId,
-    editedData,
+    data,
     isLoading,
     error,
-    handleEdit,
-    handleCancelEdit,
-    handleSaveEdit,
-    handleDeleteItem,
-    handleEditField
+    selectedItem,
+    isEditModalOpen,
+    isDeleteModalOpen,
+    openEditModal,
+    closeEditModal,
+    openDeleteModal,
+    closeDeleteModal,
+    confirmDelete,
+    createMutation,
+    updateMutation,
+    deleteMutation
   };
 };

@@ -30,8 +30,10 @@ export interface DirectoryCategory {
 }
 
 export interface DirectoryFilter {
-  categories: boolean[];
-  searchTerm: string;
+  category?: string;
+  subcategory?: string;
+  categories?: boolean[];
+  searchTerm?: string;
 }
 
 export interface ImportProgress {
