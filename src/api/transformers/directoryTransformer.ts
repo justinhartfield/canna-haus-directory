@@ -1,4 +1,3 @@
-
 import { DirectoryItem } from "@/types/directory";
 
 /**
@@ -55,4 +54,15 @@ export function transformDirectoryItemToDatabaseRow(item: Partial<DirectoryItem>
   }
   
   return row;
+}
+
+// Add a function to strip additionalFields when it causes issues
+export function stripAdditionalFieldsIfNeeded(item: Partial<DirectoryItem>): any {
+  // Create a copy of the item without additionalFields if they exist
+  if (item.additionalFields && Object.keys(item.additionalFields).length === 0) {
+    const { additionalFields, ...rest } = item;
+    console.log('Stripping empty additionalFields for compatibility');
+    return rest;
+  }
+  return item;
 }

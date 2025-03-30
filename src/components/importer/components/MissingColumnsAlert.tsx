@@ -2,6 +2,7 @@
 import React from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export interface MissingColumnsAlertProps {
   missingColumns: string[];
@@ -18,15 +19,17 @@ export const MissingColumnsAlert: React.FC<MissingColumnsAlertProps> = ({
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Missing Required Mappings</AlertTitle>
-      <AlertDescription>
-        The following fields must be mapped: {missingColumns.join(', ')}
+      <AlertDescription className="space-y-2">
+        <div>The following fields must be mapped: {missingColumns.join(', ')}</div>
         {onClose && (
-          <button 
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={onClose}
-            className="ml-2 underline hover:text-red-300"
+            className="mt-2"
           >
             Dismiss
-          </button>
+          </Button>
         )}
       </AlertDescription>
     </Alert>

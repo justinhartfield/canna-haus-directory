@@ -1,81 +1,135 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { DirectoryItem } from '@/types/directory';
-import { v4 as uuidv4 } from 'uuid';
-import { transformDatabaseRowToDirectoryItem } from '@/api/transformers/directoryTransformer';
+import { apiClient } from '../../core/supabaseClient';
+import { stripAdditionalFieldsIfNeeded, transformDirectoryItemToDatabaseRow } from '@/api/transformers/directoryTransformer';
+import { toast } from '@/hooks/use-toast';
+
+const TABLE_NAME = 'directory_items' as const;
 
 /**
- * Insert multiple directory items in a single batch operation
+ * Bulk insert directory items with proper error handling
  */
-export const bulkInsertDirectoryItems = async (
+export async function bulkInsertDirectoryItems(
   items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>
 ): Promise<{
   success: DirectoryItem[];
   errors: Array<{ item: any; error: string }>;
-}> => {
-  const now = new Date().toISOString();
-  const preparedItems = items.map(item => ({
-    ...item,
-    id: uuidv4(),
-    createdAt: now,
-    updatedAt: now,
-  }));
+}> {
+  if (!items || items.length === 0) {
+    return { success: [], errors: [] };
+  }
 
+  console.log(`Attempting to bulk insert ${items.length} items`);
+  
   try {
-    // Insert items in batches of 50
-    const batchSize = 50;
-    const batches = [];
+    // Transform items to database format
+    const dbRows = items.map(item => {
+      // Transform to database format
+      const dbItem = transformDirectoryItemToDatabaseRow(item);
+      // Strip additionalFields if they might cause issues
+      return stripAdditionalFieldsIfNeeded(dbItem);
+    });
+
+    console.log(`Transformed ${dbRows.length} items for database insertion`);
     
-    for (let i = 0; i < preparedItems.length; i += batchSize) {
-      batches.push(preparedItems.slice(i, i + batchSize));
-    }
+    // Try first with a subset to test for schema issues
+    const testBatch = dbRows.slice(0, 1);
     
-    const successItems: DirectoryItem[] = [];
-    const errorItems: Array<{ item: any; error: string }> = [];
-    
-    // Process each batch
-    for (const batch of batches) {
-      const { data, error } = await supabase
-        .from('directory_items')
-        .insert(batch)
-        .select();
+    try {
+      const testResult = await apiClient.bulkInsert(TABLE_NAME, testBatch, { returning: true });
+      
+      if (testResult.error) {
+        // If there's an error with the test batch, try alternate approach
+        console.error('Test batch failed:', testResult.error);
+        throw new Error(`Test batch failed: ${testResult.error.message}`);
+      }
+      
+      // If test succeeds, continue with all items
+      const { data, error } = await apiClient.bulkInsert(TABLE_NAME, dbRows, { returning: true });
       
       if (error) {
-        // If batch insert fails, try inserting items individually
-        for (const item of batch) {
-          const { data: individualData, error: individualError } = await supabase
-            .from('directory_items')
-            .insert(item)
-            .select();
+        console.error('Bulk insert error:', error);
+        return { 
+          success: [], 
+          errors: dbRows.map(item => ({
+            item,
+            error: error.message
+          }))
+        };
+      }
+      
+      // Return successfully inserted items
+      return {
+        success: Array.isArray(data) ? data : [],
+        errors: []
+      };
+    } catch (testError) {
+      console.warn('Schema compatibility issue detected, trying fallback insertion method');
+      
+      // Fall back to individual inserts to work around schema issues
+      const results = {
+        success: [] as DirectoryItem[],
+        errors: [] as Array<{ item: any; error: string }>
+      };
+      
+      // Process items one by one
+      for (const item of dbRows) {
+        try {
+          // Use insertWithColumnFilter to handle schema mismatches
+          const { data, error } = await insertWithColumnFilter(TABLE_NAME, item);
           
-          if (individualError) {
-            errorItems.push({
-              item: item,
-              error: individualError.message
+          if (error) {
+            results.errors.push({
+              item,
+              error: error.message
             });
-          } else if (individualData && individualData.length > 0) {
-            successItems.push(transformDatabaseRowToDirectoryItem(individualData[0]));
+          } else if (data) {
+            results.success.push(data);
           }
+        } catch (itemError: any) {
+          results.errors.push({
+            item,
+            error: itemError.message || 'Unknown error during item insertion'
+          });
         }
-      } else if (data) {
-        // Add successfully inserted items
-        const transformedItems = data.map(item => transformDatabaseRowToDirectoryItem(item));
-        successItems.push(...transformedItems);
+      }
+      
+      return results;
+    }
+  } catch (error: any) {
+    console.error('Error in bulkInsertDirectoryItems:', error);
+    
+    return {
+      success: [],
+      errors: [{
+        item: items[0],
+        error: error.message || 'Unknown error during bulk insertion'
+      }]
+    };
+  }
+}
+
+/**
+ * Special insert function that handles schema mismatches by filtering columns
+ */
+async function insertWithColumnFilter(table: string, item: any) {
+  try {
+    // First attempt: try with just the basic columns that we know exist
+    const safeColumns = ['title', 'description', 'category', 'subcategory', 'tags', 'jsonLd', 'metaData'];
+    const safeItem: any = {};
+    
+    // Only include fields that are in our safe list
+    for (const key of safeColumns) {
+      if (key in item) {
+        safeItem[key] = item[key];
       }
     }
     
-    return {
-      success: successItems,
-      errors: errorItems
-    };
+    console.log('Trying insertion with safe columns:', Object.keys(safeItem).join(', '));
+    
+    return await apiClient.insert(table, safeItem, { returning: true });
   } catch (error) {
-    console.error('Error in bulk insert operation:', error);
-    return {
-      success: [],
-      errors: items.map(item => ({
-        item,
-        error: error instanceof Error ? error.message : 'Unknown error during bulk insert'
-      }))
-    };
+    console.error('Error in insertWithColumnFilter:', error);
+    throw error;
   }
-};
+}

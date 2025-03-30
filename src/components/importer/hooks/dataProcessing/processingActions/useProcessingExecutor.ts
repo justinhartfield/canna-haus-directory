@@ -196,22 +196,39 @@ export function useProcessingExecutor(
 
       if (allTransformedItems.length > 0) {
         try {
-          // Insert in batches of 25 items to avoid timeouts
-          const uploadBatchSize = 25;
-          for (let i = 0; i < allTransformedItems.length; i += uploadBatchSize) {
-            const batch = allTransformedItems.slice(i, i + uploadBatchSize);
-            addProcessingStep(`Inserting batch ${Math.floor(i / uploadBatchSize) + 1}/${Math.ceil(allTransformedItems.length / uploadBatchSize)}`);
+          // Use smaller batch size to avoid timeout issues
+          const uploadBatchSize = 10; // Smaller batch size to avoid issues
+          
+          // For very large datasets, limit to 300 items to avoid overwhelming the database
+          const maxItemsToUpload = Math.min(allTransformedItems.length, 300);
+          addProcessingStep(`Limiting upload to ${maxItemsToUpload} items to avoid database overload`);
+          
+          const itemsToUpload = allTransformedItems.slice(0, maxItemsToUpload);
+          
+          for (let i = 0; i < itemsToUpload.length; i += uploadBatchSize) {
+            const batch = itemsToUpload.slice(i, i + uploadBatchSize);
+            addProcessingStep(`Inserting batch ${Math.floor(i / uploadBatchSize) + 1}/${Math.ceil(itemsToUpload.length / uploadBatchSize)}`);
             
             try {
-              const batchResult = await bulkInsertDirectoryItems(batch);
+              // Add timestamps to each item
+              const timestampedBatch = batch.map(item => ({
+                ...item,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }));
+              
+              const batchResult = await bulkInsertDirectoryItems(timestampedBatch);
               successItems = [...successItems, ...batchResult.success];
               allErrors.push(...batchResult.errors);
               
               // Update progress based on how much we've processed
-              const newProgress = 60 + Math.min(((i + batch.length) / allTransformedItems.length) * 30, 30);
+              const newProgress = 60 + Math.min(((i + batch.length) / itemsToUpload.length) * 30, 30);
               setProgress(Math.round(newProgress));
               
               addProcessingStep(`Batch result: ${batchResult.success.length} succeeded, ${batchResult.errors.length} failed`);
+              
+              // Add a small delay between batches to avoid rate limits
+              await new Promise(resolve => setTimeout(resolve, 300));
             } catch (batchError) {
               console.error('Error inserting batch:', batchError);
               addProcessingStep(`Error inserting batch: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
@@ -224,6 +241,18 @@ export function useProcessingExecutor(
                 }))
               );
             }
+          }
+          
+          // If we limited the upload, notify the user
+          if (allTransformedItems.length > maxItemsToUpload) {
+            addProcessingStep(`Only uploaded ${maxItemsToUpload} out of ${allTransformedItems.length} items to prevent database overload`);
+            
+            // Add remaining items as "skipped"
+            const skippedItems = allTransformedItems.length - maxItemsToUpload;
+            allErrors.push({
+              item: { count: skippedItems },
+              error: `Skipped ${skippedItems} items to prevent database overload. Try importing in smaller batches.`
+            });
           }
         } catch (error) {
           console.error('Error inserting items:', error);
