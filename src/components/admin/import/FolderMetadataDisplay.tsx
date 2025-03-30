@@ -1,12 +1,17 @@
 
 import React from 'react';
 import { FolderMetadata } from '@/utils/folderProcessingUtils';
+import { Badge } from '@/components/ui/badge';
 
 interface FolderMetadataDisplayProps {
   metadata: FolderMetadata;
+  duplicateHandlingMode?: string;
 }
 
-const FolderMetadataDisplay: React.FC<FolderMetadataDisplayProps> = ({ metadata }) => {
+const FolderMetadataDisplay: React.FC<FolderMetadataDisplayProps> = ({ 
+  metadata,
+  duplicateHandlingMode
+}) => {
   if (!metadata) return null;
   
   return (
@@ -27,6 +32,17 @@ const FolderMetadataDisplay: React.FC<FolderMetadataDisplayProps> = ({ metadata 
         
         <div>Schema Type:</div>
         <div>{metadata.schemaType}</div>
+        
+        {duplicateHandlingMode && (
+          <>
+            <div>Duplicate Handling:</div>
+            <div>
+              <Badge variant="outline" className="font-mono text-xs">
+                {duplicateHandlingMode}
+              </Badge>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

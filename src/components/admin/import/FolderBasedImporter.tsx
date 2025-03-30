@@ -43,13 +43,15 @@ const FolderBasedImporter: React.FC = () => {
   const [customSchemaType, setCustomSchemaType] = useState('Product');
   const [configReady, setConfigReady] = useState(false);
   const [folderMetadata, setFolderMetadata] = useState<FolderMetadata | null>(null);
+  const [duplicateHandlingMode, setDuplicateHandlingMode] = useState('skip');
   const [progress, setProgress] = useState({
     current: 0,
     total: 0,
     processed: 0,
     succeeded: 0,
     failed: 0,
-    skipped: 0
+    skipped: 0,
+    duplicates: 0
   });
   
   // Handle file drops
@@ -92,6 +94,22 @@ const FolderBasedImporter: React.FC = () => {
             columnMappings['tags'] = column;
           } else if (lowerColumn.includes('category') || lowerColumn.includes('type')) {
             columnMappings['subcategory'] = column;
+          } else if (lowerColumn.includes('breeder') || lowerColumn.includes('source')) {
+            columnMappings['additionalFields.breeder'] = column;
+          } else if (lowerColumn.includes('phenotype')) {
+            columnMappings['additionalFields.phenotype'] = column;
+          } else if (lowerColumn.includes('thc')) {
+            columnMappings['additionalFields.thcContent'] = column;
+          } else if (lowerColumn.includes('cbd')) {
+            columnMappings['additionalFields.cbdContent'] = column;
+          } else if (lowerColumn.includes('effect')) {
+            columnMappings['additionalFields.effects'] = column;
+          } else if (lowerColumn.includes('flavor') || lowerColumn.includes('taste')) {
+            columnMappings['additionalFields.flavors'] = column;
+          } else if (lowerColumn.includes('grow') && lowerColumn.includes('note')) {
+            columnMappings['additionalFields.growingNotes'] = column;
+          } else if (lowerColumn.includes('year')) {
+            columnMappings['additionalFields.yearIntroduced'] = column;
           }
         }
         
@@ -113,7 +131,8 @@ const FolderBasedImporter: React.FC = () => {
           schemaType,
           columnMappings,
           undefined,
-          incrementalMode
+          incrementalMode,
+          { duplicateHandlingMode }
         );
         
         setFolderConfig(config);
@@ -132,7 +151,7 @@ const FolderBasedImporter: React.FC = () => {
         
         toast({
           title: "Configuration Ready",
-          description: `Folder configuration created for "${folderName}" using schema type "${schemaType}".`,
+          description: `Folder configuration created for "${folderName}" using schema type "${schemaType}" with ${duplicateHandlingMode} duplicate handling.`,
         });
       } catch (error) {
         console.error("Error creating folder config:", error);
@@ -143,7 +162,7 @@ const FolderBasedImporter: React.FC = () => {
         });
       }
     }
-  }, [selectedFolderType, customFolder, incrementalMode, customSchemaType]);
+  }, [selectedFolderType, customFolder, incrementalMode, customSchemaType, duplicateHandlingMode]);
   
   // Process files with the folder configuration
   const handleProcessFiles = async () => {
@@ -163,7 +182,8 @@ const FolderBasedImporter: React.FC = () => {
       processed: 0,
       succeeded: 0,
       failed: 0,
-      skipped: 0
+      skipped: 0,
+      duplicates: 0
     });
     
     try {
@@ -189,14 +209,15 @@ const FolderBasedImporter: React.FC = () => {
             processed: result.processed,
             succeeded: result.succeeded,
             failed: result.failed,
-            skipped: result.skipped
+            skipped: result.skipped,
+            duplicates: result.duplicates || 0
           });
           
           setFolderMetadata(result.metadata);
           
           toast({
             title: "Processing Complete",
-            description: `Processed ${result.processed} items: ${result.succeeded} succeeded, ${result.failed} failed, ${result.skipped} skipped.`,
+            description: `Processed ${result.processed} items: ${result.succeeded} succeeded, ${result.failed} failed, ${result.skipped} skipped (${result.duplicates || 0} duplicates).`,
             variant: result.failed > 0 ? "destructive" : "default"
           });
         } catch (error) {
@@ -255,6 +276,8 @@ const FolderBasedImporter: React.FC = () => {
             onFolderTypeSelect={handleFolderTypeSelect}
             onCustomFolderChange={handleCustomFolderChange}
             onSchemaTypeChange={setCustomSchemaType}
+            duplicateHandlingMode={duplicateHandlingMode}
+            onDuplicateHandlingChange={setDuplicateHandlingMode}
           />
           
           {/* Incremental Mode Toggle */}
@@ -268,7 +291,12 @@ const FolderBasedImporter: React.FC = () => {
           </div>
           
           {/* Previous Import Metadata */}
-          {folderMetadata && <FolderMetadataDisplay metadata={folderMetadata} />}
+          {folderMetadata && (
+            <FolderMetadataDisplay 
+              metadata={folderMetadata} 
+              duplicateHandlingMode={duplicateHandlingMode}
+            />
+          )}
           
           {/* File Upload Area */}
           <FileDropzone 
@@ -298,6 +326,7 @@ const FolderBasedImporter: React.FC = () => {
                 <p>Schema Type: {folderConfig.schemaType}</p>
                 <p>Fields Mapped: {Object.keys(folderConfig.mappingConfig.columnMappings).length}</p>
                 <p>Mode: {incrementalMode ? 'Incremental' : 'Full'}</p>
+                <p>Duplicate Handling: {duplicateHandlingMode}</p>
               </div>
             </div>
           )}
@@ -337,6 +366,7 @@ const FolderBasedImporter: React.FC = () => {
             failed={progress.failed}
             skipped={progress.skipped}
             isProcessing={isProcessing}
+            duplicates={progress.duplicates}
           />
         </div>
       </CardContent>
@@ -364,7 +394,8 @@ const FolderBasedImporter: React.FC = () => {
                 processed: 0,
                 succeeded: 0,
                 failed: 0,
-                skipped: 0
+                skipped: 0,
+                duplicates: 0
               });
             }}
             disabled={isProcessing || progress.processed === 0}

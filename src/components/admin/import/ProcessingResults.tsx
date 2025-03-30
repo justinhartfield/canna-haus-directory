@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Badge } from '@/components/ui/badge';
 
 interface ProcessingResultsProps {
   processed: number;
@@ -7,6 +8,7 @@ interface ProcessingResultsProps {
   failed: number;
   skipped: number;
   isProcessing: boolean;
+  duplicates?: number;
 }
 
 const ProcessingResults: React.FC<ProcessingResultsProps> = ({
@@ -14,7 +16,8 @@ const ProcessingResults: React.FC<ProcessingResultsProps> = ({
   succeeded,
   failed,
   skipped,
-  isProcessing
+  isProcessing,
+  duplicates = 0
 }) => {
   if (processed === 0 || isProcessing) return null;
   
@@ -32,7 +35,14 @@ const ProcessingResults: React.FC<ProcessingResultsProps> = ({
         <div className="text-red-400">{failed}</div>
         
         <div>Skipped:</div>
-        <div className="text-yellow-400">{skipped}</div>
+        <div className="flex items-center gap-1">
+          <span className="text-yellow-400">{skipped}</span>
+          {duplicates > 0 && (
+            <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-400">
+              {duplicates} duplicates
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );
