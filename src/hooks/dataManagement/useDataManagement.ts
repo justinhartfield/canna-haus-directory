@@ -13,6 +13,7 @@ export const useDataManagement = () => {
   const [selectedItem, setSelectedItem] = useState<DirectoryItem | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editedData, setEditedData] = useState<Partial<DirectoryItem>>({});
   const queryClient = useQueryClient();
 
   // Fetch data
@@ -35,6 +36,9 @@ export const useDataManagement = () => {
       updateDirectoryItem(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['directoryItems'] });
+      setIsEditModalOpen(false);
+      setSelectedItem(null);
+      setEditedData({});
     }
   });
 
@@ -44,17 +48,20 @@ export const useDataManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['directoryItems'] });
       setIsDeleteModalOpen(false);
+      setSelectedItem(null);
     }
   });
 
   const openEditModal = (item: DirectoryItem) => {
     setSelectedItem(item);
+    setEditedData({});
     setIsEditModalOpen(true);
   };
 
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedItem(null);
+    setEditedData({});
   };
 
   const openDeleteModal = (item: DirectoryItem) => {
@@ -67,10 +74,21 @@ export const useDataManagement = () => {
     setSelectedItem(null);
   };
 
-  const confirmDelete = () => {
-    if (selectedItem) {
-      deleteMutation.mutate(selectedItem.id);
+  const handleSave = (id: string) => {
+    if (selectedItem && Object.keys(editedData).length > 0) {
+      updateMutation.mutate({ id, updates: editedData });
     }
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleChange = (field: string, value: any) => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return {
@@ -84,9 +102,12 @@ export const useDataManagement = () => {
     closeEditModal,
     openDeleteModal,
     closeDeleteModal,
-    confirmDelete,
+    handleSave,
+    handleDelete,
+    handleChange,
     createMutation,
     updateMutation,
-    deleteMutation
+    deleteMutation,
+    editedData
   };
 };

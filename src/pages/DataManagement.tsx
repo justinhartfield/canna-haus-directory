@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useDataManagement } from '@/hooks/dataManagement/useDataManagement';
@@ -22,8 +22,39 @@ const DataManagement: React.FC = () => {
     closeDeleteModal,
     handleSave,
     handleDelete,
-    handleChange
+    handleChange,
+    editedData
   } = useDataManagement();
+  
+  // State for filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Get unique categories from data
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set<string>();
+    data.forEach(item => {
+      if (item.category) {
+        uniqueCategories.add(item.category);
+      }
+    });
+    return Array.from(uniqueCategories);
+  }, [data]);
+  
+  // Filter items based on search term and category
+  const filteredItems = useMemo(() => {
+    return data.filter(item => {
+      // Filter by search term
+      const matchesSearchTerm = searchTerm === '' || 
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filter by category
+      const matchesCategory = !selectedCategory || item.category === selectedCategory;
+      
+      return matchesSearchTerm && matchesCategory;
+    });
+  }, [data, searchTerm, selectedCategory]);
 
   return (
     <>
@@ -42,17 +73,17 @@ const DataManagement: React.FC = () => {
           ) : (
             <>
               <DataFilters 
-                searchTerm=""
-                onSearchChange={() => {}}
-                categories={[]}
-                selectedCategory=""
-                onCategoryChange={() => {}}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
               />
 
               <DataTableContainer
-                items={data}
-                editingItemId=""
-                editedData={{}}
+                items={filteredItems}
+                editingItemId={selectedItem?.id || null}
+                editedData={editedData}
                 onEdit={openEditModal}
                 onCancelEdit={closeEditModal}
                 onSaveEdit={handleSave}

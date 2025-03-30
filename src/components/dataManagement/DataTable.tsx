@@ -22,7 +22,7 @@ interface DataTableProps {
   onEdit: (item: DirectoryItem) => void;
   onCancelEdit: () => void;
   onSaveEdit: (id: string) => void;
-  onDeleteItem: (id: string) => void;
+  onDeleteItem: (item: DirectoryItem) => void;
   onEditField: (field: string, value: any) => void;
   additionalFieldKeys: string[];
 }
@@ -123,7 +123,7 @@ const DataTable: React.FC<DataTableProps> = ({
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => onDeleteItem(item.id)}
+                    onClick={() => onDeleteItem(item)}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
