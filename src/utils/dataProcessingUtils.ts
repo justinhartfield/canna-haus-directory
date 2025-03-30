@@ -28,8 +28,8 @@ export {
   normalizeString,
   normalizeNumber,
   normalizeBoolean
-} from './transformUtils';
-export type { ProcessingResult } from './transformUtils';
+} from './transform';
+export type { ProcessingResult } from './transform/core';
 
 // Import utilities
 export {
