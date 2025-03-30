@@ -89,7 +89,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         toast({
           title: "Warning: No Description Field",
           description: "No column is mapped to Description. A default value will be used.",
-          variant: "warning"
+          variant: "default" // Changed from "warning" to "default"
         });
       }
       
@@ -133,7 +133,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         toast({
           title: "Processing Completed with Warnings",
           description: `Processed ${result.processedRows} of ${result.totalRows} rows. ${result.errorCount} rows had issues but were processed with fallback values.`,
-          variant: "warning"
+          variant: "default" // Changed from "warning" to "default"
         });
       } else {
         toast({
