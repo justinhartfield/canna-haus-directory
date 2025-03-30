@@ -100,18 +100,20 @@ export function transformData(
     try {
       const rawItem = rawData[rowIndex];
       
-      // Filter out missing columns from mapping config for this row
-      const filteredMappingConfig = {
-        ...mappingConfig,
-        columnMappings: { ...mappingConfig.columnMappings }
-      };
+      // Instead of filtering out missing columns, we'll create placeholders for them
+      // This ensures that additionalFields entries are created even if source columns are missing
+      const enhancedRawItem = { ...rawItem };
       
-      // Remove missing column mappings to avoid warnings
+      // For each missing column that maps to an additional field, add a placeholder
       missingColumnsMap.forEach((targetField, sourceField) => {
-        delete filteredMappingConfig.columnMappings[targetField];
+        if (targetField.startsWith('additionalFields.')) {
+          // Add an empty placeholder for the missing field
+          // This ensures the additional field is still created in the output
+          enhancedRawItem[sourceField] = '';
+        }
       });
       
-      const transformedItem = transformDataRow(rawItem, filteredMappingConfig, rowIndex);
+      const transformedItem = transformDataRow(enhancedRawItem, mappingConfig, rowIndex);
       result.items.push(transformedItem);
       result.processedRows++;
     } catch (error) {
@@ -160,6 +162,16 @@ export function transformDataRow(
     // Check if the source field exists in the raw data
     if (!(sourceField in rawItem)) {
       console.warn(`Source field "${sourceField}" not found in data for mapping to "${targetField}"`);
+      
+      // For additionalFields, we still want to create the field with an empty value
+      if (targetField.startsWith('additionalFields.')) {
+        const fieldName = targetField.replace('additionalFields.', '');
+        if (!baseItem.additionalFields) {
+          baseItem.additionalFields = {};
+        }
+        // Set an empty string for missing additional fields
+        baseItem.additionalFields[fieldName] = '';
+      }
       continue;
     }
     
