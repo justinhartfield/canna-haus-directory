@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 import ActionButton from './ActionButton';
 
 interface DirectoryCardFooterProps {
-  id: string; // Changed from number to string
+  id: string;
 }
 
 const DirectoryCardFooter: React.FC<DirectoryCardFooterProps> = ({ id }) => {
   return (
     <div className="flex items-center justify-between">
       <Link 
-        to={`/directory/${id}`} 
+        to={`/directory/detail/${id}`} 
         className="text-xs inline-flex items-center gap-1 text-cannabis-700 dark:text-cannabis-300 hover:text-cannabis-800 dark:hover:text-cannabis-200 font-medium"
       >
         <svg 
