@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
 import DataProcessor from './components/DataProcessor';
 import { AIColumnMapperProps } from './types/importerTypes';
@@ -45,7 +45,8 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     handleAddMapping,
     handleRemoveMapping,
     toggleManualMode,
-    analyzeFile
+    analyzeFile,
+    parsedData
   } = useColumnMapper({ file, category });
 
   // Handle completion of data processing
@@ -95,6 +96,17 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     setIsProcessing(true);
   };
 
+  // Debug logging
+  useEffect(() => {
+    console.log("AIColumnMapper state:", { 
+      isProcessing, 
+      progress, 
+      selectedCategory,
+      parsedDataLength: parsedData?.length || 0,
+      mappingsCount: columnMappings.length
+    });
+  }, [isProcessing, progress, selectedCategory, parsedData, columnMappings]);
+
   if (isAnalyzing) {
     return <AnalyzingState />;
   }
@@ -108,6 +120,17 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       />
     );
   }
+
+  // Prepare mappings for processing in the required format
+  const prepareMappingsForProcessing = () => {
+    const mappingsObj: Record<string, string> = {};
+    columnMappings.forEach(mapping => {
+      if (mapping.targetField && mapping.sourceColumn) {
+        mappingsObj[mapping.targetField] = mapping.sourceColumn;
+      }
+    });
+    return mappingsObj;
+  };
 
   return (
     <div className="space-y-6">
@@ -141,10 +164,10 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         onAddMapping={handleAddMapping}
       />
       
-      {isProcessing && (
+      {isProcessing && parsedData && parsedData.length > 0 && (
         <DataProcessor
-          data={[]} // We'll populate this when ready to process
-          mappings={{}}
+          data={parsedData}
+          mappings={prepareMappingsForProcessing()}
           category={selectedCategory}
           subcategory={undefined}
           onProcessComplete={handleProcessComplete}

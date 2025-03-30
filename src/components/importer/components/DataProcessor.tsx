@@ -1,20 +1,17 @@
 
 import React, { useEffect, useState } from 'react';
-import { DirectoryItem } from '@/types/directory';
-import { useDataProcessing } from '@/components/importer/hooks';
-import { toast } from '@/hooks/use-toast';
+import { useDataProcessing } from '../hooks/dataProcessing';
+import DuplicatesAlert from './DuplicatesAlert';
+import MissingColumnsAlert from './MissingColumnsAlert';
+import ProgressIndicator from './ProgressIndicator';
 
 interface DataProcessorProps {
   data: Array<Record<string, any>>;
   mappings: Record<string, string>;
   category: string;
   subcategory?: string;
-  onProcessComplete: (results: {
-    success: DirectoryItem[];
-    errors: Array<{ item: any; error: string }>;
-    duplicates: Array<{ item: any; error: string }>;
-  }) => void;
-  onProgress: (progress: number) => void;
+  onProcessComplete?: (result: any) => void;
+  onProgress?: (progress: number) => void;
 }
 
 const DataProcessor: React.FC<DataProcessorProps> = ({
@@ -26,77 +23,83 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
   onProgress
 }) => {
   const [processingStarted, setProcessingStarted] = useState(false);
-  const [processingTimeout, setProcessingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [hasResults, setHasResults] = useState(false);
+  const [dataLength, setDataLength] = useState(0);
   
-  const { processData, progress, results, isProcessing } = useDataProcessing({
+  const {
+    isProcessing,
+    progress,
+    results,
+    showDuplicatesModal,
+    handleCloseDuplicatesModal,
+    processData,
+    processingSteps
+  } = useDataProcessing({
     onComplete: onProcessComplete
   });
-
+  
+  // Debug logging
   useEffect(() => {
-    // Update parent component with progress
-    onProgress(progress);
-    
-    // Reset timeout if progress is being made
-    if (processingStarted && processingTimeout && progress > 0) {
-      clearTimeout(processingTimeout);
-      setProcessingTimeout(null);
-    }
-  }, [progress, onProgress, processingStarted, processingTimeout]);
-
-  useEffect(() => {
-    // Only process data if there's actual data to process
-    if (!processingStarted && data && data.length > 0) {
-      setProcessingStarted(true);
-      
-      console.log('Starting data processing with', data.length, 'items');
-      
-      // Set timeout to detect if processing doesn't start within 10 seconds
-      const timeout = setTimeout(() => {
-        console.log('Processing timeout triggered');
-        if (progress === 0) {
-          toast({
-            title: 'Processing Issue',
-            description: 'Processing seems to be taking longer than expected. You can wait or try again.',
-            variant: 'default'
-          });
-        }
-      }, 10000);
-      
-      setProcessingTimeout(timeout);
-      
-      // Start processing
-      processData(data, mappings, category, subcategory)
-        .catch(error => {
-          console.error('Error in processing data:', error);
-          toast({
-            title: 'Processing Error',
-            description: error instanceof Error ? error.message : 'An unknown error occurred',
-            variant: 'destructive'
-          });
-        });
-    }
-    
-    return () => {
-      if (processingTimeout) {
-        clearTimeout(processingTimeout);
-      }
-    };
-  }, [data, mappings, category, subcategory, processData, processingStarted, progress]);
-
-  // Log processing state for debugging
-  useEffect(() => {
-    console.log('DataProcessor state:', {
+    console.log("DataProcessor state:", {
       processingStarted,
       isProcessing,
       progress,
-      hasResults: !!results,
-      dataLength: data.length
+      hasResults,
+      dataLength
     });
-  }, [processingStarted, isProcessing, progress, results, data]);
+  }, [processingStarted, isProcessing, progress, hasResults, dataLength]);
+  
+  // Pass progress to parent component if needed
+  useEffect(() => {
+    if (onProgress) {
+      onProgress(progress);
+    }
+  }, [progress, onProgress]);
 
-  // This component is used to process data in the background
-  // It doesn't render anything visible to the user
-  return null;
+  // Start processing when the component mounts and has data
+  useEffect(() => {
+    const startProcessing = async () => {
+      if (!processingStarted && data && data.length > 0 && category && Object.keys(mappings).length > 0) {
+        setProcessingStarted(true);
+        setDataLength(data.length);
+        
+        try {
+          // Only process if we have valid data and mappings
+          if (!mappings.title) {
+            console.error("No title mapping specified");
+            return;
+          }
+          
+          // Process the data
+          const result = await processData(data, mappings, category, subcategory);
+          setHasResults(true);
+          console.log("Processing completed with result:", result);
+        } catch (error) {
+          console.error("Error processing data:", error);
+        }
+      }
+    };
+    
+    startProcessing();
+  }, [data, mappings, category, subcategory, processData, processingStarted]);
+
+  // Don't render anything visible, this is a processing component
+  return (
+    <>
+      {showDuplicatesModal && results && (
+        <DuplicatesAlert 
+          duplicates={results.duplicates}
+          onClose={handleCloseDuplicatesModal}
+        />
+      )}
+      {results?.missingColumns && results.missingColumns.length > 0 && (
+        <MissingColumnsAlert 
+          missingColumns={results.missingColumns}
+          onClose={() => {}} 
+        />
+      )}
+    </>
+  );
 };
 
 export default DataProcessor;
