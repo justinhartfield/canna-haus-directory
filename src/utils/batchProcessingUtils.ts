@@ -4,9 +4,11 @@ import { DirectoryItem } from '@/types/directory';
 // Re-export from batch subdirectories
 export {
   advancedBatchProcessing,
-  incrementalBatchProcessing,
-  BatchProcessingConfig
+  incrementalBatchProcessing
 } from './batch/batchProcessCore';
+
+// Use 'export type' for type re-exports
+export type { BatchProcessingConfig } from './batch/batchProcessCore';
 
 export {
   generateProcessingReport,
