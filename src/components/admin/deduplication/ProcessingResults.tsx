@@ -4,15 +4,10 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { ProcessingResults as ProcessingResultsType } from '@/types/deduplication';
 
 interface ProcessingResultsProps {
-  results: {
-    processed: number;
-    merged: number;
-    variants: number;
-    kept: number;
-    errors: string[];
-  };
+  results: ProcessingResultsType;
 }
 
 const ProcessingResults: React.FC<ProcessingResultsProps> = ({ results }) => {

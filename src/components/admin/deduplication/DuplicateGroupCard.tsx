@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { CardTitle } from '@/components/ui/card';
 import { DirectoryItem } from '@/types/directory';
-import { DuplicateGroup } from '@/hooks/useDataDeduplication';
+import { DuplicateGroup } from '@/types/deduplication';
 
 interface DuplicateGroupCardProps {
   group: DuplicateGroup;

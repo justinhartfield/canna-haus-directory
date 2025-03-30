@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DirectoryItem } from '@/types/directory';
-import { DuplicateGroup } from '@/hooks/useDataDeduplication';
+import { DuplicateGroup } from '@/types/deduplication';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
