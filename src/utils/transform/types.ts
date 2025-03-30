@@ -1,20 +1,20 @@
 
-import { DirectoryItem } from '@/types/directory';
-
 /**
- * Processing results
+ * Type definitions for the transform module
  */
+
+// Export the ProcessingResult interface so it can be imported elsewhere
 export interface ProcessingResult {
   success: boolean;
   totalRows: number;
   processedRows: number;
-  processedFiles?: number;
+  processedFiles: number;
   errorCount: number;
   errors: Array<{
     row: number;
     message: string;
-    data?: Record<string, any>;
+    data?: any;
   }>;
-  items: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>[];
-  missingColumns?: string[]; // Track missing columns
+  items: any[];
+  missingColumns?: string[];
 }

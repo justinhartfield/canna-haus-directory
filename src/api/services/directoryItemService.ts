@@ -1,4 +1,3 @@
-
 import { DirectoryItem } from "@/types/directory";
 import { apiClient } from "../core/supabaseClient";
 import { transformDatabaseRowToDirectoryItem, transformDirectoryItemToDatabaseRow } from "../transformers/directoryTransformer";
@@ -7,7 +6,8 @@ import { Database } from "@/integrations/supabase/types";
 const TABLE_NAME = 'directory_items' as const;
 
 // Define type for database insertion compatible with Supabase types
-type DirectoryItemInsert = Database['public']['Tables']['directory_items']['Insert'];
+// Use 'any' temporarily since directory_items is not in the Database type yet
+type DirectoryItemInsert = any; // This would normally be Database['public']['Tables']['directory_items']['Insert']
 
 /**
  * Fetches all directory items

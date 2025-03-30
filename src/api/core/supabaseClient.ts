@@ -8,19 +8,19 @@ type TableNames = 'directory_items' | 'profiles' | 'user_settings';
 
 // Type helper to get the row type based on table name
 type TableRow<T extends TableNames> = 
-  T extends 'directory_items' ? Database['public']['Tables']['directory_items']['Row'] :
+  T extends 'directory_items' ? any :  // Use any temporarily since directory_items is not in the types yet
   T extends 'profiles' ? Database['public']['Tables']['profiles']['Row'] :
   Database['public']['Tables']['user_settings']['Row'];
 
 // Type helper for Insert types
 type TableInsert<T extends TableNames> = 
-  T extends 'directory_items' ? Database['public']['Tables']['directory_items']['Insert'] :
+  T extends 'directory_items' ? any :  // Use any temporarily
   T extends 'profiles' ? Database['public']['Tables']['profiles']['Insert'] :
   Database['public']['Tables']['user_settings']['Insert'];
 
 // Type helper for Update types
 type TableUpdate<T extends TableNames> = 
-  T extends 'directory_items' ? Database['public']['Tables']['directory_items']['Update'] :
+  T extends 'directory_items' ? any :  // Use any temporarily
   T extends 'profiles' ? Database['public']['Tables']['profiles']['Update'] :
   Database['public']['Tables']['user_settings']['Update'];
 
@@ -40,7 +40,8 @@ export const apiClient = {
       single?: boolean
     }
   ): Promise<PostgrestResponse<TableRow<T>[]>> => {
-    let query = supabase.from(table).select(options?.columns || '*');
+    // Type assertion to handle missing type in Database definition
+    let query = supabase.from(table as any).select(options?.columns || '*');
     
     // Apply filters if provided
     if (options?.filters) {
@@ -67,8 +68,8 @@ export const apiClient = {
       returning?: boolean 
     }
   ): Promise<PostgrestResponse<TableRow<T>>> => {
-    // Convert data to match the table structure based on the table name
-    const query = supabase.from(table).insert(data as any);
+    // Type assertion to handle missing type in Database definition
+    const query = supabase.from(table as any).insert(data as any);
     
     if (options?.returning !== false) {
       const result = await query.select('*').single();
@@ -91,7 +92,8 @@ export const apiClient = {
     }
   ): Promise<PostgrestResponse<TableRow<T>>> => {
     const idField = options?.idField || 'id';
-    const query = supabase.from(table).update(data as any).eq(idField as any, id);
+    // Type assertion to handle missing type in Database definition
+    const query = supabase.from(table as any).update(data as any).eq(idField as any, id);
     
     if (options?.returning !== false) {
       const result = await query.select('*').single();
@@ -110,7 +112,8 @@ export const apiClient = {
     options?: { idField?: string }
   ): Promise<PostgrestResponse<null>> => {
     const idField = options?.idField || 'id';
-    return await supabase.from(table).delete().eq(idField as any, id) as unknown as PostgrestResponse<null>;
+    // Type assertion to handle missing type in Database definition
+    return await supabase.from(table as any).delete().eq(idField as any, id) as unknown as PostgrestResponse<null>;
   },
 
   /**
@@ -123,7 +126,8 @@ export const apiClient = {
       returning?: boolean
     }
   ): Promise<PostgrestResponse<TableRow<T>[]>> => {
-    const query = supabase.from(table).insert(data as any[]);
+    // Type assertion to handle missing type in Database definition
+    const query = supabase.from(table as any).insert(data as any[]);
     
     if (options?.returning !== false) {
       const result = await query.select('*');

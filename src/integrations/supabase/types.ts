@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      directory_items: {
+        Row: {
+          additionalfields: Json | null
+          category: string
+          createdat: string
+          description: string
+          id: string
+          imageurl: string | null
+          jsonld: Json | null
+          metadata: Json | null
+          subcategory: string | null
+          tags: string[] | null
+          thumbnailurl: string | null
+          title: string
+          updatedat: string
+        }
+        Insert: {
+          additionalfields?: Json | null
+          category: string
+          createdat?: string
+          description: string
+          id?: string
+          imageurl?: string | null
+          jsonld?: Json | null
+          metadata?: Json | null
+          subcategory?: string | null
+          tags?: string[] | null
+          thumbnailurl?: string | null
+          title: string
+          updatedat?: string
+        }
+        Update: {
+          additionalfields?: Json | null
+          category?: string
+          createdat?: string
+          description?: string
+          id?: string
+          imageurl?: string | null
+          jsonld?: Json | null
+          metadata?: Json | null
+          subcategory?: string | null
+          tags?: string[] | null
+          thumbnailurl?: string | null
+          title?: string
+          updatedat?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
