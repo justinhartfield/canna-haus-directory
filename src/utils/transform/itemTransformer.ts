@@ -1,4 +1,3 @@
-
 import { DirectoryItem } from '@/types/directory';
 import { DataMappingConfig } from '../mapping/types';
 import { generateJsonLd } from '../mappingUtils';
@@ -49,9 +48,14 @@ export function transformDataRow(
     }
   }
   
-  // Apply custom transformations
+  // Apply custom transformations - with error handling
   for (const [field, transformFn] of Object.entries(transformations)) {
-    baseItem[field] = transformFn(baseItem[field], rawItem);
+    try {
+      baseItem[field] = transformFn(baseItem[field], rawItem);
+    } catch (error) {
+      console.error(`Error applying transformation to field ${field}:`, error);
+      // Keep the original value if transformation fails
+    }
   }
   
   // Determine category
@@ -60,15 +64,33 @@ export function transformDataRow(
     : (baseItem.category || 'Uncategorized');
   
   // Generate tags if needed
-  const tags = Array.isArray(baseItem.tags) 
-    ? baseItem.tags 
-    : typeof baseItem.tags === 'string' 
-      ? baseItem.tags.split(',').map((tag: string) => tag.trim()) 
-      : [];
+  let tags = [];
+  try {
+    tags = Array.isArray(baseItem.tags) 
+      ? baseItem.tags 
+      : typeof baseItem.tags === 'string' 
+        ? baseItem.tags.split(',').map((tag: string) => tag.trim()) 
+        : [];
+  } catch (error) {
+    console.error("Error generating tags:", error);
+    tags = [];
+  }
 
-  // Generate JSON-LD
-  const schemaType = mappingConfig.schemaType || 'Thing';
-  const jsonLd = generateJsonLd(baseItem, schemaType, rawItem);
+  // Generate JSON-LD - with error handling
+  let jsonLd = {};
+  try {
+    const schemaType = mappingConfig.schemaType || 'Thing';
+    jsonLd = generateJsonLd(baseItem, schemaType, rawItem);
+  } catch (error) {
+    console.error("Error generating JSON-LD:", error);
+    // Use a basic JSON-LD structure as fallback
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": mappingConfig.schemaType || 'Thing',
+      "name": baseItem.title || `Item ${rowIndex + 1}`,
+      "description": baseItem.description || "No description provided"
+    };
+  }
   
   // Normalize data for consistency
   const normalizedTitle = typeof baseItem.title === 'string' ? baseItem.title.trim() : String(baseItem.title || '');
