@@ -2,6 +2,8 @@
 import React from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 
 interface ProcessingResultsProps {
   results: {
@@ -15,26 +17,43 @@ interface ProcessingResultsProps {
 
 const ProcessingResults: React.FC<ProcessingResultsProps> = ({ results }) => {
   return (
-    <Card>
+    <Card className="border-2 border-muted">
       <CardHeader>
         <CardTitle>Processing Results</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          <p>Processed: {results.processed} groups</p>
-          <p>Merged: {results.merged} groups</p>
-          <p>Marked as variants: {results.variants} groups</p>
-          <p>Kept as is: {results.kept} groups</p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-sm font-medium text-muted-foreground">Processed</p>
+              <p className="text-2xl font-bold">{results.processed}</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-sm font-medium text-muted-foreground">Merged</p>
+              <p className="text-2xl font-bold">{results.merged}</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-sm font-medium text-muted-foreground">Variants</p>
+              <p className="text-2xl font-bold">{results.variants}</p>
+            </div>
+            <div className="rounded-lg border p-3 text-center">
+              <p className="text-sm font-medium text-muted-foreground">Kept</p>
+              <p className="text-2xl font-bold">{results.kept}</p>
+            </div>
+          </div>
           
           {results.errors.length > 0 && (
-            <div className="mt-4">
-              <h4 className="font-semibold">Errors:</h4>
-              <ul className="list-disc pl-5 mt-2">
-                {results.errors.map((error, i) => (
-                  <li key={i} className="text-destructive">{error}</li>
-                ))}
-              </ul>
-            </div>
+            <Alert variant="destructive">
+              <ExclamationTriangleIcon className="h-4 w-4" />
+              <AlertTitle>Processing Errors</AlertTitle>
+              <AlertDescription>
+                <ul className="mt-2 list-disc pl-5 space-y-1">
+                  {results.errors.map((error, i) => (
+                    <li key={i}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
         </div>
       </CardContent>

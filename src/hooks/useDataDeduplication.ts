@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { DirectoryItem } from '@/types/directory';
 import { getDirectoryItems } from '@/api/services/directoryItem/crudOperations';
@@ -104,24 +105,26 @@ export const useDataDeduplication = () => {
     });
     merged.tags = Array.from(allTags);
     
-    // Merge additionalFields with prefix for duplicates
-    const mergedAdditionalFields: Record<string, any> = {...primary.additionalFields};
+    // Merge additionalFields with prefix for duplicates - Fix: Use lowercase field name
+    const mergedAdditionalData: Record<string, any> = {...(primary.additionalFields || {})};
     duplicates.forEach((duplicate, index) => {
       if (duplicate.additionalFields) {
         Object.entries(duplicate.additionalFields).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
             // If key already exists in primary, add as alternative
-            if (mergedAdditionalFields[key] !== undefined && 
-                mergedAdditionalFields[key] !== value) {
-              mergedAdditionalFields[`alt_${key}_${index + 1}`] = value;
-            } else if (mergedAdditionalFields[key] === undefined) {
-              mergedAdditionalFields[key] = value;
+            if (mergedAdditionalData[key] !== undefined && 
+                mergedAdditionalData[key] !== value) {
+              mergedAdditionalData[`alt_${key}_${index + 1}`] = value;
+            } else if (mergedAdditionalData[key] === undefined) {
+              mergedAdditionalData[key] = value;
             }
           }
         });
       }
     });
-    merged.additionalFields = mergedAdditionalFields;
+    
+    // Update with correct field name for the database
+    merged.additionalFields = mergedAdditionalData;
     
     return merged;
   };
@@ -171,12 +174,14 @@ export const useDataDeduplication = () => {
           } else if (action === 'variant') {
             // Mark as variants
             for (const duplicate of selectedDuplicateRecords) {
-              await updateDirectoryItem(duplicate.id, {
+              // Fix: Use a properly formatted object structure that matches the database schema
+              const updatedFields = {
                 additionalFields: {
-                  ...duplicate.additionalFields,
+                  ...(duplicate.additionalFields || {}),
                   isVariantOf: primaryRecord.id
                 }
-              });
+              };
+              await updateDirectoryItem(duplicate.id, updatedFields);
             }
             results.variants++;
           } else {
@@ -184,13 +189,24 @@ export const useDataDeduplication = () => {
             results.kept++;
           }
         } catch (err) {
+          const errorMessage = err instanceof Error 
+            ? err.message 
+            : (typeof err === 'object' && err !== null && 'message' in err)
+              ? String((err as any).message)
+              : 'Unknown error';
+          
           console.error(`Error processing group with primary ${primaryRecord.id}:`, err);
-          results.errors.push(`Failed to process ${primaryRecord.title}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          results.errors.push(`Failed to process ${primaryRecord.title}: ${errorMessage}`);
         }
       }
       
       setProcessingResults(results);
-      toast.success(`Processed ${results.processed} duplicate groups`);
+      
+      if (results.errors.length === 0) {
+        toast.success(`Successfully processed ${results.processed} duplicate groups`);
+      } else {
+        toast.warning(`Processed with errors: ${results.errors.length} issues found`);
+      }
     } catch (error) {
       console.error('Error processing duplicates:', error);
       toast.error('Failed to process duplicates');
