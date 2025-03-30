@@ -39,12 +39,7 @@ export const apiClient = {
       filters?: Record<string, any>,
       single?: boolean
     }
-  ): Promise<PostgrestResponse<T extends 'directory_items' 
-      ? Database['public']['Tables']['directory_items']['Row'][] 
-      : T extends 'profiles' 
-        ? Database['public']['Tables']['profiles']['Row'][] 
-        : Database['public']['Tables']['user_settings']['Row'][]
-    >> => {
+  ): Promise<PostgrestResponse<TableRow<T>[]>> => {
     let query = supabase.from(table).select(options?.columns || '*');
     
     // Apply filters if provided
@@ -56,7 +51,6 @@ export const apiClient = {
     
     if (options?.single) {
       const result = await query.single();
-      // We need to explicitly cast here due to TypeScript limitations
       return result as unknown as PostgrestResponse<TableRow<T>[]>;
     }
     
