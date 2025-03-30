@@ -5,6 +5,11 @@ import { DirectoryItem } from "@/types/directory";
  * Transform a database row to a DirectoryItem
  */
 export function transformDatabaseRowToDirectoryItem(row: any): DirectoryItem {
+  // Log the row structure during transformation to help debug
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Database row keys:', Object.keys(row));
+  }
+  
   return {
     id: row.id,
     title: row.title,
@@ -18,7 +23,7 @@ export function transformDatabaseRowToDirectoryItem(row: any): DirectoryItem {
     createdAt: row.createdat,
     updatedAt: row.updatedat,
     metaData: row.metadata || {},
-    // Fix: Map the lowercase database column name to camelCase in our code
+    // Map the lowercase database column name to camelCase in our code
     additionalFields: row.additionalfields || {}
   };
 }
@@ -40,6 +45,14 @@ export function transformDirectoryItemToDatabaseRow(item: Partial<DirectoryItem>
   if (item.metaData !== undefined) row.metadata = item.metaData;
   // Fix: Map camelCase from our code to lowercase database column name
   if (item.additionalFields !== undefined) row.additionalfields = item.additionalFields;
+  
+  // Log the transformation for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Transformed item to row:', { 
+      itemKeys: item.additionalFields ? 'additionalFields present' : 'no additionalFields',
+      rowKeys: row.additionalfields ? 'additionalfields present' : 'no additionalfields' 
+    });
+  }
   
   return row;
 }

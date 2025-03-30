@@ -19,6 +19,7 @@ export const useDataDeduplication = () => {
     setIsLoading(true);
     try {
       const items = await getDirectoryItems();
+      console.log("Retrieved items:", items.slice(0, 3)); // Log a few items to check their structure
       const duplicates = findPotentialDuplicates(items);
       
       const groups = duplicates.map(group => ({
@@ -77,6 +78,7 @@ export const useDataDeduplication = () => {
       setProcessingResults(results);
     } catch (error) {
       console.error('Error processing duplicates:', error);
+      toast.error('An error occurred during processing');
     } finally {
       setIsLoading(false);
     }

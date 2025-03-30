@@ -36,6 +36,8 @@ export const processDuplicates = async (duplicateGroups: DuplicateGroup[]): Prom
           results.merged++;
         } else if (action === 'variant') {
           for (const duplicate of selectedDuplicateRecords) {
+            // Fix: Use additionalFields property from our domain model
+            // but when sending to update, it gets mapped to additionalfields by the transformer
             const updatedFields = {
               additionalFields: {
                 ...(duplicate.additionalFields || {}),

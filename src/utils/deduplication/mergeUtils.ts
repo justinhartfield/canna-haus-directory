@@ -20,6 +20,8 @@ export const mergeRecords = (primary: DirectoryItem, duplicates: DirectoryItem[]
   merged.tags = Array.from(allTags);
   
   // Merge additional fields with conflict resolution
+  // Note: We use additionalFields in our domain model as it follows proper camelCase conventions,
+  // but when saving to the database, our transformer will convert it to additionalfields
   const mergedAdditionalData: Record<string, any> = {...(primary.additionalFields || {})};
   duplicates.forEach((duplicate, index) => {
     if (duplicate.additionalFields) {
