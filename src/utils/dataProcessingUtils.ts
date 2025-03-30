@@ -29,7 +29,7 @@ export {
   normalizeNumber,
   normalizeBoolean
 } from './transform';
-export type { ProcessingResult } from './transform/core';
+export type { ProcessingResult } from './transform';
 
 // Import utilities
 export {

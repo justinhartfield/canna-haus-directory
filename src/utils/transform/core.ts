@@ -1,4 +1,3 @@
-
 import { DirectoryItem } from '@/types/directory';
 import { DataMappingConfig } from '../mapping/types';
 import { validateRequiredField } from './validation';
@@ -87,6 +86,3 @@ export function transformData(
   result.success = result.processedRows > 0;
   return result;
 }
-
-// Re-export the transformDataRow function from itemTransformer
-export { transformDataRow } from './itemTransformer';

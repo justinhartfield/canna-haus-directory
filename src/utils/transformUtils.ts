@@ -12,7 +12,7 @@ export {
   normalizeBoolean,
   validateRequiredField
 } from './transform';
-export type { ProcessingResult } from './transform/core';
+export type { ProcessingResult } from './transform';
 
 // Import the generateJsonLd function from mapping module to re-export
 import { generateJsonLd } from './mapping/core';

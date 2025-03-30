@@ -5,9 +5,9 @@
 
 // Core transformation functions
 export {
-  transformData,
-  transformDataRow
+  transformData
 } from './core';
+export { transformDataRow } from './itemTransformer';
 export type { ProcessingResult } from './types';
 
 // Normalization utilities
@@ -28,11 +28,6 @@ export {
   ensureDefaultValues,
   identifyMissingColumns
 } from './mappingHelpers';
-
-// Item transformation
-export {
-  transformDataRow
-} from './itemTransformer';
 
 // Data enhancement
 export {
