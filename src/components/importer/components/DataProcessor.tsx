@@ -86,16 +86,15 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
   // Don't render anything visible, this is a processing component
   return (
     <>
-      {showDuplicatesModal && results && (
+      {showDuplicatesModal && results && results.duplicates && (
         <DuplicatesAlert 
           duplicates={results.duplicates}
           onClose={handleCloseDuplicatesModal}
         />
       )}
-      {results?.missingColumns && results.missingColumns.length > 0 && (
+      {results && results.missingColumns && results.missingColumns.length > 0 && (
         <MissingColumnsAlert 
           missingColumns={results.missingColumns}
-          onClose={() => {}} 
         />
       )}
     </>

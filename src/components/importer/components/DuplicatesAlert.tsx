@@ -4,24 +4,24 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 interface DuplicatesAlertProps {
-  count: number;
-  onViewDetails: () => void;
+  duplicates: Array<{ item: any; error: string }>;
+  onClose: () => void;
 }
 
 const DuplicatesAlert: React.FC<DuplicatesAlertProps> = ({ 
-  count, 
-  onViewDetails 
+  duplicates, 
+  onClose 
 }) => {
-  if (count === 0) return null;
+  if (duplicates.length === 0) return null;
   
   return (
     <Alert className="mb-4 bg-amber-50 border-amber-200">
       <AlertCircle className="h-4 w-4 text-amber-500" />
       <AlertTitle className="text-amber-800">Duplicate Items Found</AlertTitle>
       <AlertDescription className="text-amber-700">
-        {count} {count === 1 ? 'item was' : 'items were'} skipped because they already exist in the database.
+        {duplicates.length} {duplicates.length === 1 ? 'item was' : 'items were'} skipped because they already exist in the database.
         <button 
-          onClick={onViewDetails}
+          onClick={onClose}
           className="ml-2 text-amber-700 underline hover:text-amber-900"
         >
           View details

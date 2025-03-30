@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { ImportAnalysis } from '@/types/directory';
-import { sampleFileContent } from '@/utils/dataProcessingUtils';
+import { sampleFileContent, parseFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useFileAnalysis() {
@@ -19,6 +19,9 @@ export function useFileAnalysis() {
       if (sampleRows.length === 0) {
         throw new Error("Couldn't extract data from the file.");
       }
+
+      // Parse the full file content for later use
+      const parsedData = await parseFileContent(file);
 
       // Store available columns for manual mapping
       setAvailableColumns(Object.keys(sampleRows[0]));
@@ -66,7 +69,8 @@ export function useFileAnalysis() {
       const aiAnalysis: ImportAnalysis = {
         suggestedMappings,
         unmappedColumns,
-        sampleData: sampleRows[0]
+        sampleData: sampleRows[0],
+        parsedData // Include the full parsed data
       };
       
       setAnalysis(aiAnalysis);

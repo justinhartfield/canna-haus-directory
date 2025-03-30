@@ -18,6 +18,7 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
   const [schemaType, setSchemaType] = useState('Thing');
   const [selectedCategory, setSelectedCategory] = useState(category);
   const [manualMappingMode, setManualMappingMode] = useState(false);
+  const [parsedData, setParsedData] = useState<Array<Record<string, any>>>([]);
   
   const {
     isAnalyzing,
@@ -71,6 +72,11 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
         if (result.analysis) {
           updateMappingsFromAnalysis(result.analysis);
         }
+        
+        // Set parsed data from file analysis
+        if (result.analysis && result.analysis.parsedData) {
+          setParsedData(result.analysis.parsedData);
+        }
       } else {
         // If analysis failed, enable manual mapping mode
         setManualMappingMode(true);
@@ -112,6 +118,7 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
     handleAddMapping: addMappingWrapper,
     handleRemoveMapping,
     toggleManualMode,
-    analyzeFile: () => analyzeFile(file.file, category)
+    analyzeFile: () => analyzeFile(file.file, category),
+    parsedData
   };
 }

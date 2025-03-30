@@ -1,4 +1,3 @@
-
 /**
  * Core data types for the directory
  */
@@ -53,7 +52,7 @@ export interface ColumnMapping {
   sourceColumn: string;
   targetField: string;
   isCustomField: boolean;
-  sampleData?: string;
+  sampleData?: any;
 }
 
 // The import analysis result
@@ -61,4 +60,5 @@ export interface ImportAnalysis {
   suggestedMappings: ColumnMapping[];
   unmappedColumns: string[];
   sampleData: Record<string, any>;
+  parsedData?: Array<Record<string, any>>; // Added this property
 }
