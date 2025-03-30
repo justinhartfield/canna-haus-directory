@@ -24,8 +24,11 @@ const Navbar: React.FC = () => {
     { name: 'Directory', path: '/directory' },
     { name: 'API Docs', path: '/api-docs' },
     { name: 'Analytics', path: '/analytics' },
-    // Only show Admin link if user is logged in
-    ...(user ? [{ name: 'Admin', path: '/admin' }] : []),
+    // Only show Admin and Data Management links if user is logged in
+    ...(user ? [
+      { name: 'Admin', path: '/admin' },
+      { name: 'Data Management', path: '/data-management' }
+    ] : []),
   ];
 
   return (
