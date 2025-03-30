@@ -3,7 +3,7 @@ import { DirectoryItem } from "@/types/directory";
 import { apiClient } from "../core/supabaseClient";
 import { transformDatabaseRowToDirectoryItem, transformDirectoryItemToDatabaseRow } from "../transformers/directoryTransformer";
 
-const TABLE_NAME = 'directory_items';
+const TABLE_NAME = 'directory_items' as const;
 
 /**
  * Fetches all directory items
@@ -17,7 +17,9 @@ export async function getDirectoryItems(): Promise<DirectoryItem[]> {
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = (data || []).map(transformDatabaseRowToDirectoryItem);
+  const transformedData: DirectoryItem[] = Array.isArray(data) 
+    ? data.map(transformDatabaseRowToDirectoryItem)
+    : [];
   
   return transformedData;
 }
@@ -60,7 +62,9 @@ export async function getDirectoryItemsByCategory(category: string): Promise<Dir
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = (data || []).map(transformDatabaseRowToDirectoryItem);
+  const transformedData: DirectoryItem[] = Array.isArray(data) 
+    ? data.map(transformDatabaseRowToDirectoryItem)
+    : [];
   
   return transformedData;
 }
@@ -122,10 +126,7 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
   // Format items for insertion - match database column naming
   const insertData = items.map(transformDirectoryItemToDatabaseRow);
   
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .insert(insertData)
-    .select('*');
+  const { data, error } = await apiClient.bulkInsert(TABLE_NAME, insertData);
   
   if (error) {
     console.error("Error bulk inserting directory items:", error);
@@ -133,7 +134,9 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
   }
   
   // Transform the data to match our DirectoryItem interface
-  const transformedData: DirectoryItem[] = (data || []).map(transformDatabaseRowToDirectoryItem);
+  const transformedData: DirectoryItem[] = Array.isArray(data) 
+    ? data.map(transformDatabaseRowToDirectoryItem)
+    : [];
   
   return transformedData;
 }
