@@ -47,13 +47,13 @@ export const DataFilters: React.FC<DataFiltersProps> = ({
       
       <Select 
         value={selectedCategory || ''} 
-        onValueChange={(value) => onCategoryChange(value || null)}
+        onValueChange={(value) => onCategoryChange(value === 'all' ? null : value)}
       >
         <SelectTrigger className="w-full md:w-60">
           <SelectValue placeholder="Filter by category" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All categories</SelectItem>
+          <SelectItem value="all">All categories</SelectItem>
           {categories.map((category) => (
             <SelectItem key={category} value={category}>
               {category}

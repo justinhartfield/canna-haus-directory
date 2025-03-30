@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -33,7 +32,6 @@ const DataManagement: React.FC = () => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Partial<DirectoryItem>>({});
 
-  // Fetch all directory items
   const { data: items = [], isLoading, error, refetch } = useQuery({
     queryKey: ['directoryItems'],
     queryFn: getDirectoryItems
@@ -92,7 +90,6 @@ const DataManagement: React.FC = () => {
     }));
   };
 
-  // Filter and search functionality
   const filteredItems = items.filter(item => {
     const matchesSearch = searchTerm 
       ? item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,7 +103,6 @@ const DataManagement: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Extract all unique categories from data
   const categories = [...new Set(items.map(item => item.category))];
 
   if (isLoading) {
