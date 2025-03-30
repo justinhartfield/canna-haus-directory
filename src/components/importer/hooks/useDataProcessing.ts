@@ -1,12 +1,10 @@
 
-import { useState, useCallback } from 'react';
-import { DirectoryItem } from '@/types/directory';
-import { bulkInsertDirectoryItems, checkBatchForDuplicates } from '@/api/services/directoryItem/bulkOperations';
-import { toast } from 'sonner';
-import Papa from 'papaparse';
-import { read, utils } from 'xlsx';
+import { useState } from 'react';
+import { DirectoryItem, ColumnMapping } from '@/types/directory';
+import { processBatchWithDuplicateHandling, checkBatchForDuplicates } from '@/api/services/directoryItem/bulkOperations';
+import { transformData } from '@/utils/transform';
 
-interface ProcessingHookResult {
+export interface ProcessingHookResult {
   isProcessing: boolean;
   progress: {
     processed: number;
@@ -18,16 +16,19 @@ interface ProcessingHookResult {
     duplicates: number;
     errors: string[];
   };
-  processFile: (
-    file: File,
-    columnMappings: any[],
-    customFields: any[],
-    category: string,
-    schemaType: string
-  ) => Promise<DirectoryItem[]>;
+  uploadProgress: number;
+  currentStatus: string;
+  missingColumns: string[];
+  duplicates: Partial<DirectoryItem>[];
+  startProcessing: (file: File, columnMappings: ColumnMapping[], customFields: Record<string, string>, category: string, schemaType: string) => Promise<{
+    items: DirectoryItem[];
+    errors: string[];
+    duplicates: Partial<DirectoryItem>[];
+  }>;
+  reset: () => void;
 }
 
-export const useDataProcessing = (): ProcessingHookResult => {
+export function useDataProcessing(): ProcessingHookResult {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({
     processed: 0,
@@ -39,15 +40,13 @@ export const useDataProcessing = (): ProcessingHookResult => {
     duplicates: 0,
     errors: [] as string[]
   });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentStatus, setCurrentStatus] = useState('');
+  const [missingColumns, setMissingColumns] = useState<string[]>([]);
+  const [duplicates, setDuplicates] = useState<Partial<DirectoryItem>[]>([]);
 
-  const processFile = useCallback(async (
-    file: File,
-    columnMappings: any[],
-    customFields: any[],
-    category: string,
-    schemaType: string
-  ): Promise<DirectoryItem[]> => {
-    setIsProcessing(true);
+  const reset = () => {
+    setIsProcessing(false);
     setProgress({
       processed: 0,
       total: 0,
@@ -58,133 +57,132 @@ export const useDataProcessing = (): ProcessingHookResult => {
       duplicates: 0,
       errors: []
     });
+    setUploadProgress(0);
+    setCurrentStatus('');
+    setMissingColumns([]);
+    setDuplicates([]);
+  };
+
+  const startProcessing = async (
+    file: File,
+    columnMappings: ColumnMapping[],
+    customFields: Record<string, string>,
+    category: string,
+    schemaType: string
+  ) => {
+    setIsProcessing(true);
+    setCurrentStatus('Analyzing file');
+    setProgress(prev => ({ ...prev, total: 1, current: 0 }));
 
     try {
-      // Parse the file based on its type
-      let data: any[] = [];
-      
-      if (file.name.toLowerCase().endsWith('.csv')) {
-        const result = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
-          Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: resolve,
-            error: reject
-          });
-        });
-        data = result.data;
-      } else if (
-        file.name.toLowerCase().endsWith('.xlsx') || 
-        file.name.toLowerCase().endsWith('.xls')
-      ) {
-        const buffer = await file.arrayBuffer();
-        const workbook = read(buffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        data = utils.sheet_to_json(worksheet);
+      // First, check that all required mappings exist
+      const requiredFields = ['title'];
+      const missingRequiredFields = requiredFields.filter(field => 
+        !columnMappings.some(mapping => mapping.targetField === field)
+      );
+
+      if (missingRequiredFields.length > 0) {
+        setMissingColumns(missingRequiredFields);
+        throw new Error(`Missing required column mappings: ${missingRequiredFields.join(', ')}`);
       }
 
-      // Update progress total
-      setProgress(prev => ({
-        ...prev,
-        total: data.length
-      }));
+      // Create a mapping configuration from column mappings
+      const mappingConfig = {
+        columnMappings: {},
+        defaultValues: { category },
+        schemaType
+      };
 
-      // Apply column mappings to create directory items
-      const items: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>[] = data.map((row, index) => {
-        // Create the base item
-        const item: Partial<DirectoryItem> = {
-          title: '',
-          description: '',
-          category,
-          jsonLd: { '@type': schemaType },
-          additionalFields: {},
-          metaData: { importSource: file.name }
-        };
+      // Convert our UI representation to the format transformData expects
+      columnMappings.forEach(mapping => {
+        if (mapping.targetField && mapping.sourceColumn) {
+          mappingConfig.columnMappings[mapping.targetField] = mapping.sourceColumn;
+        }
+      });
 
-        // Apply standard field mappings
-        columnMappings.forEach(mapping => {
-          if (mapping.sourceColumn && mapping.targetField && !mapping.isCustomField) {
-            const value = row[mapping.sourceColumn];
-            if (value !== undefined && value !== null) {
-              if (mapping.targetField.includes('.')) {
-                // Handle nested fields (e.g., jsonLd.name)
-                const [parent, child] = mapping.targetField.split('.');
-                if (parent === 'jsonLd') {
-                  item.jsonLd = { ...item.jsonLd, [child]: value };
-                }
-              } else {
-                // Handle top-level fields
-                (item as any)[mapping.targetField] = value;
-              }
-            }
-          }
-        });
+      // Add custom fields
+      Object.entries(customFields).forEach(([field, value]) => {
+        if (value) {
+          mappingConfig.defaultValues[field] = value;
+        }
+      });
 
-        // Apply custom field mappings
-        customFields.forEach(customField => {
-          if (customField.sourceColumn && customField.fieldName) {
-            const value = row[customField.sourceColumn];
-            if (value !== undefined && value !== null) {
-              if (!item.additionalFields) {
-                item.additionalFields = {};
-              }
-              item.additionalFields[customField.fieldName] = value;
-            }
-          }
-        });
+      setCurrentStatus('Transforming data');
+      setUploadProgress(25);
 
-        // Update progress
+      // Transform the data
+      const transformResult = await transformData(file, mappingConfig);
+
+      if (transformResult.success && transformResult.data) {
+        setCurrentStatus('Checking for duplicates');
+        setUploadProgress(50);
+
+        // Check for duplicates
+        const compositeKeyFields = ['title', 'category', 'additionalFields.breeder', 'subcategory'];
+        const duplicateCheck = await checkBatchForDuplicates(transformResult.data, compositeKeyFields);
+
+        if (duplicateCheck.duplicates.length > 0) {
+          setDuplicates(duplicateCheck.duplicates);
+          setProgress(prev => ({ 
+            ...prev, 
+            duplicates: duplicateCheck.duplicates.length 
+          }));
+        }
+
+        setCurrentStatus('Processing data');
+        setUploadProgress(75);
+
+        // Process with duplicate handling
+        const result = await processBatchWithDuplicateHandling(
+          transformResult.data,
+          'skip', // Default handling mode
+          compositeKeyFields
+        );
+
+        setCurrentStatus('Complete');
+        setUploadProgress(100);
         setProgress(prev => ({
           ...prev,
-          current: index + 1
+          processed: transformResult.data.length,
+          succeeded: result.processed.length,
+          skipped: result.skipped.length,
+          duplicates: duplicateCheck.duplicates.length
         }));
 
-        return item as Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>;
-      });
-
-      // Check for duplicates
-      const duplicates = await checkBatchForDuplicates(items);
-      setProgress(prev => ({
-        ...prev,
-        duplicates: duplicates.length
-      }));
-
-      // Insert the items to the database
-      const insertedItems = await bulkInsertDirectoryItems(items, {
-        duplicateHandlingMode: 'skip',
-        batchSize: 10
-      });
-
-      // Update final progress
-      setProgress(prev => ({
-        ...prev,
-        processed: items.length,
-        succeeded: insertedItems.length,
-        failed: items.length - insertedItems.length - duplicates.length,
-        skipped: duplicates.length,
-      }));
-
-      toast.success(`Processed ${items.length} items: ${insertedItems.length} imported, ${duplicates.length} skipped as duplicates`);
-      return insertedItems;
+        return {
+          items: result.existingItems,
+          errors: [],
+          duplicates: duplicateCheck.duplicates
+        };
+      } else {
+        throw new Error(transformResult.error || 'Unknown error during transformation');
+      }
     } catch (error) {
-      console.error('Error processing file:', error);
+      setCurrentStatus('Error');
+      console.error('Processing error:', error);
       setProgress(prev => ({
         ...prev,
-        errors: [...prev.errors, error instanceof Error ? error.message : String(error)]
+        errors: [...prev.errors, error instanceof Error ? error.message : 'Unknown error']
       }));
-      toast.error(error instanceof Error ? error.message : 'An error occurred while processing the file');
-      return [];
+      
+      return {
+        items: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        duplicates: []
+      };
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  };
 
   return {
     isProcessing,
     progress,
-    processFile
+    uploadProgress,
+    currentStatus,
+    missingColumns,
+    duplicates,
+    startProcessing,
+    reset
   };
-};
-
-export default useDataProcessing;
+}

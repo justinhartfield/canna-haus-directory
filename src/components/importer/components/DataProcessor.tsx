@@ -1,25 +1,24 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useDataProcessing } from '../hooks/useDataProcessing';
-import { ProgressIndicator } from './ProgressIndicator';
-import { MissingColumnsAlert } from './MissingColumnsAlert';
-import { DuplicatesAlert } from './DuplicatesAlert';
-import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { ColumnMapping, DirectoryItem } from '@/types/directory';
+import ProgressIndicator from './ProgressIndicator';
+import MissingColumnsAlert from './MissingColumnsAlert';
+import DuplicatesAlert from './DuplicatesAlert';
 
 interface DataProcessorProps {
   file: File;
-  columnMappings: MappingConfiguration[];
+  columnMappings: ColumnMapping[];
   customFields: Record<string, string>;
   selectedCategory: string;
   schemaType: string;
-  onComplete: (data: any[]) => void;
+  onComplete: (data: { items: DirectoryItem[]; errors: string[] }) => void;
   onCancel: () => void;
 }
 
-export const DataProcessor: React.FC<DataProcessorProps> = ({
+const DataProcessor: React.FC<DataProcessorProps> = ({
   file,
   columnMappings,
   customFields,
@@ -28,7 +27,8 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
   onComplete,
   onCancel
 }) => {
-  const [skipDuplicates, setSkipDuplicates] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [duplicateHandlingMode, setDuplicateHandlingMode] = useState<'skip' | 'replace' | 'merge' | 'variant'>('skip');
   
   const {
     isProcessing,
@@ -37,72 +37,103 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
     currentStatus,
     missingColumns,
     duplicates,
-    processFile
+    startProcessing,
+    reset
   } = useDataProcessing();
 
-  const handleProcessFile = async () => {
-    const result = await processFile({
-      file,
-      columnMappings,
-      customFields,
-      selectedCategory,
-      schemaType,
-      skipDuplicates
-    });
-    
-    onComplete(result.items);
+  const handleProcessData = async () => {
+    const result = await startProcessing(
+      file, 
+      columnMappings, 
+      customFields, 
+      selectedCategory, 
+      schemaType
+    );
+    onComplete(result);
   };
 
   return (
-    <div className="space-y-4">
-      <MissingColumnsAlert missingColumns={missingColumns} />
+    <div className="space-y-6">
+      {missingColumns.length > 0 && (
+        <MissingColumnsAlert missingColumns={missingColumns} />
+      )}
       
-      {duplicates && duplicates.length > 0 && (
+      {duplicates.length > 0 && (
         <DuplicatesAlert 
           duplicates={duplicates} 
-          onContinue={() => {
-            setSkipDuplicates(true);
-            handleProcessFile();
-          }}
+          duplicateHandlingMode={duplicateHandlingMode}
+          onModeChange={setDuplicateHandlingMode}
         />
       )}
       
-      <div className="flex items-center space-x-2 py-2">
-        <Switch
-          id="skip-duplicates"
-          checked={skipDuplicates}
-          onCheckedChange={setSkipDuplicates}
-        />
-        <Label htmlFor="skip-duplicates">Skip duplicate items during import</Label>
-      </div>
-      
-      <ProgressIndicator 
-        isProcessing={isProcessing}
-        currentStatus={currentStatus}
-        progress={progress}
-        uploadProgress={uploadProgress}
-      />
-      
-      <div className="flex justify-end space-x-3">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          disabled={isProcessing}
-        >
-          Cancel
-        </Button>
-        
-        <Button
-          onClick={handleProcessFile}
-          disabled={isProcessing}
-        >
-          {isProcessing ? 
-            (currentStatus === 'processing' ? "Processing..." : 
-             currentStatus === 'checking-duplicates' ? "Checking Duplicates..." :
-             "Uploading...") 
-            : "Upload Data"}
-        </Button>
-      </div>
+      <Card className="p-4">
+        <div className="flex flex-col space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium">Data Processing</h3>
+              <p className="text-sm text-gray-400">
+                Ready to import {file.name} ({(file.size / 1024).toFixed(1)} KB)
+              </p>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            >
+              {showAdvancedOptions ? 'Hide Options' : 'Advanced Options'}
+            </Button>
+          </div>
+          
+          {isProcessing && (
+            <ProgressIndicator 
+              progress={uploadProgress} 
+              status={currentStatus}
+            />
+          )}
+          
+          {progress.processed > 0 && !isProcessing && (
+            <div className="p-4 bg-secondary/10 rounded-md">
+              <h4 className="font-medium mb-2">Processing Results</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>Total Items:</div>
+                <div>{progress.processed}</div>
+                
+                <div>Succeeded:</div>
+                <div className="text-green-400">{progress.succeeded}</div>
+                
+                <div>Failed:</div>
+                <div className="text-red-400">{progress.failed}</div>
+                
+                <div>Skipped:</div>
+                <div className="text-yellow-400">{progress.skipped}</div>
+                
+                <div>Duplicates:</div>
+                <div className="text-blue-400">{progress.duplicates}</div>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end space-x-3">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              onClick={handleProcessData}
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Processing...' : 'Process Data'}
+            </Button>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };
+
+export default DataProcessor;

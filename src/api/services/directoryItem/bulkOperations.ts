@@ -1,375 +1,377 @@
 
 import { DirectoryItem } from "@/types/directory";
 import { apiClient } from "../../core/supabaseClient";
-import { transformDirectoryItemToDatabaseRow } from "../../transformers/directoryTransformer";
-import { checkBatchForDuplicates } from "./duplicateChecking";
-import { getDirectoryItemById } from "./crudOperations";
 
 const TABLE_NAME = 'directory_items' as const;
 
-// Define type for database insertion compatible with Supabase types
-// Use 'any' temporarily since directory_items is not in the Database type yet
-type DirectoryItemInsert = any; // This would normally be Database['public']['Tables']['directory_items']['Insert']
-
 /**
- * Get the breeder/source from additionalFields
+ * Create multiple directory items at once
  */
-function getBreederSource(item: Partial<DirectoryItem>): string | null {
-  if (!item.additionalFields) return null;
-  
-  // Check different possible field names for breeder/source
-  return item.additionalFields.breeder || 
-         item.additionalFields.source || 
-         item.additionalFields.breedBy || 
-         item.additionalFields.producedBy || 
-         null;
-}
-
-/**
- * Merge two directory items, keeping values from both where possible
- */
-function mergeItems(
-  existingItem: DirectoryItem, 
-  newItem: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>
-): Partial<DirectoryItem> {
-  // Create a base merged item
-  const mergedItem: Partial<DirectoryItem> = {
-    // Keep existing ID and timestamps
-    id: existingItem.id,
-    // For text fields, prefer the longer/newer content if available
-    title: existingItem.title,
-    description: newItem.description && newItem.description.length > existingItem.description.length 
-      ? newItem.description 
-      : existingItem.description,
-    category: existingItem.category,
-    subcategory: newItem.subcategory || existingItem.subcategory,
-    // Combine tags from both items, removing duplicates
-    tags: Array.from(new Set([...(existingItem.tags || []), ...(newItem.tags || [])])),
-    // Prefer new image URLs if they exist
-    imageUrl: newItem.imageUrl || existingItem.imageUrl,
-    thumbnailUrl: newItem.thumbnailUrl || existingItem.thumbnailUrl,
-    // Combine JSON-LD data
-    jsonLd: {
-      ...existingItem.jsonLd,
-      ...newItem.jsonLd
-    },
-    // Merge metadata
-    metaData: {
-      ...existingItem.metaData,
-      ...newItem.metaData,
-      mergedAt: new Date().toISOString(),
-      mergeHistory: [
-        ...(existingItem.metaData?.mergeHistory || []),
-        {
-          date: new Date().toISOString(),
-          source: 'bulk-import'
-        }
-      ]
-    },
-    // Merge additional fields
-    additionalFields: {
-      ...existingItem.additionalFields,
-      ...newItem.additionalFields
-    }
-  };
-  
-  return mergedItem;
-}
-
-/**
- * Create a variant of an item with a modified title to avoid duplicate conflicts
- */
-function createVariant(
-  item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>, 
-  variantInfo: string
-): Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> {
-  const breederSource = getBreederSource(item);
-  
-  // Create a variant title based on available information
-  let variantTitle = item.title;
-  if (breederSource) {
-    variantTitle = `${item.title} (${breederSource})`;
-  } else if (variantInfo) {
-    variantTitle = `${item.title} (${variantInfo})`;
-  } else {
-    // If no distinguishing info is available, add a timestamp to make it unique
-    variantTitle = `${item.title} (Variant ${Date.now()})`;
-  }
-  
-  // Add variant metadata
-  const variant: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
-    ...item,
-    title: variantTitle,
-    metaData: {
-      ...(item.metaData || {}),
-      isVariant: true,
-      originalTitle: item.title,
-      variantCreatedAt: new Date().toISOString()
-    }
-  };
-  
-  return variant;
-}
-
-/**
- * Process item based on duplicate handling mode
- */
-async function processItemByMode(
-  item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>,
-  duplicateHandlingMode: string = 'skip',
-  isDuplicate: boolean = false,
-  variantInfo: string = ''
-): Promise<{ action: string; item: DirectoryItem | null }> {
-  // If it's not a duplicate, just insert it
-  if (!isDuplicate) {
-    try {
-      const databaseRow = transformDirectoryItemToDatabaseRow(item) as DirectoryItemInsert;
-      const { data, error } = await apiClient.insert(TABLE_NAME, databaseRow);
-      
-      if (error) throw error;
-      return { action: 'inserted', item: data as DirectoryItem };
-    } catch (error) {
-      console.error("Error inserting item:", error);
+export async function createDirectoryItems(
+  items: Partial<DirectoryItem>[]
+): Promise<DirectoryItem[]> {
+  try {
+    const { data, error } = await apiClient.bulkInsert(TABLE_NAME, items);
+    
+    if (error) {
+      console.error("Error creating directory items:", error);
       throw error;
     }
-  }
-  
-  // Handle based on duplicate mode
-  switch (duplicateHandlingMode) {
-    case 'skip':
-      return { action: 'skipped', item: null };
-      
-    case 'replace':
-      try {
-        // Get the existing item to get its ID
-        const title = String(item.title);
-        const category = String(item.category);
-        const { data: existingItems, error } = await apiClient.select(TABLE_NAME, {
-          filters: { title, category }
-        });
-        
-        if (error) throw error;
-        if (!existingItems || existingItems.length === 0) {
-          throw new Error(`Could not find existing item to replace: ${title} in ${category}`);
-        }
-        
-        // Replace the first matching item
-        const existingId = existingItems[0].id;
-        const updateData = transformDirectoryItemToDatabaseRow(item);
-        
-        const { data, error: updateError } = await apiClient.update(TABLE_NAME, existingId, updateData);
-        
-        if (updateError) throw updateError;
-        return { action: 'replaced', item: data as DirectoryItem };
-      } catch (error) {
-        console.error("Error replacing item:", error);
-        throw error;
-      }
-      
-    case 'merge':
-      try {
-        // Get the existing item to merge with
-        const title = String(item.title);
-        const category = String(item.category);
-        const { data: existingItems, error } = await apiClient.select(TABLE_NAME, {
-          filters: { title, category }
-        });
-        
-        if (error) throw error;
-        if (!existingItems || existingItems.length === 0) {
-          throw new Error(`Could not find existing item to merge with: ${title} in ${category}`);
-        }
-        
-        // Merge with the first matching item
-        const existingItem = existingItems[0] as DirectoryItem;
-        const mergedItem = mergeItems(existingItem, item);
-        
-        const updateData = transformDirectoryItemToDatabaseRow(mergedItem);
-        const { data, error: updateError } = await apiClient.update(TABLE_NAME, existingItem.id, updateData);
-        
-        if (updateError) throw updateError;
-        return { action: 'merged', item: data as DirectoryItem };
-      } catch (error) {
-        console.error("Error merging item:", error);
-        throw error;
-      }
-      
-    case 'variant':
-      try {
-        // Create a variant with modified title
-        const variant = createVariant(item, variantInfo);
-        const databaseRow = transformDirectoryItemToDatabaseRow(variant) as DirectoryItemInsert;
-        
-        const { data, error } = await apiClient.insert(TABLE_NAME, databaseRow);
-        
-        if (error) throw error;
-        return { action: 'variant-created', item: data as DirectoryItem };
-      } catch (error) {
-        console.error("Error creating variant:", error);
-        throw error;
-      }
-      
-    default:
-      return { action: 'skipped', item: null };
+    
+    return data as DirectoryItem[];
+  } catch (error) {
+    console.error("Error in createDirectoryItems:", error);
+    throw error;
   }
 }
 
 /**
- * Bulk inserts directory items with duplicate handling
+ * Update multiple directory items at once
  */
-export async function bulkInsertDirectoryItems(
-  items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>,
-  options: {
-    duplicateHandlingMode?: string;
-    batchSize?: number;
-  } = {}
+export async function updateDirectoryItems(
+  items: Array<{ id: string; data: Partial<DirectoryItem> }>
 ): Promise<DirectoryItem[]> {
-  const { 
-    duplicateHandlingMode = 'skip',
-    batchSize = 50
-  } = options;
-  
-  // Fix: Add early return for empty items array
-  if (!items || items.length === 0) {
-    return [];
-  }
-  
-  // Fix: Add try/catch around validation
   try {
-    // Validate required fields for all items
-    for (const item of items) {
-      if (!item.title || !item.description || !item.category) {
-        throw new Error("All items must have title, description and category");
-      }
-      
-      // Ensure additionalFields is an object, not null
-      if (!item.additionalFields) {
-        item.additionalFields = {};
-      }
-      
-      // Ensure metaData is an object, not null
-      if (!item.metaData) {
-        item.metaData = {};
-      }
+    const { data, error } = await apiClient.bulkUpdate(
+      TABLE_NAME,
+      items.map(item => ({ id: item.id, ...item.data }))
+    );
+    
+    if (error) {
+      console.error("Error updating directory items:", error);
+      throw error;
     }
     
-    // Skip duplicate check if in replace or variant mode since we're going to process them anyway
-    let duplicates: Array<{item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>, error: string}> = [];
+    return data as DirectoryItem[];
+  } catch (error) {
+    console.error("Error in updateDirectoryItems:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete multiple directory items at once
+ */
+export async function deleteDirectoryItems(ids: string[]): Promise<void> {
+  try {
+    const { error } = await apiClient.bulkDelete(TABLE_NAME, ids);
     
-    if (duplicateHandlingMode === 'skip') {
-      // Check for duplicates with a timeout to avoid hanging
-      const duplicateCheckPromise = new Promise<Array<{item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>, error: string}>>(async (resolve) => {
-        try {
-          const result = await checkBatchForDuplicates(items);
-          resolve(result);
-        } catch (error) {
-          console.error("Error in duplicate check:", error);
-          resolve([]); // Return empty array if duplicate check fails
+    if (error) {
+      console.error("Error deleting directory items:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in deleteDirectoryItems:", error);
+    throw error;
+  }
+}
+
+/**
+ * Check a batch of items for duplicates based on a composite key
+ */
+export async function checkBatchForDuplicates(
+  items: Partial<DirectoryItem>[],
+  compositeKeyFields: string[] = ['title', 'category']
+): Promise<{
+  duplicates: Partial<DirectoryItem>[];
+  nonDuplicates: Partial<DirectoryItem>[];
+  existingItems: DirectoryItem[];
+}> {
+  try {
+    // Extract the values for the composite key fields from each item
+    const compositeKeys = items.map(item => {
+      const keyParts: Record<string, any> = {};
+      
+      compositeKeyFields.forEach(field => {
+        // Handle nested fields like additionalFields.breeder
+        if (field.includes('.')) {
+          const [parent, child] = field.split('.');
+          keyParts[field] = item[parent as keyof Partial<DirectoryItem>]?.[child];
+        } else {
+          keyParts[field] = item[field as keyof Partial<DirectoryItem>];
         }
       });
       
-      // Set a timeout for duplicate checking
-      const timeoutPromise = new Promise<Array<{item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>, error: string}>>((resolve) => {
-        setTimeout(() => {
-          console.warn("Duplicate check timed out, continuing with import");
-          resolve([]);
-        }, 5000); // 5 second timeout
+      return keyParts;
+    });
+    
+    // Build filters for API query
+    const filters: Record<string, any>[] = [];
+    
+    compositeKeys.forEach(key => {
+      const filter: Record<string, any> = {};
+      Object.entries(key).forEach(([field, value]) => {
+        if (value !== undefined && value !== null) {
+          // Handle nested fields like additionalFields.breeder
+          if (field.includes('.')) {
+            const [parent, child] = field.split('.');
+            filter[parent] = { [child]: value };
+          } else {
+            filter[field] = value;
+          }
+        }
       });
       
-      // Use Promise.race to handle timeout
-      duplicates = await Promise.race([duplicateCheckPromise, timeoutPromise]);
-      
-      if (duplicates.length > 0) {
-        console.log(`Found ${duplicates.length} duplicate items. Skipping them.`);
+      if (Object.keys(filter).length > 0) {
+        filters.push(filter);
       }
-    } else {
-      // For other modes, we need to check each item individually during processing
-      console.log(`Using ${duplicateHandlingMode} mode for duplicate handling.`);
+    });
+    
+    // Query for potential duplicates
+    const { data, error } = await apiClient.select(TABLE_NAME, {
+      filters: filters.length > 0 ? { or: filters } : undefined
+    });
+    
+    if (error) {
+      console.error("Error checking for duplicates:", error);
+      throw error;
     }
     
-    // Get a set of duplicate items for quick lookup
-    const duplicateItemSet = new Set(duplicates.map(d => d.item.title + '-' + d.item.category));
+    const existingItems = data as DirectoryItem[];
     
-    // Process items based on duplicate handling mode
-    const processedItems: DirectoryItem[] = [];
-    let successCount = 0;
-    let skipCount = 0;
-    let replaceCount = 0;
-    let mergeCount = 0;
-    let variantCount = 0;
-    let errorCount = 0;
+    // Check each item against existing items to find duplicates
+    const duplicates: Partial<DirectoryItem>[] = [];
+    const nonDuplicates: Partial<DirectoryItem>[] = [];
     
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize);
-      const batchResults = await Promise.allSettled(
-        batch.map(async item => {
-          try {
-            // Check if this item is in our duplicate set
-            const itemKey = item.title + '-' + item.category;
-            const isDuplicate = duplicateItemSet.has(itemKey);
-            
-            // If we're not in skip mode, we need to check for duplicates individually
-            let itemIsDuplicate = isDuplicate;
-            if (!isDuplicate && duplicateHandlingMode !== 'skip') {
-              itemIsDuplicate = await checkForDuplicate(
-                String(item.title), 
-                String(item.category),
-                item.additionalFields,
-                item.subcategory
-              );
+    items.forEach(item => {
+      const isDuplicate = existingItems.some(existing => {
+        // Check if all composite key fields match
+        return compositeKeyFields.every(field => {
+          // Handle nested fields like additionalFields.breeder
+          if (field.includes('.')) {
+            const [parent, child] = field.split('.');
+            const itemValue = item[parent as keyof Partial<DirectoryItem>]?.[child];
+            const existingValue = existing[parent as keyof DirectoryItem]?.[child];
+            return itemValue === existingValue;
+          } else {
+            const itemValue = item[field as keyof Partial<DirectoryItem>];
+            const existingValue = existing[field as keyof DirectoryItem];
+            return itemValue === existingValue;
+          }
+        });
+      });
+      
+      if (isDuplicate) {
+        duplicates.push(item);
+      } else {
+        nonDuplicates.push(item);
+      }
+    });
+    
+    return {
+      duplicates,
+      nonDuplicates,
+      existingItems
+    };
+  } catch (error) {
+    console.error("Error in checkBatchForDuplicates:", error);
+    throw error;
+  }
+}
+
+/**
+ * Check a single item for duplicates based on a composite key
+ * @param item The item to check for duplicates
+ * @param compositeKeyFields The fields to use for duplicate checking
+ */
+export async function checkForDuplicate(
+  item: Partial<DirectoryItem>,
+  compositeKeyFields: string[] = ['title', 'category']
+): Promise<DirectoryItem | null> {
+  try {
+    const result = await checkBatchForDuplicates([item], compositeKeyFields);
+    return result.duplicates.length > 0 
+      ? result.existingItems.find(existing => 
+          compositeKeyFields.every(field => {
+            // Handle nested fields like additionalFields.breeder
+            if (field.includes('.')) {
+              const [parent, child] = field.split('.');
+              const itemValue = item[parent as keyof Partial<DirectoryItem>]?.[child];
+              const existingValue = existing[parent as keyof DirectoryItem]?.[child];
+              return itemValue === existingValue;
+            } else {
+              const itemValue = item[field as keyof Partial<DirectoryItem>];
+              const existingValue = existing[field as keyof DirectoryItem];
+              return itemValue === existingValue;
             }
-            
-            // Get variant info (e.g., breeder/source)
-            const variantInfo = getBreederSource(item) || '';
-            
-            const result = await processItemByMode(
-              item, 
-              duplicateHandlingMode, 
-              itemIsDuplicate,
-              variantInfo
+          })
+        ) as DirectoryItem 
+      : null;
+  } catch (error) {
+    console.error("Error in checkForDuplicate:", error);
+    throw error;
+  }
+}
+
+/**
+ * Process items with duplicate handling
+ */
+export async function processBatchWithDuplicateHandling(
+  items: Partial<DirectoryItem>[],
+  duplicateHandlingMode: 'skip' | 'replace' | 'merge' | 'variant' = 'skip',
+  compositeKeyFields: string[] = ['title', 'category', 'additionalFields.breeder', 'subcategory']
+): Promise<{
+  processed: Partial<DirectoryItem>[];
+  skipped: Partial<DirectoryItem>[];
+  existingItems: DirectoryItem[];
+}> {
+  try {
+    // Check for duplicates in the batch
+    const { duplicates, nonDuplicates, existingItems } = await checkBatchForDuplicates(items, compositeKeyFields);
+    
+    // Process non-duplicates - these can be directly created
+    const processed: Partial<DirectoryItem>[] = [...nonDuplicates];
+    
+    // Handle duplicates based on the specified mode
+    if (duplicates.length > 0) {
+      switch (duplicateHandlingMode) {
+        case 'skip':
+          // Skip all duplicates, just return the non-duplicates
+          return {
+            processed,
+            skipped: duplicates,
+            existingItems
+          };
+          
+        case 'replace':
+          // Replace existing items with new ones
+          for (const duplicate of duplicates) {
+            // Find the matching existing item
+            const existingItem = existingItems.find(existing => 
+              compositeKeyFields.every(field => {
+                // Handle nested fields like additionalFields.breeder
+                if (field.includes('.')) {
+                  const [parent, child] = field.split('.');
+                  const duplicateValue = duplicate[parent as keyof Partial<DirectoryItem>]?.[child];
+                  const existingValue = existing[parent as keyof DirectoryItem]?.[child];
+                  return duplicateValue === existingValue;
+                } else {
+                  const duplicateValue = duplicate[field as keyof Partial<DirectoryItem>];
+                  const existingValue = existing[field as keyof DirectoryItem];
+                  return duplicateValue === existingValue;
+                }
+              })
             );
             
-            // Track stats based on action
-            switch (result.action) {
-              case 'inserted':
-                successCount++;
-                if (result.item) processedItems.push(result.item);
-                break;
-              case 'skipped':
-                skipCount++;
-                break;
-              case 'replaced':
-                replaceCount++;
-                if (result.item) processedItems.push(result.item);
-                break;
-              case 'merged':
-                mergeCount++;
-                if (result.item) processedItems.push(result.item);
-                break;
-              case 'variant-created':
-                variantCount++;
-                if (result.item) processedItems.push(result.item);
-                break;
+            if (existingItem) {
+              // Replace with the new data
+              await apiClient.update(TABLE_NAME, existingItem.id, duplicate);
+              processed.push(duplicate);
             }
-            
-            return result;
-            
-          } catch (error) {
-            errorCount++;
-            console.error(`Error processing item ${i}:`, error);
-            return { error, item };
           }
-        })
-      );
-      
-      console.log(`Processed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(items.length / batchSize)}`);
-      console.log(`Stats so far: ${successCount} inserted, ${skipCount} skipped, ${replaceCount} replaced, ${mergeCount} merged, ${variantCount} variants, ${errorCount} errors`);
+          break;
+          
+        case 'merge':
+          // Merge new data with existing items
+          for (const duplicate of duplicates) {
+            // Find the matching existing item
+            const existingItem = existingItems.find(existing => 
+              compositeKeyFields.every(field => {
+                // Handle nested fields like additionalFields.breeder
+                if (field.includes('.')) {
+                  const [parent, child] = field.split('.');
+                  const duplicateValue = duplicate[parent as keyof Partial<DirectoryItem>]?.[child];
+                  const existingValue = existing[parent as keyof DirectoryItem]?.[child];
+                  return duplicateValue === existingValue;
+                } else {
+                  const duplicateValue = duplicate[field as keyof Partial<DirectoryItem>];
+                  const existingValue = existing[field as keyof DirectoryItem];
+                  return duplicateValue === existingValue;
+                }
+              })
+            );
+            
+            if (existingItem) {
+              // Merge the data, preserving existing values where new ones aren't provided
+              const mergedData = { ...duplicate };
+              
+              // Handle special merging for nested fields
+              if (existingItem.additionalFields && duplicate.additionalFields) {
+                mergedData.additionalFields = {
+                  ...existingItem.additionalFields,
+                  ...duplicate.additionalFields
+                };
+              }
+              
+              // Handle special merging for arrays like tags
+              if (existingItem.tags && duplicate.tags) {
+                const combinedTags = [
+                  ...new Set([
+                    ...(existingItem.tags || []),
+                    ...(duplicate.tags || [])
+                  ])
+                ];
+                mergedData.tags = combinedTags;
+              }
+              
+              await apiClient.update(TABLE_NAME, existingItem.id, mergedData);
+              processed.push(duplicate);
+            }
+          }
+          break;
+          
+        case 'variant':
+          // Create as new variants by modifying the title
+          for (const duplicate of duplicates) {
+            // Find the matching existing item
+            const existingItem = existingItems.find(existing => 
+              compositeKeyFields.every(field => {
+                // Handle nested fields like additionalFields.breeder
+                if (field.includes('.')) {
+                  const [parent, child] = field.split('.');
+                  const duplicateValue = duplicate[parent as keyof Partial<DirectoryItem>]?.[child];
+                  const existingValue = existing[parent as keyof DirectoryItem]?.[child];
+                  return duplicateValue === existingValue;
+                } else {
+                  const duplicateValue = duplicate[field as keyof Partial<DirectoryItem>];
+                  const existingValue = existing[field as keyof DirectoryItem];
+                  return duplicateValue === existingValue;
+                }
+              })
+            );
+            
+            if (existingItem) {
+              // Create a variant with modified title
+              const variantData = { ...duplicate };
+              
+              // Generate a variant suffix based on breeder or source if available
+              let variantSuffix = '';
+              
+              if (duplicate.additionalFields?.breeder) {
+                variantSuffix = ` (${duplicate.additionalFields.breeder})`;
+              } else if (duplicate.additionalFields?.source) {
+                variantSuffix = ` (${duplicate.additionalFields.source})`;
+              } else if (duplicate.subcategory) {
+                variantSuffix = ` (${duplicate.subcategory})`;
+              } else {
+                variantSuffix = ` (Variant ${Date.now().toString().slice(-4)})`;
+              }
+              
+              if (typeof variantData.title === 'string') {
+                variantData.title += variantSuffix;
+              }
+              
+              // Create as a new item
+              processed.push(variantData);
+            }
+          }
+          break;
+      }
     }
     
-    return processedItems;
+    // Create all processed items that don't have an ID (new items)
+    const newItems = processed.filter(item => !item.id);
+    if (newItems.length > 0) {
+      await createDirectoryItems(newItems);
+    }
     
+    return {
+      processed,
+      skipped: duplicateHandlingMode === 'skip' ? duplicates : [],
+      existingItems
+    };
   } catch (error) {
-    console.error("Error in bulk insert:", error);
+    console.error("Error in processBatchWithDuplicateHandling:", error);
     throw error;
   }
 }

@@ -56,11 +56,11 @@ export type { BatchProcessingConfig } from './batchProcessingUtils';
 export {
   processFolderData,
   createFolderConfig,
+  getSchemaTemplate,
   cleanseData,
   generateDataConsistencyReport,
   cleansingFunctions,
-  schemaTemplates,
-  getSchemaTemplate
+  schemaTemplates
 } from './folderProcessingUtils';
 export type { 
   FolderMetadata,
