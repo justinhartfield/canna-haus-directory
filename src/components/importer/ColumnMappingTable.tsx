@@ -47,7 +47,7 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
           <TableCell>
             {manualMappingMode ? (
               <Select
-                value={mapping.sourceColumn}
+                value={mapping.sourceColumn || "select-column"} // Ensure we always have a value
                 onValueChange={(value) => onSourceColumnChange(index, value)}
                 disabled={isProcessing}
               >
@@ -66,7 +66,7 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
           </TableCell>
           <TableCell>
             <Select
-              value={mapping.targetField}
+              value={mapping.targetField || "ignore"} // Use "ignore" as the default value
               onValueChange={(value) => onMappingChange(index, value)}
               disabled={isProcessing}
             >
@@ -74,7 +74,7 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
                 <SelectValue placeholder="Select field" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">-- Ignore --</SelectItem>
+                <SelectItem value="ignore">-- Ignore --</SelectItem>
                 {availableTargetFields.map(field => (
                   <SelectItem key={field.value} value={field.value}>
                     {field.label}

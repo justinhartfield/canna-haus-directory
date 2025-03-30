@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { ImportAnalysis, ColumnMapping } from '@/types/directory';
@@ -68,7 +69,7 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
       for (const [targetField, sourceColumn] of Object.entries(aiMappings)) {
         suggestedMappings.push({
           sourceColumn: sourceColumn as string,
-          targetField,
+          targetField: targetField || "ignore", // Ensure targetField is never empty
           isCustomField: !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField),
           sampleData: sampleRows[0][sourceColumn as string]
         });
@@ -109,8 +110,8 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
 
   const handleMappingChange = (index: number, targetField: string) => {
     const newMappings = [...columnMappings];
-    newMappings[index].targetField = targetField;
-    newMappings[index].isCustomField = !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField);
+    newMappings[index].targetField = targetField || "ignore"; // Ensure targetField is never empty
+    newMappings[index].isCustomField = targetField === "custom";
     setColumnMappings(newMappings);
   };
 
@@ -124,7 +125,7 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
   const handleSourceColumnChange = (index: number, sourceColumn: string) => {
     const newMappings = [...columnMappings];
     newMappings[index].sourceColumn = sourceColumn;
-    newMappings[index].sampleData = analysis?.sampleData[sourceColumn];
+    newMappings[index].sampleData = analysis?.sampleData[sourceColumn] || '';
     setColumnMappings(newMappings);
   };
 
@@ -135,9 +136,9 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
       ...columnMappings,
       {
         sourceColumn: availableColumns[0],
-        targetField: '',
+        targetField: "ignore", // Default to "ignore" instead of empty string
         isCustomField: false,
-        sampleData: analysis?.sampleData[availableColumns[0]]
+        sampleData: analysis?.sampleData[availableColumns[0]] || ''
       }
     ]);
   };
