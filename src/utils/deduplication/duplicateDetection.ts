@@ -40,8 +40,8 @@ export function findPotentialDuplicates(items: DirectoryItem[]): DuplicateGroup[
       
       const similarity = calculateSimilarity(item, otherItem);
       
-      // If items are similar enough, add to duplicates
-      if (similarity > 0.7) {  // 70% similarity threshold
+      // Only consider high similarity matches (exact title matches will have high similarity)
+      if (similarity > 0.85) {  // Increased threshold from 0.7 to 0.85
         duplicates.push(otherItem);
         processedIds.add(otherItem.id);
         
@@ -66,6 +66,7 @@ export function findPotentialDuplicates(items: DirectoryItem[]): DuplicateGroup[
 
 /**
  * Calculate similarity between two directory items
+ * Prioritizes exact title matches
  * @param item1 First directory item
  * @param item2 Second directory item
  * @returns Similarity score (0-1)
@@ -74,36 +75,24 @@ function calculateSimilarity(item1: DirectoryItem, item2: DirectoryItem): number
   let points = 0;
   let totalPoints = 0;
   
-  // If categories are different, they're likely not duplicates
+  // If categories are different, they're not duplicates
   if (item1.category !== item2.category) {
     return 0;
   }
   
   // Title similarity (weighted heavily)
-  totalPoints += 3;
-  const title1 = item1.title.toLowerCase();
-  const title2 = item2.title.toLowerCase();
+  totalPoints += 5; // Increased weight from 3 to 5
+  const title1 = item1.title.toLowerCase().trim();
+  const title2 = item2.title.toLowerCase().trim();
   
+  // Prioritize exact matches
   if (title1 === title2) {
-    points += 3;
+    points += 5; // Full points for exact match
   } else {
-    // Check for partial title match
-    const wordSet1 = new Set(title1.split(/\s+/).filter(w => w.length > 2));
-    const wordSet2 = new Set(title2.split(/\s+/).filter(w => w.length > 2));
-    
-    let matchedWords = 0;
-    for (const word of wordSet1) {
-      if (wordSet2.has(word)) {
-        matchedWords++;
-      }
-    }
-    
-    const similarityRatio = Math.min(
-      wordSet1.size > 0 ? matchedWords / wordSet1.size : 0,
-      wordSet2.size > 0 ? matchedWords / wordSet2.size : 0
-    );
-    
-    points += 3 * similarityRatio;
+    // Significantly reduce points for partial matches
+    // Only give minimal points if titles are very similar
+    const titleSimilarity = calculateTextSimilarity(title1, title2);
+    points += titleSimilarity > 0.9 ? 1 : 0; // Only give points for very similar titles
   }
   
   // Check breeder/source (if available)
@@ -125,30 +114,45 @@ function calculateSimilarity(item1: DirectoryItem, item2: DirectoryItem): number
     }
   }
   
-  // Check tags (if available)
-  if (item1.tags && item1.tags.length > 0 && item2.tags && item2.tags.length > 0) {
-    totalPoints += 1;
+  // Return normalized similarity score
+  return totalPoints > 0 ? points / totalPoints : 0;
+}
+
+/**
+ * Calculate similarity between two text strings
+ * @param str1 First string
+ * @param str2 Second string
+ * @returns Similarity ratio (0-1)
+ */
+function calculateTextSimilarity(str1: string, str2: string): number {
+  // For exact matches
+  if (str1 === str2) return 1;
+  
+  // For empty strings
+  if (!str1.length || !str2.length) return 0;
+  
+  // Convert to sets of words for longer strings
+  if (str1.length > 10 && str2.length > 10) {
+    const wordSet1 = new Set(str1.split(/\s+/).filter(w => w.length > 2));
+    const wordSet2 = new Set(str2.split(/\s+/).filter(w => w.length > 2));
     
-    const tagSet1 = new Set(item1.tags.map(t => t.toLowerCase()));
-    const tagSet2 = new Set(item2.tags.map(t => t.toLowerCase()));
+    if (wordSet1.size === 0 || wordSet2.size === 0) return 0;
     
-    let matchedTags = 0;
-    for (const tag of tagSet1) {
-      if (tagSet2.has(tag)) {
-        matchedTags++;
+    let matchedWords = 0;
+    for (const word of wordSet1) {
+      if (wordSet2.has(word)) {
+        matchedWords++;
       }
     }
     
-    const tagSimilarityRatio = Math.min(
-      tagSet1.size > 0 ? matchedTags / tagSet1.size : 0,
-      tagSet2.size > 0 ? matchedTags / tagSet2.size : 0
+    return Math.min(
+      wordSet1.size > 0 ? matchedWords / wordSet1.size : 0,
+      wordSet2.size > 0 ? matchedWords / wordSet2.size : 0
     );
-    
-    points += tagSimilarityRatio;
   }
   
-  // Return normalized similarity score
-  return totalPoints > 0 ? points / totalPoints : 0;
+  // For shorter strings, use character-level comparison (less relevant for our case)
+  return 0;
 }
 
 /**
