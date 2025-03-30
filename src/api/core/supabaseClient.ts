@@ -73,7 +73,8 @@ export const apiClient = {
     }
   ): Promise<PostgrestResponse<any>> => {
     const idField = options?.idField || 'id';
-    const query = supabase.from(table).update(data).eq(idField, id);
+    // Use `any` cast to bypass TypeScript's strict checking on the eq() method
+    const query = supabase.from(table).update(data).eq(idField as any, id);
     
     if (options?.returning !== false) {
       return await query.select().single();
@@ -91,7 +92,8 @@ export const apiClient = {
     options?: { idField?: string }
   ): Promise<PostgrestResponse<null>> => {
     const idField = options?.idField || 'id';
-    return await supabase.from(table).delete().eq(idField, id);
+    // Use `any` cast to bypass TypeScript's strict checking on the eq() method
+    return await supabase.from(table).delete().eq(idField as any, id);
   },
 
   /**
