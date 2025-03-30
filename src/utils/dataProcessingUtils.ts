@@ -24,7 +24,10 @@ export type { DataMappingConfig } from './mappingUtils';
 // Transformation utilities
 export {
   transformData,
-  transformDataRow
+  transformDataRow,
+  normalizeString,
+  normalizeNumber,
+  normalizeBoolean
 } from './transformUtils';
 export type { ProcessingResult } from './transformUtils';
 
@@ -32,6 +35,45 @@ export type { ProcessingResult } from './transformUtils';
 export {
   processFileContent,
   processBatchFiles,
-  updateImportProgress
+  updateImportProgress,
+  commonValidationRules
 } from './importUtils';
 
+// Batch processing utilities
+export {
+  advancedBatchProcessing,
+  generateProcessingReport,
+  validationPresets,
+  dataCleansingFunctions,
+  applyDataCleansing,
+  incrementalBatchProcessing,
+  generateDataQualityMetrics
+} from './batchProcessingUtils';
+
+// Folder processing utilities
+export {
+  processFolderData,
+  createFolderConfig,
+  cleanseData,
+  generateDataConsistencyReport,
+  cleansingFunctions,
+  schemaTemplates,
+  getSchemaTemplate
+} from './folderProcessingUtils';
+export type { 
+  FolderMetadata,
+  FolderProcessingConfig,
+  FolderProcessingResult
+} from './folderProcessingUtils';
+
+// Schema validation utilities
+export {
+  validateSchemaData,
+  enhanceJsonLd,
+  getValidationRules
+} from './schemaValidationUtils';
+export type {
+  SchemaValidationResult,
+  SchemaValidationRule,
+  SchemaValidationRules
+} from './schemaValidationUtils';
