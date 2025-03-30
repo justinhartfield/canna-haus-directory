@@ -5,6 +5,7 @@ import DataProcessor from './components/DataProcessor';
 import { AIColumnMapperProps } from './types/importerTypes';
 import { DEFAULT_CATEGORIES, SCHEMA_TYPE_OPTIONS } from './constants/importerConstants';
 import ProcessingControls from './ProcessingControls';
+import { toast } from '@/hooks/use-toast';
 
 // Import the extracted components
 import MappingHeader from './MappingHeader';
@@ -55,6 +56,43 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   }) => {
     // Convert the success results to the expected format
     onComplete(results.success);
+    
+    // Show summary toast
+    const totalCount = results.success.length + results.errors.length + results.duplicates.length;
+    toast({
+      title: 'Processing Complete',
+      description: `Successfully processed ${results.success.length} of ${totalCount} items.` +
+                 `${results.errors.length > 0 ? ` ${results.errors.length} errors.` : ''}` + 
+                 `${results.duplicates.length > 0 ? ` ${results.duplicates.length} duplicates.` : ''}`,
+      variant: results.success.length > 0 ? 'default' : 'destructive'
+    });
+  };
+
+  const handleStartProcessing = () => {
+    // Validate mappings before starting
+    if (columnMappings.length === 0) {
+      toast({
+        title: 'No Mappings Defined',
+        description: 'Please define at least one column mapping before processing.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Check for required fields
+    const hasTitleMapping = columnMappings.some(mapping => mapping.targetField === 'title');
+    
+    if (!hasTitleMapping) {
+      toast({
+        title: 'Required Mapping Missing',
+        description: 'You must map at least one column to "title" field.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Start processing
+    setIsProcessing(true);
   };
 
   if (isAnalyzing) {
@@ -103,22 +141,21 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         onAddMapping={handleAddMapping}
       />
       
-      <DataProcessor
-        data={[]} // We'll populate this when ready to process
-        mappings={{}}
-        category={selectedCategory}
-        subcategory={undefined}
-        onProcessComplete={handleProcessComplete}
-        onProgress={setProgress}
-      />
+      {isProcessing && (
+        <DataProcessor
+          data={[]} // We'll populate this when ready to process
+          mappings={{}}
+          category={selectedCategory}
+          subcategory={undefined}
+          onProcessComplete={handleProcessComplete}
+          onProgress={setProgress}
+        />
+      )}
       
       <ProcessingControls 
         isProcessing={isProcessing}
         progress={progress}
-        onProcess={() => {
-          // Process data
-          setIsProcessing(true);
-        }}
+        onProcess={handleStartProcessing}
         onCancel={onCancel}
         onImport={onImport}
         canImport={canImport}
