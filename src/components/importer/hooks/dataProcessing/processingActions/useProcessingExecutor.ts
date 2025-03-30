@@ -4,6 +4,8 @@ import { toast } from '@/hooks/use-toast';
 import { bulkInsertDirectoryItems } from '@/api/services/directoryItem/bulkOperations';
 import { checkBatchForDuplicates } from '@/api/services/directoryItem/duplicateChecking';
 import { ProcessingResult, TempDirectoryItem } from '../types';
+import { transformDataRow } from '@/utils/transform/itemTransformer';
+import { enhanceRawItemWithPlaceholders } from '@/utils/transform/dataEnhancer';
 
 /**
  * Hook providing the main data processing logic
@@ -40,21 +42,57 @@ export function useProcessingExecutor(
         return emptyResult;
       }
 
-      // Step 1: Check for duplicates (20% progress)
-      addProcessingStep('Step 1: Checking for duplicates');
-      setProgress(5);
+      // Step 1: Check required mappings
+      addProcessingStep('Step 1: Checking required mappings');
+      const missingRequiredMappings: string[] = [];
       
-      // Transform data for duplicate checking
-      const itemsForDuplicateCheck: TempDirectoryItem[] = data.map(item => ({
-        title: (mappings.title && item[mappings.title]) ? String(item[mappings.title]) : 'Untitled',
-        description: (mappings.description && item[mappings.description]) ? String(item[mappings.description]) : '',
-        category: category,
-        subcategory: subcategory,
-        tags: [],
-        jsonLd: {},
-        metaData: {},
-        additionalFields: {}
-      }));
+      // Title is always required
+      if (!mappings.title) {
+        missingRequiredMappings.push('title');
+      }
+      
+      // Description is strongly recommended
+      if (!mappings.description) {
+        missingRequiredMappings.push('description');
+      }
+      
+      if (missingRequiredMappings.length > 0) {
+        addProcessingStep(`Missing required mappings: ${missingRequiredMappings.join(', ')}`);
+        
+        // If we're missing critical mappings, we should stop processing
+        if (missingRequiredMappings.includes('title')) {
+          const result: ProcessingResult = { 
+            success: [], 
+            errors: [], 
+            duplicates: [],
+            missingColumns: missingRequiredMappings 
+          };
+          setResults(result);
+          setProgress(100);
+          setIsProcessing(false);
+          return result;
+        }
+      }
+      
+      setProgress(5);
+
+      // Step 2: Check for duplicates (20% progress)
+      addProcessingStep('Step 2: Checking for duplicates');
+      
+      // Transform data for duplicate checking - only take the first 100 items for quick checking
+      const maxDuplicateCheckItems = Math.min(data.length, 100);
+      const itemsForDuplicateCheck: TempDirectoryItem[] = data
+        .slice(0, maxDuplicateCheckItems)
+        .map(item => ({
+          title: (mappings.title && item[mappings.title]) ? String(item[mappings.title]).trim() : 'Untitled',
+          description: (mappings.description && item[mappings.description]) ? String(item[mappings.description]).trim() : '',
+          category: category,
+          subcategory: subcategory,
+          tags: [],
+          jsonLd: {},
+          metaData: {},
+          additionalFields: {}
+        }));
       
       addProcessingStep(`Checking ${itemsForDuplicateCheck.length} items for duplicates`);
       setProgress(10);
@@ -72,72 +110,105 @@ export function useProcessingExecutor(
       
       setProgress(20);
       
-      // Step 2: Filter out duplicates
-      addProcessingStep('Step 2: Filtering out duplicates');
-      const nonDuplicates = data.filter(item => 
-        !duplicateResults.some(dup => 
-          dup.item.title === (mappings.title ? String(item[mappings.title]) : 'Untitled') &&
-          dup.item.category === category
-        )
-      );
+      // Step 3: Map source fields to target fields and check for missing columns
+      addProcessingStep('Step 3: Analyzing column mappings');
+      const missingColumns = new Map<string, string>();
       
-      addProcessingStep(`After filtering: ${nonDuplicates.length} non-duplicate items`);
+      if (data.length > 0) {
+        const firstItem = data[0];
+        // Check if any mapped fields are missing in the data
+        for (const [targetField, sourceField] of Object.entries(mappings)) {
+          if (!(sourceField in firstItem)) {
+            missingColumns.set(sourceField, targetField);
+            addProcessingStep(`Warning: Source field "${sourceField}" not found in data`);
+          }
+        }
+      }
+      
       setProgress(25);
       
-      // Step 3: Transform data
-      addProcessingStep('Step 3: Transforming data');
+      // Step 4: Transform data (enhanced with performance optimization)
+      addProcessingStep('Step 4: Transforming data');
       setProgress(30);
       
-      // Transform the data to DirectoryItem format
-      const transformedItems: TempDirectoryItem[] = nonDuplicates.map(rawItem => {
-        const title = mappings.title ? String(rawItem[mappings.title] || 'Untitled') : 'Untitled';
-        const description = mappings.description ? String(rawItem[mappings.description] || '') : '';
-        const tags = mappings.tags ? 
-          (typeof rawItem[mappings.tags] === 'string' 
-            ? rawItem[mappings.tags].split(',').map((tag: string) => tag.trim()) 
-            : Array.isArray(rawItem[mappings.tags]) 
-              ? rawItem[mappings.tags] 
-              : []) 
-          : [];
-        
-        return {
-          title,
-          description,
+      // Batch process for better performance
+      const batchSize = 100; // Process data in chunks for better performance
+      const allTransformedItems: TempDirectoryItem[] = [];
+      const allErrors: Array<{ item: any; error: string }> = [];
+      
+      // Create a simple mapping config with category
+      const basicMappingConfig = {
+        columnMappings: mappings,
+        defaultValues: {
           category,
-          subcategory: subcategory || undefined,
-          tags,
-          imageUrl: mappings.imageUrl ? String(rawItem[mappings.imageUrl] || '') : undefined,
-          thumbnailUrl: mappings.thumbnailUrl ? String(rawItem[mappings.thumbnailUrl] || '') : undefined,
-          jsonLd: {},
-          additionalFields: {},
-          metaData: {}
-        };
-      });
+          subcategory: subcategory || undefined
+        },
+        schemaType: 'Thing'
+      };
       
-      addProcessingStep(`Transformed ${transformedItems.length} items`);
-      setProgress(40);
+      // Process in batches
+      for (let i = 0; i < data.length; i += batchSize) {
+        const batch = data.slice(i, Math.min(i + batchSize, data.length));
+        const batchStartIndex = i;
+        
+        try {
+          const batchResult = batch.map((rawItem, index) => {
+            try {
+              // Enhance raw item with placeholders for missing columns
+              const enhancedRawItem = enhanceRawItemWithPlaceholders(rawItem, missingColumns);
+              
+              // Transform the raw data to our directory item format
+              return transformDataRow(enhancedRawItem, basicMappingConfig, batchStartIndex + index);
+            } catch (error) {
+              console.error(`Error transforming item at index ${batchStartIndex + index}:`, error);
+              
+              // Add to errors array
+              allErrors.push({
+                item: rawItem,
+                error: error instanceof Error ? error.message : 'Unknown error during transformation'
+              });
+              
+              // Return null for this item, we'll filter them out later
+              return null;
+            }
+          });
+          
+          // Filter out null values (errors) and add to the transformed items
+          allTransformedItems.push(...batchResult.filter(Boolean) as TempDirectoryItem[]);
+          
+          // Update progress
+          const processedPercentage = Math.min(((i + batch.length) / data.length) * 20, 20);
+          setProgress(30 + Math.round(processedPercentage));
+          
+        } catch (error) {
+          console.error(`Error processing batch starting at index ${i}:`, error);
+          addProcessingStep(`Error processing batch: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
       
-      // Step 4: Upload to database
-      addProcessingStep('Step 4: Uploading to database');
+      addProcessingStep(`Transformed ${allTransformedItems.length} items with ${allErrors.length} errors`);
       setProgress(50);
+      
+      // Step 5: Upload to database
+      addProcessingStep('Step 5: Uploading to database');
+      setProgress(60);
       let successItems: any[] = [];
-      let errorItems: Array<{ item: any; error: string }> = [];
 
-      if (transformedItems.length > 0) {
+      if (allTransformedItems.length > 0) {
         try {
           // Insert in batches of 25 items to avoid timeouts
-          const batchSize = 25;
-          for (let i = 0; i < transformedItems.length; i += batchSize) {
-            const batch = transformedItems.slice(i, i + batchSize);
-            addProcessingStep(`Inserting batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(transformedItems.length / batchSize)}`);
+          const uploadBatchSize = 25;
+          for (let i = 0; i < allTransformedItems.length; i += uploadBatchSize) {
+            const batch = allTransformedItems.slice(i, i + uploadBatchSize);
+            addProcessingStep(`Inserting batch ${Math.floor(i / uploadBatchSize) + 1}/${Math.ceil(allTransformedItems.length / uploadBatchSize)}`);
             
             try {
               const batchResult = await bulkInsertDirectoryItems(batch);
               successItems = [...successItems, ...batchResult.success];
-              errorItems = [...errorItems, ...batchResult.errors];
+              allErrors.push(...batchResult.errors);
               
               // Update progress based on how much we've processed
-              const newProgress = 50 + Math.min(((i + batch.length) / transformedItems.length) * 30, 30);
+              const newProgress = 60 + Math.min(((i + batch.length) / allTransformedItems.length) * 30, 30);
               setProgress(Math.round(newProgress));
               
               addProcessingStep(`Batch result: ${batchResult.success.length} succeeded, ${batchResult.errors.length} failed`);
@@ -146,13 +217,12 @@ export function useProcessingExecutor(
               addProcessingStep(`Error inserting batch: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
               
               // Add all items in the failed batch to errorItems
-              errorItems = [
-                ...errorItems,
+              allErrors.push(
                 ...batch.map(item => ({
                   item,
                   error: batchError instanceof Error ? batchError.message : 'Unknown error during batch insertion'
                 }))
-              ];
+              );
             }
           }
         } catch (error) {
@@ -160,33 +230,36 @@ export function useProcessingExecutor(
           addProcessingStep(`Error inserting items: ${error instanceof Error ? error.message : 'Unknown error'}`);
           
           // If the whole insertion process fails, add all items as errors
-          errorItems = transformedItems.map(item => ({
-            item,
-            error: error instanceof Error ? error.message : 'Unknown error during insertion'
-          }));
+          allErrors.push(
+            ...allTransformedItems.map(item => ({
+              item,
+              error: error instanceof Error ? error.message : 'Unknown error during insertion'
+            }))
+          );
         }
       } else {
-        addProcessingStep('No items to insert after filtering duplicates');
+        addProcessingStep('No items to insert after filtering duplicates and errors');
       }
 
-      setProgress(80);
+      setProgress(90);
       
-      // Step 5: Finalize results
-      addProcessingStep('Step 5: Finalizing results');
+      // Step 6: Finalize results
+      addProcessingStep('Step 6: Finalizing results');
       const finalResults: ProcessingResult = {
         success: successItems,
-        errors: errorItems,
-        duplicates: duplicateResults
+        errors: allErrors,
+        duplicates: duplicateResults,
+        missingColumns: missingColumns.size > 0 ? Array.from(missingColumns.keys()) : undefined
       };
 
       setResults(finalResults);
       setProgress(100);
-      addProcessingStep(`Processing complete: ${successItems.length} succeeded, ${errorItems.length} failed, ${duplicateResults.length} duplicates`);
+      addProcessingStep(`Processing complete: ${successItems.length} succeeded, ${allErrors.length} failed, ${duplicateResults.length} duplicates`);
 
       // Show toast with results
       toast({
         title: 'Processing Complete',
-        description: `${successItems.length} items imported, ${errorItems.length} errors, ${duplicateResults.length} duplicates`,
+        description: `${successItems.length} items imported, ${allErrors.length} errors, ${duplicateResults.length} duplicates`,
         variant: successItems.length > 0 ? 'default' : 'destructive'
       });
 

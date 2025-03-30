@@ -8,7 +8,7 @@ export type ProcessingResult = {
   success: DirectoryItem[];
   errors: Array<{ item: any; error: string }>;
   duplicates: Array<{ item: any; error: string }>;
-  missingColumns?: string[]; // Added this property
+  missingColumns?: string[]; // This property is now properly defined
 };
 
 export interface UseDataProcessingProps {

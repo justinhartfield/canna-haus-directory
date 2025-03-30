@@ -54,6 +54,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     success: any[];
     errors: Array<{ item: any; error: string }>;
     duplicates: Array<{ item: any; error: string }>;
+    missingColumns?: string[];
   }) => {
     // Convert the success results to the expected format
     onComplete(results.success);
@@ -87,6 +88,16 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       toast({
         title: 'Required Mapping Missing',
         description: 'You must map at least one column to "title" field.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Check if we have data to process
+    if (!parsedData || parsedData.length === 0) {
+      toast({
+        title: 'No Data To Process',
+        description: 'There is no data available to process. Please try re-uploading your file.',
         variant: 'destructive'
       });
       return;

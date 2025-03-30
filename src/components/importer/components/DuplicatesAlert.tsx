@@ -3,7 +3,7 @@ import React from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
-interface DuplicatesAlertProps {
+export interface DuplicatesAlertProps {
   duplicates: Array<{ item: any; error: string }>;
   onClose: () => void;
 }
@@ -12,7 +12,7 @@ const DuplicatesAlert: React.FC<DuplicatesAlertProps> = ({
   duplicates, 
   onClose 
 }) => {
-  if (duplicates.length === 0) return null;
+  if (!duplicates || duplicates.length === 0) return null;
   
   return (
     <Alert className="mb-4 bg-amber-50 border-amber-200">
