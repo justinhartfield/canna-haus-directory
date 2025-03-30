@@ -60,6 +60,7 @@ export async function checkForDuplicate(
     if (breederSource) {
       // Check if any of the found items have the same breeder/source
       return data.some(item => {
+        // FIX: Use lowercase 'additionalfields' to match the database column name
         const itemBreederSource = getBreederSource({
           additionalFields: item.additionalfields
         });

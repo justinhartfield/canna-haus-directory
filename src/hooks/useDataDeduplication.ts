@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { DirectoryItem } from '@/types/directory';
 import { getDirectoryItems } from '@/api/services/directoryItem/crudOperations';
@@ -30,7 +29,6 @@ export const useDataDeduplication = () => {
   const [selectedGroup, setSelectedGroup] = useState<DuplicateGroup | null>(null);
   const [processingResults, setProcessingResults] = useState<ProcessingResults | null>(null);
 
-  // Find potential duplicates
   const findDuplicates = async () => {
     setIsLoading(true);
     try {
@@ -54,7 +52,6 @@ export const useDataDeduplication = () => {
     }
   };
 
-  // Toggle selection of a duplicate record
   const toggleDuplicateSelection = (groupIndex: number, duplicateId: string) => {
     setDuplicateGroups(prev => {
       const groups = [...prev];
@@ -71,7 +68,6 @@ export const useDataDeduplication = () => {
     });
   };
 
-  // Set action for a duplicate group
   const setAction = (groupIndex: number, action: DuplicateAction) => {
     setDuplicateGroups(prev => {
       const groups = [...prev];
@@ -83,17 +79,14 @@ export const useDataDeduplication = () => {
     });
   };
 
-  // Open preview dialog for a group
   const openPreview = (group: DuplicateGroup) => {
     setSelectedGroup(group);
     setIsPreviewOpen(true);
   };
 
-  // Merge duplicate records utility
   const mergeRecords = (primary: DirectoryItem, duplicates: DirectoryItem[]): Partial<DirectoryItem> => {
     const merged: Partial<DirectoryItem> = {};
     
-    // Combine tags
     const allTags = new Set<string>();
     if (primary.tags) {
       primary.tags.forEach(tag => allTags.add(tag));
@@ -105,13 +98,11 @@ export const useDataDeduplication = () => {
     });
     merged.tags = Array.from(allTags);
     
-    // Merge additionalFields with prefix for duplicates - Fix: Use lowercase field name
     const mergedAdditionalData: Record<string, any> = {...(primary.additionalFields || {})};
     duplicates.forEach((duplicate, index) => {
       if (duplicate.additionalFields) {
         Object.entries(duplicate.additionalFields).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            // If key already exists in primary, add as alternative
             if (mergedAdditionalData[key] !== undefined && 
                 mergedAdditionalData[key] !== value) {
               mergedAdditionalData[`alt_${key}_${index + 1}`] = value;
@@ -123,13 +114,11 @@ export const useDataDeduplication = () => {
       }
     });
     
-    // Update with correct field name for the database
     merged.additionalFields = mergedAdditionalData;
     
     return merged;
   };
 
-  // Helper to preview merged record
   const getPreviewMergedRecord = (primary: DirectoryItem, duplicates: DirectoryItem[]): any => {
     const selectedDups = duplicates.filter(d => 
       selectedGroup?.selectedDuplicates.includes(d.id)
@@ -141,7 +130,6 @@ export const useDataDeduplication = () => {
     };
   };
 
-  // Process duplicate groups based on selected actions
   const processDuplicates = async () => {
     setIsLoading(true);
     const results: ProcessingResults = {
@@ -156,7 +144,6 @@ export const useDataDeduplication = () => {
       for (const group of duplicateGroups) {
         const { primaryRecord, duplicates, selectedDuplicates, action } = group;
         
-        // Only process duplicates that are selected
         const selectedDuplicateRecords = duplicates.filter(d => 
           selectedDuplicates.includes(d.id)
         );
@@ -167,14 +154,11 @@ export const useDataDeduplication = () => {
         
         try {
           if (action === 'merge') {
-            // Merge duplicates into primary record
             const mergedData = mergeRecords(primaryRecord, selectedDuplicateRecords);
             await updateDirectoryItem(primaryRecord.id, mergedData);
             results.merged++;
           } else if (action === 'variant') {
-            // Mark as variants
             for (const duplicate of selectedDuplicateRecords) {
-              // Fix: Use a properly formatted object structure that matches the database schema
               const updatedFields = {
                 additionalFields: {
                   ...(duplicate.additionalFields || {}),
@@ -185,7 +169,6 @@ export const useDataDeduplication = () => {
             }
             results.variants++;
           } else {
-            // Keep as is - no action needed
             results.kept++;
           }
         } catch (err) {

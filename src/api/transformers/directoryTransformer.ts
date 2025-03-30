@@ -18,6 +18,7 @@ export function transformDatabaseRowToDirectoryItem(row: any): DirectoryItem {
     createdAt: row.createdat,
     updatedAt: row.updatedat,
     metaData: row.metadata || {},
+    // Fix: Map the lowercase database column name to camelCase in our code
     additionalFields: row.additionalfields || {}
   };
 }
@@ -37,6 +38,7 @@ export function transformDirectoryItemToDatabaseRow(item: Partial<DirectoryItem>
   if (item.thumbnailUrl !== undefined) row.thumbnailurl = item.thumbnailUrl;
   if (item.jsonLd !== undefined) row.jsonld = item.jsonLd;
   if (item.metaData !== undefined) row.metadata = item.metaData;
+  // Fix: Map camelCase from our code to lowercase database column name
   if (item.additionalFields !== undefined) row.additionalfields = item.additionalFields;
   
   return row;
