@@ -8,7 +8,7 @@ export {
   transformData,
   transformDataRow
 } from './core';
-export type { ProcessingResult } from './core';
+export type { ProcessingResult } from './types';
 
 // Normalization utilities
 export {
@@ -21,3 +21,20 @@ export {
 export {
   validateRequiredField
 } from './validation';
+
+// Mapping helpers
+export {
+  validateMappingConfig,
+  ensureDefaultValues,
+  identifyMissingColumns
+} from './mappingHelpers';
+
+// Item transformation
+export {
+  transformDataRow
+} from './itemTransformer';
+
+// Data enhancement
+export {
+  enhanceRawItemWithPlaceholders
+} from './dataEnhancer';
