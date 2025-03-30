@@ -2,8 +2,12 @@
 import { DirectoryItem } from "@/types/directory";
 import { apiClient } from "../core/supabaseClient";
 import { transformDatabaseRowToDirectoryItem, transformDirectoryItemToDatabaseRow } from "../transformers/directoryTransformer";
+import { Database } from "@/integrations/supabase/types";
 
 const TABLE_NAME = 'directory_items' as const;
+
+// Define type for database insertion compatible with Supabase types
+type DirectoryItemInsert = Database['public']['Tables']['directory_items']['Insert'];
 
 /**
  * Fetches all directory items
@@ -73,7 +77,12 @@ export async function getDirectoryItemsByCategory(category: string): Promise<Dir
  * Creates a new directory item
  */
 export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<DirectoryItem> {
-  const databaseRow = transformDirectoryItemToDatabaseRow(item);
+  // Ensure required fields are present
+  if (!item.title || !item.description || !item.category) {
+    throw new Error("Missing required fields: title, description and category are required");
+  }
+  
+  const databaseRow = transformDirectoryItemToDatabaseRow(item) as DirectoryItemInsert;
   
   const { data, error } = await apiClient.insert(TABLE_NAME, databaseRow);
   
@@ -123,8 +132,15 @@ export async function deleteDirectoryItem(id: string): Promise<boolean> {
  * Bulk inserts directory items
  */
 export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<DirectoryItem[]> {
+  // Validate required fields for all items
+  for (const item of items) {
+    if (!item.title || !item.description || !item.category) {
+      throw new Error("All items must have title, description and category");
+    }
+  }
+  
   // Format items for insertion - match database column naming
-  const insertData = items.map(transformDirectoryItemToDatabaseRow);
+  const insertData = items.map(item => transformDirectoryItemToDatabaseRow(item)) as DirectoryItemInsert[];
   
   const { data, error } = await apiClient.bulkInsert(TABLE_NAME, insertData);
   

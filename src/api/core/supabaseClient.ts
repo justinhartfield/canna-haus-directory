@@ -67,7 +67,8 @@ export const apiClient = {
       returning?: boolean 
     }
   ): Promise<PostgrestResponse<TableRow<T>>> => {
-    const query = supabase.from(table).insert(data);
+    // Convert data to match the table structure based on the table name
+    const query = supabase.from(table).insert(data as any);
     
     if (options?.returning !== false) {
       const result = await query.select('*').single();
@@ -90,7 +91,7 @@ export const apiClient = {
     }
   ): Promise<PostgrestResponse<TableRow<T>>> => {
     const idField = options?.idField || 'id';
-    const query = supabase.from(table).update(data).eq(idField, id);
+    const query = supabase.from(table).update(data as any).eq(idField as any, id);
     
     if (options?.returning !== false) {
       const result = await query.select('*').single();
@@ -109,7 +110,7 @@ export const apiClient = {
     options?: { idField?: string }
   ): Promise<PostgrestResponse<null>> => {
     const idField = options?.idField || 'id';
-    return await supabase.from(table).delete().eq(idField, id) as unknown as PostgrestResponse<null>;
+    return await supabase.from(table).delete().eq(idField as any, id) as unknown as PostgrestResponse<null>;
   },
 
   /**
@@ -122,7 +123,7 @@ export const apiClient = {
       returning?: boolean
     }
   ): Promise<PostgrestResponse<TableRow<T>[]>> => {
-    const query = supabase.from(table).insert(data);
+    const query = supabase.from(table).insert(data as any[]);
     
     if (options?.returning !== false) {
       const result = await query.select('*');

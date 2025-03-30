@@ -14,6 +14,7 @@ export function ensureRecord(value: any): Record<string, any> {
 
 /**
  * Transform database row to DirectoryItem
+ * Maps database column names (lowercase with underscores) to DirectoryItem properties (camelCase)
  */
 export function transformDatabaseRowToDirectoryItem(data: any): DirectoryItem {
   return {
@@ -35,10 +36,12 @@ export function transformDatabaseRowToDirectoryItem(data: any): DirectoryItem {
 
 /**
  * Transform DirectoryItem to database row format
+ * Maps DirectoryItem properties (camelCase) to database column names (lowercase with underscores)
  */
 export function transformDirectoryItemToDatabaseRow(item: Partial<DirectoryItem>): Record<string, any> {
   const databaseRow: Record<string, any> = {};
   
+  // Map properties with different casing conventions
   if (item.title !== undefined) databaseRow.title = item.title;
   if (item.description !== undefined) databaseRow.description = item.description;
   if (item.category !== undefined) databaseRow.category = item.category;
