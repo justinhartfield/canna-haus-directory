@@ -5,41 +5,34 @@ import { DirectoryItem } from '@/types/directory';
  * @returns Array of duplicate record IDs that can be safely removed
  */
 export const identifyExactDuplicates = (items: DirectoryItem[]): string[] => {
-  const seenKeys = new Map<string, DirectoryItem>();
+  // Map to track items by title and category
+  const itemsByTitleCategory = new Map<string, DirectoryItem[]>();
   const duplicateIds: string[] = [];
   
+  // Group items by title and category
   for (const item of items) {
-    // Create a composite key using the most important fields that define uniqueness
-    // We use lowercase to make it case-insensitive
-    const key = [
-      item.title.toLowerCase(), 
-      item.category.toLowerCase(),
-      item.subcategory?.toLowerCase() || '',
-      // Also consider breeder/source if available in additionalFields
-      item.additionalFields?.breeder?.toLowerCase() || 
-      item.additionalFields?.source?.toLowerCase() || ''
-    ].join('|');
+    // Create a composite key based on title and category (case insensitive)
+    const key = `${item.title.toLowerCase()}|${item.category.toLowerCase()}`;
     
-    if (seenKeys.has(key)) {
-      // If we've seen this key before, this is a duplicate
-      // We keep the older record (lower createdAt timestamp)
-      const existingItem = seenKeys.get(key)!;
+    if (!itemsByTitleCategory.has(key)) {
+      itemsByTitleCategory.set(key, []);
+    }
+    
+    itemsByTitleCategory.get(key)!.push(item);
+  }
+  
+  // Find groups with multiple items (these are potential duplicates)
+  for (const [key, group] of itemsByTitleCategory.entries()) {
+    if (group.length > 1) {
+      console.log(`Found ${group.length} items with key: ${key}`);
       
-      // Parse dates for comparison (earlier created date is kept)
-      const existingDate = new Date(existingItem.createdAt).getTime();
-      const currentDate = new Date(item.createdAt).getTime();
+      // Sort by creation date, oldest first (we generally want to keep the oldest record)
+      group.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
-      if (currentDate > existingDate) {
-        // This is a newer duplicate, mark it for removal
-        duplicateIds.push(item.id);
-      } else {
-        // The existing one is newer, mark it for removal and keep this one
-        duplicateIds.push(existingItem.id);
-        seenKeys.set(key, item);
+      // Keep the first one (oldest), mark the rest as duplicates
+      for (let i = 1; i < group.length; i++) {
+        duplicateIds.push(group[i].id);
       }
-    } else {
-      // This is the first time we've seen this key
-      seenKeys.set(key, item);
     }
   }
   

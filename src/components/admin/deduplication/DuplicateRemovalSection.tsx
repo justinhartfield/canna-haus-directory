@@ -52,7 +52,8 @@ const DuplicateRemovalSection: React.FC<DuplicateRemovalSectionProps> = ({ onRem
       <CardHeader>
         <CardTitle>Remove Duplicate Records</CardTitle>
         <CardDescription>
-          Automatically identify and remove exact duplicate records from the database
+          Automatically identify and remove exact duplicate records from the database.
+          This will keep the oldest record and remove newer duplicates with the same title and category.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,7 +62,8 @@ const DuplicateRemovalSection: React.FC<DuplicateRemovalSectionProps> = ({ onRem
           <AlertTitle className="text-amber-800">Use with caution</AlertTitle>
           <AlertDescription className="text-amber-700">
             Automatic duplicate removal will permanently delete records that are identified as exact
-            duplicates. This action cannot be undone.
+            duplicates based on matching title and category. The oldest record in each group will be kept.
+            This action cannot be undone.
           </AlertDescription>
         </Alert>
         
