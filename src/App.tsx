@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner'; // Shadcn toast provider
+import { AuthProvider } from '@/context/AuthContext'; // Import AuthProvider
 
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
@@ -31,20 +32,22 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="cannahaus-theme">
         <Router>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/api-docs/*" element={<ApiDocs />} />
-            <Route path="/directory" element={<Directory />} />
-            <Route path="/directory/detail/:id" element={<DirectoryDetail />} />
-            <Route path="/directory/category/:category" element={<CategoryView />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/data-management" element={<DataManagement />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster position="bottom-right" />
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/api-docs/*" element={<ApiDocs />} />
+              <Route path="/directory" element={<Directory />} />
+              <Route path="/directory/detail/:id" element={<DirectoryDetail />} />
+              <Route path="/directory/category/:category" element={<CategoryView />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/data-management" element={<DataManagement />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster position="bottom-right" />
+          </AuthProvider>
         </Router>
       </ThemeProvider>
     </QueryClientProvider>
