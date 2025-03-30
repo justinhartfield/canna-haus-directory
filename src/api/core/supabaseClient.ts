@@ -6,21 +6,21 @@ import { Database } from "@/integrations/supabase/types";
 // Define the table names as a type literal for type safety
 type TableNames = 'directory_items' | 'profiles' | 'user_settings';
 
-// Type helper to get the row type based on table name
+// Helper type for getting row types
 type TableRow<T extends TableNames> = 
-  T extends 'directory_items' ? any :  // Use any temporarily since directory_items is not in the types yet
+  T extends 'directory_items' ? Database['public']['Tables']['directory_items']['Row'] :
   T extends 'profiles' ? Database['public']['Tables']['profiles']['Row'] :
   Database['public']['Tables']['user_settings']['Row'];
 
-// Type helper for Insert types
+// Helper type for insert operations
 type TableInsert<T extends TableNames> = 
-  T extends 'directory_items' ? any :  // Use any temporarily
+  T extends 'directory_items' ? Database['public']['Tables']['directory_items']['Insert'] :
   T extends 'profiles' ? Database['public']['Tables']['profiles']['Insert'] :
   Database['public']['Tables']['user_settings']['Insert'];
 
-// Type helper for Update types
+// Helper type for update operations
 type TableUpdate<T extends TableNames> = 
-  T extends 'directory_items' ? any :  // Use any temporarily
+  T extends 'directory_items' ? Database['public']['Tables']['directory_items']['Update'] :
   T extends 'profiles' ? Database['public']['Tables']['profiles']['Update'] :
   Database['public']['Tables']['user_settings']['Update'];
 
@@ -40,8 +40,7 @@ export const apiClient = {
       single?: boolean
     }
   ): Promise<PostgrestResponse<TableRow<T>[]>> => {
-    // Type assertion to handle missing type in Database definition
-    let query = supabase.from(table as any).select(options?.columns || '*');
+    let query = supabase.from(table).select(options?.columns || '*');
     
     // Apply filters if provided
     if (options?.filters) {
@@ -51,11 +50,10 @@ export const apiClient = {
     }
     
     if (options?.single) {
-      const result = await query.single();
-      return result as unknown as PostgrestResponse<TableRow<T>[]>;
+      return await query.single() as PostgrestResponse<TableRow<T>[]>;
     }
     
-    return await query as unknown as PostgrestResponse<TableRow<T>[]>;
+    return await query as PostgrestResponse<TableRow<T>[]>;
   },
   
   /**
@@ -68,15 +66,13 @@ export const apiClient = {
       returning?: boolean 
     }
   ): Promise<PostgrestResponse<TableRow<T>>> => {
-    // Type assertion to handle missing type in Database definition
-    const query = supabase.from(table as any).insert(data as any);
+    const query = supabase.from(table).insert(data);
     
     if (options?.returning !== false) {
-      const result = await query.select('*').single();
-      return result as unknown as PostgrestResponse<TableRow<T>>;
+      return await query.select().single() as PostgrestResponse<TableRow<T>>;
     }
     
-    return await query as unknown as PostgrestResponse<null>;
+    return await query as PostgrestResponse<null>;
   },
   
   /**
@@ -92,15 +88,13 @@ export const apiClient = {
     }
   ): Promise<PostgrestResponse<TableRow<T>>> => {
     const idField = options?.idField || 'id';
-    // Type assertion to handle missing type in Database definition
-    const query = supabase.from(table as any).update(data as any).eq(idField as any, id);
+    const query = supabase.from(table).update(data).eq(idField, id);
     
     if (options?.returning !== false) {
-      const result = await query.select('*').single();
-      return result as unknown as PostgrestResponse<TableRow<T>>;
+      return await query.select().single() as PostgrestResponse<TableRow<T>>;
     }
     
-    return await query as unknown as PostgrestResponse<null>;
+    return await query as PostgrestResponse<null>;
   },
   
   /**
@@ -112,8 +106,7 @@ export const apiClient = {
     options?: { idField?: string }
   ): Promise<PostgrestResponse<null>> => {
     const idField = options?.idField || 'id';
-    // Type assertion to handle missing type in Database definition
-    return await supabase.from(table as any).delete().eq(idField as any, id) as unknown as PostgrestResponse<null>;
+    return await supabase.from(table).delete().eq(idField, id) as PostgrestResponse<null>;
   },
 
   /**
@@ -126,14 +119,12 @@ export const apiClient = {
       returning?: boolean
     }
   ): Promise<PostgrestResponse<TableRow<T>[]>> => {
-    // Type assertion to handle missing type in Database definition
-    const query = supabase.from(table as any).insert(data as any[]);
+    const query = supabase.from(table).insert(data);
     
     if (options?.returning !== false) {
-      const result = await query.select('*');
-      return result as unknown as PostgrestResponse<TableRow<T>[]>;
+      return await query.select() as PostgrestResponse<TableRow<T>[]>;
     }
     
-    return await query as unknown as PostgrestResponse<null>;
+    return await query as PostgrestResponse<null>;
   }
 };

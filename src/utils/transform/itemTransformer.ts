@@ -92,6 +92,9 @@ export function transformDataRow(
     baseItem.additionalFields = {};
   }
   
+  // Log the additional fields for debugging
+  console.log('Additional fields:', JSON.stringify(baseItem.additionalFields));
+  
   // Construct the final directory item
   const directoryItem: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
     title: finalTitle,
