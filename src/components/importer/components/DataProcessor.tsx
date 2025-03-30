@@ -6,6 +6,7 @@ import { DirectoryItem } from '@/types/directory';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
+import { bulkInsertDirectoryItems } from '@/api/directoryService';
 
 interface DataProcessorProps {
   file: File;
@@ -28,10 +29,14 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'uploading'>('idle');
 
   const handleProcessFile = async () => {
     setIsProcessing(true);
     setProgress(0);
+    setUploadProgress(0);
+    setCurrentStatus('processing');
     
     try {
       // Validate mappings
@@ -90,22 +95,37 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
         throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
       }
       
-      // Show success or partial success message
-      if (result.errorCount > 0) {
-        toast({
-          title: "Processing Completed with Warnings",
-          description: `Processed ${result.processedRows} of ${result.totalRows} rows. ${result.errorCount} rows had issues but were processed with fallback values.`,
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Processing Complete",
-          description: `Successfully processed ${result.processedRows} of ${result.totalRows} rows`,
-        });
-      }
+      // Now upload to Supabase
+      setCurrentStatus('uploading');
       
-      // Return processed items to the parent component
-      onComplete(result.items as unknown as DirectoryItem[]);
+      // Batch upload to Supabase if there are successful items
+      if (result.items.length > 0) {
+        try {
+          // Upload processed items to Supabase
+          setUploadProgress(10);
+          const uploadedItems = await bulkInsertDirectoryItems(result.items as unknown as DirectoryItem[]);
+          setUploadProgress(100);
+          
+          toast({
+            title: "Upload Complete",
+            description: `Successfully uploaded ${uploadedItems.length} items to database`,
+          });
+          
+          // Return processed and uploaded items to the parent component
+          onComplete(uploadedItems);
+        } catch (uploadError) {
+          console.error("Error uploading to Supabase:", uploadError);
+          toast({
+            title: "Upload Failed",
+            description: uploadError instanceof Error ? uploadError.message : "Failed to upload data to the database",
+            variant: "destructive"
+          });
+          // Still return the processed items so they're not lost
+          onComplete(result.items as unknown as DirectoryItem[]);
+        }
+      } else {
+        onComplete([]);
+      }
       
     } catch (error) {
       console.error("Error processing file:", error);
@@ -115,20 +135,36 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
         variant: "destructive"
       });
       setProgress(0);
+      setUploadProgress(0);
     } finally {
       setIsProcessing(false);
+      setCurrentStatus('idle');
     }
   };
 
   return (
     <div className="space-y-4">
       {isProcessing && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Uploading and processing data...</span>
-            <span>{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
+        <div className="space-y-4">
+          {currentStatus === 'processing' && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Processing data...</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
+          
+          {currentStatus === 'uploading' && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Uploading to database...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+          )}
         </div>
       )}
       
@@ -145,7 +181,9 @@ export const DataProcessor: React.FC<DataProcessorProps> = ({
           onClick={handleProcessFile}
           disabled={isProcessing}
         >
-          {isProcessing ? "Processing..." : "Upload Data"}
+          {isProcessing ? 
+            (currentStatus === 'processing' ? "Processing..." : "Uploading...") 
+            : "Upload Data"}
         </Button>
       </div>
     </div>

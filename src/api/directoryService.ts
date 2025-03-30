@@ -3,105 +3,152 @@ import { supabase } from "@/integrations/supabase/client";
 import { DirectoryItem } from "@/types/directory";
 
 /**
- * Mock implementation for the directory service
- * This can be replaced with actual API calls when the backend is ready
- */
-
-// Mock data for development
-const mockItems: DirectoryItem[] = [];
-
-/**
- * Fetches all directory items
+ * Fetches all directory items from Supabase
  */
 export async function getDirectoryItems(): Promise<DirectoryItem[]> {
-  // Mock implementation returns the mock data
-  // This should be replaced with actual API calls
-  return Promise.resolve([...mockItems]);
+  const { data, error } = await supabase
+    .from('directory_items')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching directory items:", error);
+    throw error;
+  }
+  
+  return data || [];
 }
 
 /**
- * Fetches a directory item by ID
+ * Fetches a directory item by ID from Supabase
  */
 export async function getDirectoryItemById(id: string): Promise<DirectoryItem | null> {
-  // Mock implementation finds an item by ID
-  const item = mockItems.find(item => item.id === id);
-  return Promise.resolve(item || null);
+  const { data, error } = await supabase
+    .from('directory_items')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // Item not found
+      return null;
+    }
+    console.error("Error fetching directory item:", error);
+    throw error;
+  }
+  
+  return data;
 }
 
 /**
- * Fetches directory items by category
+ * Fetches directory items by category from Supabase
  */
 export async function getDirectoryItemsByCategory(category: string): Promise<DirectoryItem[]> {
-  // Mock implementation filters items by category
-  const items = mockItems.filter(item => item.category === category);
-  return Promise.resolve(items);
+  const { data, error } = await supabase
+    .from('directory_items')
+    .select('*')
+    .eq('category', category);
+  
+  if (error) {
+    console.error("Error fetching directory items by category:", error);
+    throw error;
+  }
+  
+  return data || [];
 }
 
 /**
- * Creates a new directory item
+ * Creates a new directory item in Supabase
  */
 export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<DirectoryItem> {
-  // Generate an ID and timestamps
-  const newItem: DirectoryItem = {
-    id: String(Date.now()),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...item
-  };
+  const { data, error } = await supabase
+    .from('directory_items')
+    .insert({
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      subcategory: item.subcategory,
+      tags: item.tags,
+      imageUrl: item.imageUrl,
+      thumbnailUrl: item.thumbnailUrl,
+      jsonLd: item.jsonLd,
+      metaData: item.metaData,
+      additionalFields: item.additionalFields,
+    })
+    .select('*')
+    .single();
   
-  // Add to mock data
-  mockItems.push(newItem);
+  if (error) {
+    console.error("Error creating directory item:", error);
+    throw error;
+  }
   
-  return Promise.resolve(newItem);
+  return data;
 }
 
 /**
- * Updates an existing directory item
+ * Updates an existing directory item in Supabase
  */
 export async function updateDirectoryItem(id: string, item: Partial<DirectoryItem>): Promise<DirectoryItem | null> {
-  // Find the item to update
-  const index = mockItems.findIndex(item => item.id === id);
-  if (index === -1) return Promise.resolve(null);
+  const { data, error } = await supabase
+    .from('directory_items')
+    .update(item)
+    .eq('id', id)
+    .select('*')
+    .single();
   
-  // Update the item
-  const updatedItem: DirectoryItem = {
-    ...mockItems[index],
-    ...item,
-    updatedAt: new Date().toISOString()
-  };
+  if (error) {
+    console.error("Error updating directory item:", error);
+    throw error;
+  }
   
-  mockItems[index] = updatedItem;
-  
-  return Promise.resolve(updatedItem);
+  return data;
 }
 
 /**
- * Deletes a directory item
+ * Deletes a directory item from Supabase
  */
 export async function deleteDirectoryItem(id: string): Promise<boolean> {
-  // Find the item to delete
-  const index = mockItems.findIndex(item => item.id === id);
-  if (index === -1) return Promise.resolve(false);
+  const { error } = await supabase
+    .from('directory_items')
+    .delete()
+    .eq('id', id);
   
-  // Remove the item
-  mockItems.splice(index, 1);
+  if (error) {
+    console.error("Error deleting directory item:", error);
+    throw error;
+  }
   
-  return Promise.resolve(true);
+  return true;
 }
 
 /**
- * Bulk inserts directory items
+ * Bulk inserts directory items into Supabase
  */
 export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<DirectoryItem[]> {
-  const newItems: DirectoryItem[] = items.map(item => ({
-    id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...item
+  // Format items for insertion
+  const insertData = items.map(item => ({
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    subcategory: item.subcategory,
+    tags: item.tags,
+    imageUrl: item.imageUrl,
+    thumbnailUrl: item.thumbnailUrl,
+    jsonLd: item.jsonLd,
+    metaData: item.metaData || {},
+    additionalFields: item.additionalFields || {}
   }));
   
-  // Add all items to mock data
-  mockItems.push(...newItems);
+  const { data, error } = await supabase
+    .from('directory_items')
+    .insert(insertData)
+    .select('*');
   
-  return Promise.resolve(newItems);
+  if (error) {
+    console.error("Error bulk inserting directory items:", error);
+    throw error;
+  }
+  
+  return data || [];
 }
