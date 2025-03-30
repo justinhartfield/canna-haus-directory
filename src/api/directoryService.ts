@@ -15,7 +15,24 @@ export async function getDirectoryItems(): Promise<DirectoryItem[]> {
     throw error;
   }
   
-  return data || [];
+  // Transform the data to match our DirectoryItem interface
+  const transformedData: DirectoryItem[] = (data || []).map(item => ({
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    subcategory: item.subcategory || undefined,
+    tags: item.tags || [],
+    imageUrl: item.imageUrl || undefined,
+    thumbnailUrl: item.thumbnailUrl || undefined,
+    jsonLd: item.jsonLd || {},
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    metaData: item.metaData || {},
+    additionalFields: item.additionalFields || {}
+  }));
+  
+  return transformedData;
 }
 
 /**
@@ -37,7 +54,26 @@ export async function getDirectoryItemById(id: string): Promise<DirectoryItem | 
     throw error;
   }
   
-  return data;
+  if (!data) return null;
+  
+  // Transform the data to match our DirectoryItem interface
+  const transformedData: DirectoryItem = {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    subcategory: data.subcategory || undefined,
+    tags: data.tags || [],
+    imageUrl: data.imageUrl || undefined,
+    thumbnailUrl: data.thumbnailUrl || undefined,
+    jsonLd: data.jsonLd || {},
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    metaData: data.metaData || {},
+    additionalFields: data.additionalFields || {}
+  };
+  
+  return transformedData;
 }
 
 /**
@@ -54,7 +90,24 @@ export async function getDirectoryItemsByCategory(category: string): Promise<Dir
     throw error;
   }
   
-  return data || [];
+  // Transform the data to match our DirectoryItem interface
+  const transformedData: DirectoryItem[] = (data || []).map(item => ({
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    subcategory: item.subcategory || undefined,
+    tags: item.tags || [],
+    imageUrl: item.imageUrl || undefined,
+    thumbnailUrl: item.thumbnailUrl || undefined,
+    jsonLd: item.jsonLd || {},
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    metaData: item.metaData || {},
+    additionalFields: item.additionalFields || {}
+  }));
+  
+  return transformedData;
 }
 
 /**
@@ -83,7 +136,24 @@ export async function createDirectoryItem(item: Omit<DirectoryItem, 'id' | 'crea
     throw error;
   }
   
-  return data;
+  // Transform the data to match our DirectoryItem interface
+  const transformedData: DirectoryItem = {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    subcategory: data.subcategory || undefined,
+    tags: data.tags || [],
+    imageUrl: data.imageUrl || undefined,
+    thumbnailUrl: data.thumbnailUrl || undefined,
+    jsonLd: data.jsonLd || {},
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    metaData: data.metaData || {},
+    additionalFields: data.additionalFields || {}
+  };
+  
+  return transformedData;
 }
 
 /**
@@ -102,7 +172,26 @@ export async function updateDirectoryItem(id: string, item: Partial<DirectoryIte
     throw error;
   }
   
-  return data;
+  if (!data) return null;
+  
+  // Transform the data to match our DirectoryItem interface
+  const transformedData: DirectoryItem = {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    subcategory: data.subcategory || undefined,
+    tags: data.tags || [],
+    imageUrl: data.imageUrl || undefined,
+    thumbnailUrl: data.thumbnailUrl || undefined,
+    jsonLd: data.jsonLd || {},
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    metaData: data.metaData || {},
+    additionalFields: data.additionalFields || {}
+  };
+  
+  return transformedData;
 }
 
 /**
@@ -150,5 +239,22 @@ export async function bulkInsertDirectoryItems(items: Array<Omit<DirectoryItem, 
     throw error;
   }
   
-  return data || [];
+  // Transform the data to match our DirectoryItem interface
+  const transformedData: DirectoryItem[] = (data || []).map(item => ({
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    subcategory: item.subcategory || undefined,
+    tags: item.tags || [],
+    imageUrl: item.imageUrl || undefined,
+    thumbnailUrl: item.thumbnailUrl || undefined,
+    jsonLd: item.jsonLd || {},
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    metaData: item.metaData || {},
+    additionalFields: item.additionalFields || {}
+  }));
+  
+  return transformedData;
 }
