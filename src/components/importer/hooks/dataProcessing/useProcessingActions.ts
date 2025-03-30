@@ -1,38 +1,37 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { DirectoryItem } from '@/types/directory';
+import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { bulkInsertDirectoryItems } from '@/api/services/directoryItem/bulkOperations';
 import { checkBatchForDuplicates } from '@/api/services/directoryItem/duplicateChecking';
+import { ProcessingResult, TempDirectoryItem } from './types';
 
-type ProcessingResult = {
-  success: DirectoryItem[];
-  errors: Array<{ item: any; error: string }>;
-  duplicates: Array<{ item: any; error: string }>;
-};
-
-interface UseDataProcessingProps {
-  onComplete?: (result: ProcessingResult) => void;
-}
-
-// For creating temp items without ID, createdAt and updatedAt
-type TempDirectoryItem = Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>;
-
-export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<ProcessingResult | null>(null);
-  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
-  const [processingError, setProcessingError] = useState<Error | null>(null);
-  const [processingSteps, setProcessingSteps] = useState<string[]>([]);
-
-  // Add processing step with timestamp for debugging
-  const addProcessingStep = useCallback((step: string) => {
-    const timestamp = new Date().toISOString();
-    const stepWithTimestamp = `[${timestamp}] ${step}`;
-    console.log(stepWithTimestamp);
-    setProcessingSteps(prev => [...prev, stepWithTimestamp]);
-  }, []);
+export function useProcessingActions(
+  isProcessing: boolean,
+  progress: number,
+  processingError: Error | null,
+  processingSteps: string[],
+  results: ProcessingResult | null,
+  setIsProcessing: (value: boolean) => void,
+  setProgress: (value: number) => void,
+  setResults: (value: ProcessingResult | null) => void,
+  setProcessingError: (value: Error | null) => void,
+  setShowDuplicatesModal: (value: boolean) => void,
+  addProcessingStep: (step: string) => void
+) {
+  // Export debug info for diagnosing processing issues
+  const getDebugInfo = useCallback(() => {
+    return {
+      processingSteps,
+      error: processingError,
+      progressValue: progress,
+      hasResults: !!results,
+      resultSummary: results ? {
+        successCount: results.success.length,
+        errorCount: results.errors.length,
+        duplicateCount: results.duplicates.length
+      } : null
+    };
+  }, [processingSteps, processingError, progress, results]);
 
   const processData = useCallback(async (
     data: Array<Record<string, any>>,
@@ -44,11 +43,9 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
     setProgress(0);
     setResults(null);
     setProcessingError(null);
-    setProcessingSteps([]);
+    addProcessingStep("Starting processing of " + data.length + " items");
 
     try {
-      addProcessingStep(`Starting processing of ${data.length} items`);
-      
       // Handle empty data case
       if (!data || data.length === 0) {
         addProcessingStep('No data to process');
@@ -133,7 +130,7 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
       // Step 4: Upload to database (30% progress)
       addProcessingStep('Step 4: Uploading to database');
       setProgress(50);
-      let successItems: DirectoryItem[] = [];
+      let successItems = [];
       let errorItems: Array<{ item: any; error: string }> = [];
 
       if (transformedItems.length > 0) {
@@ -196,11 +193,6 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
       setProgress(100);
       addProcessingStep(`Processing complete: ${successItems.length} succeeded, ${errorItems.length} failed, ${duplicateResults.length} duplicates`);
 
-      // Call onComplete callback if provided
-      if (onComplete) {
-        onComplete(finalResults);
-      }
-
       // Show toast with results
       toast({
         title: 'Processing Complete',
@@ -232,11 +224,6 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
       
       setResults(errorResult);
       
-      // Call onComplete callback if provided
-      if (onComplete) {
-        onComplete(errorResult);
-      }
-      
       // Show error toast
       toast({
         title: 'Processing Failed',
@@ -248,41 +235,10 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
     } finally {
       setIsProcessing(false);
     }
-  }, [onComplete, addProcessingStep]);
-
-  const handleCloseDuplicatesModal = useCallback(() => {
-    setShowDuplicatesModal(false);
-  }, []);
-
-  const handleViewDuplicatesDetails = useCallback(() => {
-    setShowDuplicatesModal(true);
-  }, []);
-
-  // Export debug info for diagnosing processing issues
-  const getDebugInfo = useCallback(() => {
-    return {
-      processingSteps,
-      error: processingError,
-      progressValue: progress,
-      hasResults: !!results,
-      resultSummary: results ? {
-        successCount: results.success.length,
-        errorCount: results.errors.length,
-        duplicateCount: results.duplicates.length
-      } : null
-    };
-  }, [processingSteps, processingError, progress, results]);
+  }, [setIsProcessing, setProgress, setResults, setProcessingError, addProcessingStep, setShowDuplicatesModal]);
 
   return {
-    isProcessing,
-    progress,
-    results,
-    processingError,
-    showDuplicatesModal,
     processData,
-    handleCloseDuplicatesModal,
-    handleViewDuplicatesDetails,
-    getDebugInfo,
-    processingSteps
+    getDebugInfo
   };
-};
+}

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { DirectoryItem } from '@/types/directory';
-import { useDataProcessing } from '@/components/importer/hooks/useDataProcessing';
+import { useDataProcessing } from '@/components/importer/hooks';
 import { toast } from '@/hooks/use-toast';
 
 interface DataProcessorProps {
