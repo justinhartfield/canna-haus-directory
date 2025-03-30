@@ -23,6 +23,7 @@ export async function processFileContent(
     return {
       success: false,
       totalRows: 0,
+      processedFiles: 1,
       processedRows: 0,
       errorCount: 1,
       errors: [
@@ -93,7 +94,8 @@ export async function processBatchFiles(
   files: File[],
   mappingConfig: DataMappingConfig,
   batchSize: number = 100,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
+  validationRules?: Record<string, (value: any) => boolean>
 ): Promise<{
   success: boolean;
   totalFiles: number;
@@ -102,6 +104,7 @@ export async function processBatchFiles(
   successRows: number;
   errorCount: number;
   errors: Array<{ file: string; errors: Array<{ row: number; message: string }> }>;
+  validationFailures?: number;
 }> {
   const result = {
     success: true,
@@ -110,12 +113,15 @@ export async function processBatchFiles(
     totalRows: 0,
     successRows: 0,
     errorCount: 0,
+    validationFailures: 0,
     errors: [] as Array<{ file: string; errors: Array<{ row: number; message: string }> }>
   };
   
   // Process files sequentially to avoid memory issues
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    console.log(`Processing file ${i+1}/${files.length}: ${file.name}`);
+    
     const fileResult = await processFileContent(file, mappingConfig);
     
     result.processedFiles++;
@@ -130,6 +136,24 @@ export async function processBatchFiles(
       });
     }
     
+    // Apply additional validation if rules are provided
+    if (validationRules && fileResult.items.length > 0) {
+      const validatedItems = fileResult.items.filter(item => {
+        for (const [field, validator] of Object.entries(validationRules)) {
+          const value = getNestedProperty(item, field);
+          if (!validator(value)) {
+            result.validationFailures = (result.validationFailures || 0) + 1;
+            return false;
+          }
+        }
+        return true;
+      });
+      
+      // Update the success count based on validation
+      result.successRows = result.successRows - (fileResult.items.length - validatedItems.length);
+      fileResult.items = validatedItems;
+    }
+    
     // If we have successful items, import them in batches
     if (fileResult.items.length > 0) {
       // Process in batches to avoid memory issues
@@ -137,6 +161,7 @@ export async function processBatchFiles(
         const batch = fileResult.items.slice(j, j + batchSize);
         try {
           await bulkInsertDirectoryItems(batch);
+          console.log(`Imported batch ${Math.floor(j / batchSize) + 1} of file ${file.name}`);
         } catch (error) {
           console.error(`Error importing batch from file ${file.name}:`, error);
           result.errorCount++;
@@ -162,6 +187,15 @@ export async function processBatchFiles(
 }
 
 /**
+ * Helper function to get a nested property from an object using a dot-notation path
+ */
+function getNestedProperty(obj: any, path: string): any {
+  return path.split('.').reduce((prev, curr) => {
+    return prev && prev[curr] !== undefined ? prev[curr] : undefined;
+  }, obj);
+}
+
+/**
  * Update import progress state
  */
 export function updateImportProgress(
@@ -173,3 +207,33 @@ export function updateImportProgress(
     ...updates
   };
 }
+
+/**
+ * Create a validation rule set for data validation
+ */
+export function createValidationRules(rules: Record<string, (value: any) => boolean>): Record<string, (value: any) => boolean> {
+  return rules;
+}
+
+/**
+ * Common validation rules that can be used
+ */
+export const commonValidationRules = {
+  nonEmptyString: (value: any) => typeof value === 'string' && value.trim().length > 0,
+  validUrl: (value: any) => {
+    if (!value) return true; // Optional URLs can be empty
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  positiveNumber: (value: any) => typeof value === 'number' && value > 0,
+  arrayWithItems: (value: any) => Array.isArray(value) && value.length > 0,
+  validJsonLd: (value: any) => 
+    typeof value === 'object' && 
+    value !== null && 
+    '@context' in value && 
+    '@type' in value
+};

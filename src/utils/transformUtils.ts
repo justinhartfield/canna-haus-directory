@@ -10,6 +10,7 @@ export interface ProcessingResult {
   success: boolean;
   totalRows: number;
   processedRows: number;
+  processedFiles?: number;
   errorCount: number;
   errors: Array<{
     row: number;
@@ -30,6 +31,7 @@ export function transformData(
     success: true,
     totalRows: rawData.length,
     processedRows: 0,
+    processedFiles: 1,
     errorCount: 0,
     errors: [],
     items: []
@@ -105,10 +107,14 @@ export function transformDataRow(
   const schemaType = mappingConfig.schemaType || 'Thing';
   const jsonLd = generateJsonLd(baseItem, schemaType, rawItem);
   
+  // Normalize data for consistency
+  const normalizedTitle = typeof baseItem.title === 'string' ? baseItem.title.trim() : String(baseItem.title || '');
+  const normalizedDesc = typeof baseItem.description === 'string' ? baseItem.description.trim() : String(baseItem.description || '');
+  
   // Construct the final directory item
   const directoryItem: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
-    title: validateRequiredField(baseItem.title, 'title', rowIndex),
-    description: validateRequiredField(baseItem.description, 'description', rowIndex),
+    title: validateRequiredField(normalizedTitle, 'title', rowIndex),
+    description: validateRequiredField(normalizedDesc, 'description', rowIndex),
     category,
     subcategory: baseItem.subcategory,
     tags,
@@ -120,4 +126,36 @@ export function transformDataRow(
   };
   
   return directoryItem;
+}
+
+/**
+ * Helper function to normalize string values
+ */
+export function normalizeString(value: any): string {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+/**
+ * Helper function to normalize numeric values
+ */
+export function normalizeNumber(value: any): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Helper function to normalize boolean values
+ */
+export function normalizeBoolean(value: any): boolean | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const lowercased = value.toLowerCase();
+    if (['true', 'yes', 'y', '1'].includes(lowercased)) return true;
+    if (['false', 'no', 'n', '0'].includes(lowercased)) return false;
+  }
+  if (typeof value === 'number') return value !== 0;
+  return null;
 }
