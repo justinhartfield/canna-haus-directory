@@ -1,7 +1,7 @@
 
 import { DirectoryItem, DirectoryFilter } from '@/types/directory';
 import { apiClient } from '../../core/supabaseClient';
-import { transformDatabaseRowToDirectoryItem } from '@/api/transformers/directoryTransformer';
+import { transformDatabaseRowToDirectoryItem, transformDirectoryItemToDatabaseRow } from '@/api/transformers/directoryTransformer';
 
 const TABLE_NAME = 'directory_items' as const;
 
@@ -88,7 +88,10 @@ export async function createDirectoryItem(
   item: Partial<DirectoryItem>
 ): Promise<DirectoryItem> {
   try {
-    const { data, error } = await apiClient.insert(TABLE_NAME, item);
+    // Transform the item to match database column names
+    const dbRow = transformDirectoryItemToDatabaseRow(item);
+    
+    const { data, error } = await apiClient.insert(TABLE_NAME, dbRow);
     
     if (error) {
       console.error('Error creating directory item:', error);
@@ -114,7 +117,10 @@ export async function updateDirectoryItem(
   updates: Partial<DirectoryItem>
 ): Promise<DirectoryItem> {
   try {
-    const { data, error } = await apiClient.update(TABLE_NAME, id, updates);
+    // Transform the updates to match database column names
+    const dbUpdates = transformDirectoryItemToDatabaseRow(updates);
+    
+    const { data, error } = await apiClient.update(TABLE_NAME, id, dbUpdates);
     
     if (error) {
       console.error(`Error updating directory item ${id}:`, error);

@@ -31,12 +31,14 @@ export const processDuplicates = async (duplicateGroups: DuplicateGroup[]): Prom
       
       try {
         if (action === 'merge') {
+          // Get merged data and update the primary record
           const mergedData = mergeRecords(primaryRecord, selectedDuplicateRecords);
+          console.log('Merged data to update:', mergedData);
           await updateDirectoryItem(primaryRecord.id, mergedData);
           results.merged++;
         } else if (action === 'variant') {
           for (const duplicate of selectedDuplicateRecords) {
-            // Fix: Use additionalFields property from our domain model
+            // Use additionalFields property from our domain model
             // but when sending to update, it gets mapped to additionalfields by the transformer
             const updatedFields = {
               additionalFields: {
@@ -44,6 +46,7 @@ export const processDuplicates = async (duplicateGroups: DuplicateGroup[]): Prom
                 isVariantOf: primaryRecord.id
               }
             };
+            console.log('Updating variant:', updatedFields);
             await updateDirectoryItem(duplicate.id, updatedFields);
           }
           results.variants++;
