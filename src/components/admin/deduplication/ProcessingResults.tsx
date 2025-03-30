@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react'; // Replace with lucide-react icon
+import { AlertTriangle } from 'lucide-react';
 
 interface ProcessingResultsProps {
   results: {

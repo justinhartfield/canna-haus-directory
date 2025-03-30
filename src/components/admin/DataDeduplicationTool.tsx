@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useDataDeduplication } from '@/hooks/useDataDeduplication';
+import { useDataDeduplication } from '@/hooks/deduplication/useDataDeduplication';
 import DuplicateGroupCard from './deduplication/DuplicateGroupCard';
 import PreviewDialog from './deduplication/PreviewDialog';
 import ProcessingResults from './deduplication/ProcessingResults';
