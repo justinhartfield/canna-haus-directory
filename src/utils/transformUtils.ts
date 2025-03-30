@@ -67,6 +67,16 @@ export function transformData(
     return result;
   }
   
+  // Add default values if not present in the config
+  if (!mappingConfig.defaultValues) {
+    mappingConfig.defaultValues = {};
+  }
+  
+  // Add fallback value for description to handle missing descriptions
+  if (!mappingConfig.defaultValues.description) {
+    mappingConfig.defaultValues.description = "No description provided";
+  }
+  
   for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
     try {
       const rawItem = rawData[rowIndex];
@@ -80,10 +90,21 @@ export function transformData(
         message: error instanceof Error ? error.message : 'Unknown error during transformation',
         data: rawData[rowIndex]
       });
+      
+      // Only collect up to 20 error messages to avoid overwhelming the user
+      if (result.errorCount >= 20) {
+        result.errors.push({
+          row: -1,
+          message: `Additional errors found but not shown (${rawData.length - rowIndex - 1} rows remaining)`
+        });
+        break;
+      }
     }
   }
   
-  result.success = result.errorCount === 0;
+  // If we have errors but still processed some rows, mark as success
+  // This enables partial imports where some rows may fail
+  result.success = result.processedRows > 0;
   return result;
 }
 
@@ -102,6 +123,9 @@ export function transformDataRow(
   
   // Apply column mappings
   for (const [targetField, sourceField] of Object.entries(columnMappings)) {
+    // Skip if the mapping is to be ignored
+    if (targetField === 'ignore') continue;
+    
     // Check if the source field exists in the raw data
     if (!(sourceField in rawItem)) {
       console.warn(`Source field "${sourceField}" not found in data for mapping to "${targetField}"`);
@@ -145,19 +169,23 @@ export function transformDataRow(
   const normalizedTitle = typeof baseItem.title === 'string' ? baseItem.title.trim() : String(baseItem.title || '');
   const normalizedDesc = typeof baseItem.description === 'string' ? baseItem.description.trim() : String(baseItem.description || '');
   
-  // Validate required fields
-  if (!normalizedTitle) {
-    throw new Error(`Missing required field 'title' at row ${rowIndex + 1}`);
+  // Validate required fields or provide fallbacks
+  let finalTitle = normalizedTitle;
+  if (!finalTitle) {
+    // Generate a title based on row number if missing
+    finalTitle = `Item ${rowIndex + 1}`;
   }
   
-  if (!normalizedDesc) {
-    throw new Error(`Missing required field 'description' at row ${rowIndex + 1}`);
+  let finalDescription = normalizedDesc;
+  if (!finalDescription) {
+    // Use default description or generate one
+    finalDescription = baseItem.defaultDescription || defaultValues.description || `No description provided for item ${rowIndex + 1}`;
   }
   
   // Construct the final directory item
   const directoryItem: Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
-    title: normalizedTitle,
-    description: normalizedDesc,
+    title: finalTitle,
+    description: finalDescription,
     category,
     subcategory: baseItem.subcategory,
     tags,

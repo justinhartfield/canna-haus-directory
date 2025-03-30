@@ -72,11 +72,33 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     setProgress(0);
     
     try {
+      // Validate mappings
+      const hasTitleMapping = columnMappings.some(
+        mapping => mapping.targetField === 'title' && mapping.sourceColumn
+      );
+      
+      const hasDescriptionMapping = columnMappings.some(
+        mapping => mapping.targetField === 'description' && mapping.sourceColumn
+      );
+      
+      if (!hasTitleMapping) {
+        throw new Error("You must map a column to the Title field");
+      }
+      
+      if (!hasDescriptionMapping) {
+        toast({
+          title: "Warning: No Description Field",
+          description: "No column is mapped to Description. A default value will be used.",
+          variant: "warning"
+        });
+      }
+      
       // Create mapping configuration from the user's selections
       const mappingConfig: DataMappingConfig = {
         columnMappings: {},
         defaultValues: {
-          category: selectedCategory
+          category: selectedCategory,
+          description: "No description provided" // Default description for missing values
         },
         schemaType
       };
@@ -97,28 +119,28 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       
       console.log("Processing with mapping config:", mappingConfig);
       
-      // Make sure we have at least title and description mapped
-      if (!mappingConfig.columnMappings.title) {
-        throw new Error("Title field must be mapped");
-      }
-      
-      if (!mappingConfig.columnMappings.description) {
-        throw new Error("Description field must be mapped");
-      }
-      
-      // Process the file
+      // Process the file with progress updates
       const result = await processFileContent(file.file, mappingConfig);
-      
-      if (!result.success) {
-        throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
-      }
       
       setProgress(100);
       
-      toast({
-        title: "Processing Complete",
-        description: `Successfully processed ${result.processedRows} of ${result.totalRows} rows`,
-      });
+      if (!result.success && result.processedRows === 0) {
+        throw new Error(`File processing failed with ${result.errorCount} errors: ${result.errors.map(e => e.message).join(', ')}`);
+      }
+      
+      // Show success or partial success message
+      if (result.errorCount > 0) {
+        toast({
+          title: "Processing Completed with Warnings",
+          description: `Processed ${result.processedRows} of ${result.totalRows} rows. ${result.errorCount} rows had issues but were processed with fallback values.`,
+          variant: "warning"
+        });
+      } else {
+        toast({
+          title: "Processing Complete",
+          description: `Successfully processed ${result.processedRows} of ${result.totalRows} rows`,
+        });
+      }
       
       // Return processed items to the parent component
       onComplete(result.items as unknown as DirectoryItem[]);
@@ -130,6 +152,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive"
       });
+      setProgress(0);
     } finally {
       setIsProcessing(false);
     }
