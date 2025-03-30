@@ -1,28 +1,36 @@
 
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DirectoryItem } from '@/types/directory';
 import { getDirectoryItems } from '@/api/services/directoryItemService';
 
 export const useDirectoryFilters = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, boolean>>({});
   const [filteredData, setFilteredData] = useState<DirectoryItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   const { data: directoryItems = [] } = useQuery({
     queryKey: ['directoryItems'],
     queryFn: getDirectoryItems
   });
   
-  // Parse query parameters (for direct links to filtered categories)
+  // Parse query parameters (for direct links to filtered categories or search)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const categoryParam = params.get('category');
+    const searchParam = params.get('search');
     
     if (categoryParam) {
       setActiveFilters({ [categoryParam.toLowerCase()]: true });
+    }
+    
+    if (searchParam) {
+      setSearchTerm(searchParam);
+      setIsSearching(true);
     }
   }, [location.search]);
   
@@ -33,6 +41,19 @@ export const useDirectoryFilters = () => {
   
   const handleSearch = (term: string) => {
     setSearchTerm(term);
+    setIsSearching(!!term);
+    
+    // Update URL with search parameter
+    if (term) {
+      const params = new URLSearchParams(location.search);
+      params.set('search', term);
+      navigate({ search: params.toString() }, { replace: true });
+    } else {
+      const params = new URLSearchParams(location.search);
+      params.delete('search');
+      navigate({ search: params.toString() }, { replace: true });
+    }
+    
     applyFilters(term, activeFilters);
   };
   
@@ -82,13 +103,20 @@ export const useDirectoryFilters = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setActiveFilters({});
+    setIsSearching(false);
     setFilteredData(directoryItems);
+    
+    // Clear search parameter from URL
+    const params = new URLSearchParams(location.search);
+    params.delete('search');
+    navigate({ search: params.toString() }, { replace: true });
   };
 
   return {
     searchTerm,
     activeFilters,
     filteredData,
+    isSearching,
     handleSearch,
     handleFilter,
     clearFilters

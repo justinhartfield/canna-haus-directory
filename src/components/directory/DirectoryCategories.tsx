@@ -1,11 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { DirectoryItem } from '@/types/directory';
 import CategoryCard from './CategoryCard';
 import DirectoryResults from './DirectoryResults';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface DirectoryCategoriesProps {
   items: DirectoryItem[];
@@ -24,31 +24,41 @@ const DirectoryCategories: React.FC<DirectoryCategoriesProps> = ({
   error,
   onClearFilters
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<DirectoryItem[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const urlSearchTerm = params.get('search') || '';
+  const [searchQuery, setSearchQuery] = React.useState(urlSearchTerm);
+  const [isSearching, setIsSearching] = React.useState(!!urlSearchTerm);
+
+  // Update local search state if URL search parameter changes
+  useEffect(() => {
+    setSearchQuery(urlSearchTerm);
+    setIsSearching(!!urlSearchTerm);
+  }, [urlSearchTerm]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!searchQuery.trim()) {
-      setIsSearching(false);
-      return;
-    }
+    onSearchSubmit();
+  };
 
-    const query = searchQuery.toLowerCase();
-    const results = items.filter(item => 
-      item.title.toLowerCase().includes(query) || 
-      item.description.toLowerCase().includes(query)
-    );
+  const onSearchSubmit = () => {
+    // Trigger the parent component's search handler
+    const params = new URLSearchParams(location.search);
     
-    setSearchResults(results);
-    setIsSearching(true);
+    if (searchQuery.trim()) {
+      params.set('search', searchQuery);
+    } else {
+      params.delete('search');
+      setIsSearching(false);
+    }
+    
+    // We're letting Directory.tsx handle this via the URL change
   };
 
   const clearSearch = () => {
     setSearchQuery('');
     setIsSearching(false);
+    onClearFilters();
   };
 
   if (isLoading) {
@@ -71,8 +81,8 @@ const DirectoryCategories: React.FC<DirectoryCategoriesProps> = ({
     );
   }
 
-  // Show search results if we're searching, otherwise continue with normal flow
-  if (isSearching) {
+  // Show search results if we're searching or in search mode
+  if (isSearching || isSearchMode) {
     return (
       <>
         <div className="mb-6">
@@ -96,37 +106,9 @@ const DirectoryCategories: React.FC<DirectoryCategoriesProps> = ({
           </form>
         </div>
         <DirectoryResults 
-          items={searchResults} 
-          onClearFilters={clearSearch} 
+          items={filteredItems} 
+          onClearFilters={onClearFilters} 
         />
-      </>
-    );
-  }
-
-  if (isSearchMode) {
-    return (
-      <>
-        <div className="mb-6">
-          <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search directory by title or description..."
-              className="pl-9 pr-16"
-            />
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
-              onClick={clearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </form>
-        </div>
-        <DirectoryResults items={filteredItems} onClearFilters={onClearFilters} />
       </>
     );
   }

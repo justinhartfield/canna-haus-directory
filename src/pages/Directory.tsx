@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -9,13 +10,15 @@ import DirectoryCategories from '@/components/directory/DirectoryCategories';
 import { useDirectoryFilters } from '@/hooks/useDirectoryFilters';
 
 const Directory = () => {
+  const location = useLocation();
   const [searchMode, setSearchMode] = useState(false);
   const { 
     filteredData, 
     handleSearch, 
     handleFilter, 
     clearFilters,
-    searchTerm
+    searchTerm,
+    isSearching
   } = useDirectoryFilters();
 
   const { data: directoryItems = [], isLoading, error } = useQuery({
@@ -23,14 +26,31 @@ const Directory = () => {
     queryFn: getDirectoryItems
   });
 
+  // Check URL for search parameters on mount and navigation
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    
+    // Set search mode if there's a search parameter
+    if (searchParam) {
+      setSearchMode(true);
+      handleSearch(searchParam);
+    }
+  }, [location.search]);
+
   const handleSearchInput = (term: string) => {
     handleSearch(term);
-    setSearchMode(!!term);
+    setSearchMode(!!term || isSearching);
   };
 
   const handleFilterChange = (filters: Record<string, boolean>) => {
     handleFilter(filters);
-    setSearchMode(Object.values(filters).some(value => value === true));
+    setSearchMode(Object.values(filters).some(value => value === true) || isSearching);
+  };
+
+  const handleClearFilters = () => {
+    clearFilters();
+    setSearchMode(false);
   };
 
   return (
@@ -59,7 +79,7 @@ const Directory = () => {
             isSearchMode={searchMode}
             isLoading={isLoading}
             error={error instanceof Error ? error : null}
-            onClearFilters={clearFilters}
+            onClearFilters={handleClearFilters}
           />
         </div>
       </main>
