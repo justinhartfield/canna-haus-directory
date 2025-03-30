@@ -20,6 +20,8 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     file: File;
     type: 'csv' | 'xlsx';
   } | null>(null);
+  
+  const [processedData, setProcessedData] = useState<any[] | null>(null);
 
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -44,6 +46,7 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
       file,
       type: fileType
     });
+    setProcessedData(null);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -57,16 +60,34 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     disabled: !!selectedFile
   });
   
-  const handleComplete = (data: any[]) => {
-    if (onComplete) {
-      onComplete(data);
+  const handleMappingComplete = (data: any[]) => {
+    setProcessedData(data);
+    toast({
+      title: "Processing Complete",
+      description: `Successfully processed ${data.length} records. Click "Import Data" to add them to the database.`,
+    });
+  };
+  
+  const handleImport = () => {
+    if (processedData && processedData.length > 0) {
+      if (onComplete) {
+        onComplete(processedData);
+      }
+      
+      toast({
+        title: "Import Complete",
+        description: `Successfully imported ${processedData.length} records.`,
+      });
+      
+      // Reset the component
+      setSelectedFile(null);
+      setProcessedData(null);
     }
-    // Reset the component
-    setSelectedFile(null);
   };
   
   const handleCancel = () => {
     setSelectedFile(null);
+    setProcessedData(null);
   };
 
   return (
@@ -78,8 +99,10 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
         {selectedFile ? (
           <AIColumnMapper 
             file={selectedFile}
-            onComplete={handleComplete}
+            onComplete={handleMappingComplete}
             onCancel={handleCancel}
+            onImport={handleImport}
+            canImport={!!processedData && processedData.length > 0}
             category={category}
           />
         ) : (

@@ -4,6 +4,7 @@ import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
 import DataProcessor from './components/DataProcessor';
 import { AIColumnMapperProps } from './types/importerTypes';
 import { DEFAULT_CATEGORIES, SCHEMA_TYPE_OPTIONS } from './constants/importerConstants';
+import ProcessingControls from './ProcessingControls';
 
 // Import the extracted components
 import MappingHeader from './MappingHeader';
@@ -16,6 +17,8 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   file,
   onComplete,
   onCancel,
+  onImport,
+  canImport = false,
   category = 'Uncategorized'
 }) => {
   // Use our custom hook for most of the component's logic
@@ -107,6 +110,18 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         subcategory={undefined}
         onProcessComplete={handleProcessComplete}
         onProgress={setProgress}
+      />
+      
+      <ProcessingControls 
+        isProcessing={isProcessing}
+        progress={progress}
+        onProcess={() => {
+          // Process data
+          setIsProcessing(true);
+        }}
+        onCancel={onCancel}
+        onImport={onImport}
+        canImport={canImport}
       />
     </div>
   );
