@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { AlertTriangle } from 'lucide-react'; // Replace with lucide-react icon
 
 interface ProcessingResultsProps {
   results: {
@@ -44,7 +44,7 @@ const ProcessingResults: React.FC<ProcessingResultsProps> = ({ results }) => {
           
           {results.errors.length > 0 && (
             <Alert variant="destructive">
-              <ExclamationTriangleIcon className="h-4 w-4" />
+              <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Processing Errors</AlertTitle>
               <AlertDescription>
                 <ul className="mt-2 list-disc pl-5 space-y-1">
