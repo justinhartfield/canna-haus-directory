@@ -120,6 +120,8 @@ export async function updateDirectoryItem(
     // Transform the updates to match database column names
     const dbUpdates = transformDirectoryItemToDatabaseRow(updates);
     
+    console.log(`Updating directory item ${id} with:`, dbUpdates);
+    
     const { data, error } = await apiClient.update(TABLE_NAME, id, dbUpdates);
     
     if (error) {
@@ -127,8 +129,13 @@ export async function updateDirectoryItem(
       throw error;
     }
     
+    // Check if data was returned
     if (!data || !Array.isArray(data) || data.length === 0) {
-      throw new Error('No data returned from update operation');
+      // Handle the case where no data is returned but the update was successful
+      console.log(`Successfully updated item ${id}, but no data was returned. Fetching the updated item...`);
+      
+      // Fetch the updated item to return it
+      return await getDirectoryItemById(id);
     }
     
     return transformDatabaseRowToDirectoryItem(data[0]);

@@ -76,6 +76,11 @@ export const apiClient = {
     // Use `any` cast to bypass TypeScript's strict checking on the eq() method
     const query = supabase.from(table).update(data).eq(idField as any, id);
     
+    // Log the update operation
+    console.log(`Executing update on ${table} with id ${id}`, {
+      fields: Object.keys(data).join(', ')
+    });
+    
     if (options?.returning !== false) {
       return await query.select().single();
     }
