@@ -55,9 +55,9 @@ export async function batchProcessItems(
   // Step 5: Transform data to directory items
   addProcessingStep('Step 5: Transforming data');
   const directory: TempDirectoryItem[] = [];
-  const errors = [];
+  const errors: Array<{ item: any; error: string }> = [];
   const titles = new Set<string>();
-  const duplicates: TempDirectoryItem[] = [];
+  const duplicates: Array<{ item: any; error: string }> = [];
   
   // Process items in batches to avoid UI freezing
   for (let i = 0; i < totalItems; i += batchSize) {
@@ -80,7 +80,7 @@ export async function batchProcessItems(
         // Check for duplicates based on title (you might want a more sophisticated approach)
         if (titles.has(item.title)) {
           duplicates.push({
-            ...item,
+            item: item,
             error: 'Duplicate title'
           });
           continue;
@@ -91,9 +91,8 @@ export async function batchProcessItems(
       } catch (error) {
         console.error(`Error processing item ${i + j}:`, error);
         errors.push({
-          row: i + j,
+          item: batch[j],
           message: error instanceof Error ? error.message : 'Unknown error',
-          item: batch[j]
         });
       }
     }
@@ -107,7 +106,7 @@ export async function batchProcessItems(
     setShowDuplicatesModal(true);
   }
   
-  // Update final result
+  // Update final result - ensuring types match
   result.success = directory;
   result.errors = errors;
   result.duplicates = duplicates;

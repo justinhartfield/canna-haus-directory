@@ -5,8 +5,8 @@ import { DirectoryItem } from '@/types/directory';
 export type TempDirectoryItem = Omit<DirectoryItem, 'id' | 'createdAt' | 'updatedAt'>;
 
 export type ProcessingResult = {
-  success: DirectoryItem[];
-  errors: Array<{ item: any; error: string }>;
+  success: TempDirectoryItem[];
+  errors: Array<{ item: any; message: string }>;
   duplicates: Array<{ item: any; error: string }>;
   missingColumns?: string[]; // This property is now properly defined
 };
