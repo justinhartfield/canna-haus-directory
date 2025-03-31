@@ -84,8 +84,14 @@ export async function bulkInsertDirectoryItems(
               error: error.message
             });
           } else if (data) {
-            // Fix: Ensure we're pushing a single item, not an array
-            results.success.push(data as DirectoryItem);
+            // Fix: Properly handle the data - check if it's an array and extract the first item if needed
+            if (Array.isArray(data)) {
+              if (data.length > 0) {
+                results.success.push(data[0] as unknown as DirectoryItem);
+              }
+            } else {
+              results.success.push(data as unknown as DirectoryItem);
+            }
           }
         } catch (itemError: any) {
           results.errors.push({
