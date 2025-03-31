@@ -4,7 +4,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SmartImporter from '@/components/importer/SmartImporter';
 import FolderBasedImporter from '@/components/admin/FolderBasedImporter';
-import DataDeduplicationTool from '@/components/admin/DataDeduplicationTool';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -51,7 +50,6 @@ const Admin: React.FC = () => {
               <TabsList className="mb-6">
                 <TabsTrigger value="smart">Smart AI Import</TabsTrigger>
                 <TabsTrigger value="folder">Folder-Based Import</TabsTrigger>
-                <TabsTrigger value="deduplication">Data Deduplication</TabsTrigger>
               </TabsList>
               
               <TabsContent value="smart">
@@ -60,10 +58,6 @@ const Admin: React.FC = () => {
               
               <TabsContent value="folder">
                 <FolderBasedImporter />
-              </TabsContent>
-              
-              <TabsContent value="deduplication">
-                <DataDeduplicationTool />
               </TabsContent>
             </Tabs>
           </div>

@@ -20,11 +20,6 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     file: File;
     type: 'csv' | 'xlsx';
   } | null>(null);
-  
-  const [processedData, setProcessedData] = useState<any[] | null>(null);
-  const [processingComplete, setProcessingComplete] = useState(false);
-  const [importInProgress, setImportInProgress] = useState(false);
-  const [importComplete, setImportComplete] = useState(false);
 
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -45,14 +40,10 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
       return;
     }
     
-    // Reset all states when a new file is uploaded
     setSelectedFile({
       file,
       type: fileType
     });
-    setProcessedData(null);
-    setProcessingComplete(false);
-    setImportComplete(false);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -66,71 +57,17 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     disabled: !!selectedFile
   });
   
-  const handleMappingComplete = (data: any[]) => {
-    console.log('Processing complete, received data:', data.length);
-    setProcessedData(data);
-    setProcessingComplete(true);
-    toast({
-      title: "Processing Complete",
-      description: `Successfully processed ${data.length} records. Click "Import Data" to add them to the database.`,
-    });
-  };
-  
-  const handleImport = async () => {
-    if (processedData && processedData.length > 0) {
-      setImportInProgress(true);
-      
-      try {
-        // This is the critical part - pass the data to the parent's onComplete handler
-        if (onComplete) {
-          await onComplete(processedData);
-        }
-        
-        toast({
-          title: "Import Complete",
-          description: `Successfully imported ${processedData.length} records.`,
-        });
-        
-        // Mark import as complete BEFORE resetting
-        setImportComplete(true);
-        
-        // Reset the component only after successful import and with a delay
-        // This ensures the user sees the success state before reset
-        setTimeout(() => {
-          setSelectedFile(null);
-          setProcessedData(null);
-          setProcessingComplete(false);
-          setImportInProgress(false);
-        }, 1500);
-      } catch (error) {
-        console.error('Error during import:', error);
-        setImportInProgress(false);
-        
-        toast({
-          title: "Import Failed",
-          description: error instanceof Error ? error.message : "An unknown error occurred",
-          variant: "destructive"
-        });
-      }
+  const handleComplete = (data: any[]) => {
+    if (onComplete) {
+      onComplete(data);
     }
+    // Reset the component
+    setSelectedFile(null);
   };
   
   const handleCancel = () => {
     setSelectedFile(null);
-    setProcessedData(null);
-    setProcessingComplete(false);
-    setImportInProgress(false);
-    setImportComplete(false);
   };
-
-  // Log state for debugging
-  console.log('SmartImporter state:', { 
-    hasProcessedData: !!processedData,
-    dataLength: processedData?.length || 0,
-    processingComplete,
-    importInProgress,
-    importComplete
-  });
 
   return (
     <Card className="w-full">
@@ -141,10 +78,8 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
         {selectedFile ? (
           <AIColumnMapper 
             file={selectedFile}
-            onComplete={handleMappingComplete}
+            onComplete={handleComplete}
             onCancel={handleCancel}
-            onImport={handleImport}
-            canImport={processingComplete && !!processedData && processedData.length > 0 && !importInProgress && !importComplete}
             category={category}
           />
         ) : (

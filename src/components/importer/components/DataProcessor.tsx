@@ -1,121 +1,80 @@
 
-import React, { useEffect, useState } from 'react';
-import { useDataProcessing } from '../hooks/dataProcessing';
-import DuplicatesAlert from './DuplicatesAlert';
-import MissingColumnsAlert from './MissingColumnsAlert';
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { useDataProcessing } from '../hooks/useDataProcessing';
+import { ProgressIndicator } from './ProgressIndicator';
+import { MissingColumnsAlert } from './MissingColumnsAlert';
+import { DataMappingConfig, MappingConfiguration } from '../types/importerTypes';
 
 interface DataProcessorProps {
-  data: Array<Record<string, any>>;
-  mappings: Record<string, string>;
-  category: string;
-  subcategory?: string;
-  onProcessComplete?: (result: any) => void;
-  onProgress?: (progress: number) => void;
+  file: File;
+  columnMappings: MappingConfiguration[];
+  customFields: Record<string, string>;
+  selectedCategory: string;
+  schemaType: string;
+  onComplete: (data: any[]) => void;
+  onCancel: () => void;
 }
 
-const DataProcessor: React.FC<DataProcessorProps> = ({
-  data,
-  mappings,
-  category,
-  subcategory,
-  onProcessComplete,
-  onProgress
+export const DataProcessor: React.FC<DataProcessorProps> = ({
+  file,
+  columnMappings,
+  customFields,
+  selectedCategory,
+  schemaType,
+  onComplete,
+  onCancel
 }) => {
-  const [processingStarted, setProcessingStarted] = useState(false);
-  const [hasResults, setHasResults] = useState(false);
-  const [dataLength, setDataLength] = useState(0);
-  
   const {
     isProcessing,
     progress,
-    results,
-    showDuplicatesModal,
-    handleCloseDuplicatesModal,
-    processData,
-    processingSteps
-  } = useDataProcessing({
-    onComplete: onProcessComplete
-  });
-  
-  // Debug logging
-  useEffect(() => {
-    console.log("DataProcessor state:", {
-      processingStarted,
-      isProcessing,
-      progress,
-      hasResults: !!results,
-      dataLength,
-      resultsSuccess: results?.success?.length || 0
+    uploadProgress,
+    currentStatus,
+    missingColumns,
+    processFile
+  } = useDataProcessing();
+
+  const handleProcessFile = async () => {
+    const result = await processFile({
+      file,
+      columnMappings,
+      customFields,
+      selectedCategory,
+      schemaType
     });
-  }, [processingStarted, isProcessing, progress, results, dataLength]);
-  
-  // Pass progress to parent component if needed
-  useEffect(() => {
-    if (onProgress) {
-      onProgress(progress);
-    }
-  }, [progress, onProgress]);
-
-  // Start processing when the component mounts and has data
-  useEffect(() => {
-    const startProcessing = async () => {
-      if (!processingStarted && data && data.length > 0 && category && Object.keys(mappings).length > 0) {
-        setProcessingStarted(true);
-        setDataLength(data.length);
-        
-        try {
-          // Only process if we have valid data and mappings
-          if (!mappings.title) {
-            console.error("No title mapping specified");
-            return;
-          }
-          
-          // Process the data
-          const result = await processData(data, mappings, category, subcategory);
-          setHasResults(true);
-          console.log("Processing completed with result:", {
-            successCount: result.success.length,
-            errorCount: result.errors.length,
-            duplicateCount: result.duplicates.length
-          });
-          
-          // Ensure the progress is set to 100% when complete
-          if (onProgress) {
-            onProgress(100);
-          }
-          
-          if (onProcessComplete && result) {
-            onProcessComplete(result.success);
-          }
-        } catch (error) {
-          console.error("Error processing data:", error);
-          // Set progress to 100 even on error, to unblock the UI
-          if (onProgress) {
-            onProgress(100);
-          }
-        }
-      }
-    };
     
-    startProcessing();
-  }, [data, mappings, category, subcategory, processData, processingStarted, onProgress, onProcessComplete]);
+    onComplete(result.items);
+  };
 
-  // Don't render anything visible, this is a processing component
   return (
-    <>
-      {showDuplicatesModal && results && results.duplicates && (
-        <DuplicatesAlert 
-          duplicates={results.duplicates}
-          onClose={handleCloseDuplicatesModal}
-        />
-      )}
-      {results && results.missingColumns && results.missingColumns.length > 0 && (
-        <MissingColumnsAlert 
-          missingColumns={results.missingColumns}
-        />
-      )}
-    </>
+    <div className="space-y-4">
+      <MissingColumnsAlert missingColumns={missingColumns} />
+      
+      <ProgressIndicator 
+        isProcessing={isProcessing}
+        currentStatus={currentStatus}
+        progress={progress}
+        uploadProgress={uploadProgress}
+      />
+      
+      <div className="flex justify-end space-x-3">
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          disabled={isProcessing}
+        >
+          Cancel
+        </Button>
+        
+        <Button
+          onClick={handleProcessFile}
+          disabled={isProcessing}
+        >
+          {isProcessing ? 
+            (currentStatus === 'processing' ? "Processing..." : "Uploading...") 
+            : "Upload Data"}
+        </Button>
+      </div>
+    </div>
   );
 };
-
-export default DataProcessor;

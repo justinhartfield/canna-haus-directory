@@ -30,10 +30,8 @@ export interface DirectoryCategory {
 }
 
 export interface DirectoryFilter {
-  category?: string;
-  subcategory?: string;
-  categories?: boolean[];
-  searchTerm?: string;
+  categories: boolean[];
+  searchTerm: string;
 }
 
 export interface ImportProgress {
@@ -53,7 +51,7 @@ export interface ColumnMapping {
   sourceColumn: string;
   targetField: string;
   isCustomField: boolean;
-  sampleData?: any;
+  sampleData?: string;
 }
 
 // The import analysis result
@@ -61,7 +59,4 @@ export interface ImportAnalysis {
   suggestedMappings: ColumnMapping[];
   unmappedColumns: string[];
   sampleData: Record<string, any>;
-  parsedData?: Array<Record<string, any>>;
-  schemaType?: string; // Added this property
-  category?: string;   // Added this property
 }

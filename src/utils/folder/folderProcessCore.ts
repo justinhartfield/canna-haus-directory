@@ -1,106 +1,169 @@
 
 import { DirectoryItem } from '@/types/directory';
-import { parseFileContent } from '../fileProcessing';
-import { transformData } from '../transform';
 import { DataMappingConfig } from '../mappingUtils';
-import { bulkInsertDirectoryItems } from '@/api/services/directoryItem/bulkOperations';
-import { FolderMetadata, FolderProcessingConfig, FolderProcessingResult } from '../folderProcessingUtils';
+import { transformData } from '../transformUtils';
+import { processBatchFiles } from '../importUtils';
 
 /**
- * Process a collection of files as a folder
+ * Metadata structure for folder processing
+ */
+export interface FolderMetadata {
+  folderName: string;
+  sourceType: string;
+  lastProcessed: string;
+  fileCount: number;
+  itemCount: number;
+  schemaType: string;
+}
+
+/**
+ * Configuration for data source folders
+ */
+export interface FolderProcessingConfig {
+  folderName: string;
+  mappingConfig: DataMappingConfig;
+  validationRules: Record<string, (value: any) => boolean>;
+  incrementalOnly?: boolean;
+  transformationRules?: Record<string, (data: any) => any>;
+  schemaType: string;
+}
+
+/**
+ * Results from folder processing
+ */
+export interface FolderProcessingResult {
+  folderName: string;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  metadata: FolderMetadata;
+  errors: Array<{
+    file: string;
+    errors: Array<{
+      row: number;
+      message: string;
+    }>;
+  }>;
+}
+
+/**
+ * Process files in a folder structure with specialized configurations
  */
 export async function processFolderData(
   files: File[],
-  config: FolderProcessingConfig,
-  metadata?: FolderMetadata | null,
+  folderConfig: FolderProcessingConfig,
+  existingMetadata?: FolderMetadata,
   onProgress?: (current: number, total: number) => void
 ): Promise<FolderProcessingResult> {
-  // Initialize counters
-  let processed = 0;
-  let succeeded = 0;
-  let failed = 0;
-  let skipped = 0;
-  let startTime = Date.now();
+  // Initialize folder metadata
+  let metadata: FolderMetadata = existingMetadata || {
+    folderName: folderConfig.folderName,
+    sourceType: 'import',
+    lastProcessed: '',
+    fileCount: 0,
+    itemCount: 0,
+    schemaType: folderConfig.schemaType
+  };
   
-  // Report initial progress
-  if (onProgress) {
-    onProgress(0, files.length);
+  // Filter files for incremental loading if needed
+  let filesToProcess = files;
+  if (folderConfig.incrementalOnly && existingMetadata) {
+    const lastProcessedDate = new Date(existingMetadata.lastProcessed);
+    filesToProcess = files.filter(file => {
+      const fileModified = new Date(file.lastModified);
+      return fileModified > lastProcessedDate;
+    });
+    
+    console.log(`Incremental processing: ${filesToProcess.length} of ${files.length} files are new or modified since last run.`);
   }
-
-  try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      try {
-        // Skip files that haven't changed if in incremental mode
-        if (config.incrementalMode && metadata) {
-          // We would need file modification time here, but File objects don't include this
-          // In a real implementation, you might compare file hashes or modification times
-          // For now, we'll process all files in this example
-        }
-        
-        // Parse file content
-        const rawData = await parseFileContent(file);
-        
-        if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
-          console.warn(`File ${file.name} contains no valid data, skipping`);
-          skipped++;
-          continue;
-        }
-        
-        // Create a mapping configuration
-        const mappingConfig: DataMappingConfig = {
-          columnMappings: config.mappingConfig.columnMappings,
-          defaultValues: {
-            ...config.mappingConfig.defaultValues,
-            category: config.folderName
-          },
-          schemaType: config.schemaType
-        };
-        
-        // Transform the data
-        const result = await transformData(rawData, mappingConfig);
-        
-        if (result.success) {
-          // Import the transformed items
-          await bulkInsertDirectoryItems(result.items);
-          
-          processed += result.items.length;
-          succeeded += result.items.length;
-        } else {
-          console.error(`Error transforming file ${file.name}:`, result.errors);
-          failed++;
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        failed++;
-      }
-      
-      // Report progress
-      if (onProgress) {
-        onProgress(i + 1, files.length);
-      }
-    }
-    
-    // Create updated metadata
-    const updatedMetadata: FolderMetadata = {
-      folderName: config.folderName,
-      sourceType: 'import',
-      lastProcessed: new Date().toISOString(),
-      fileCount: files.length,
-      itemCount: succeeded,
-      schemaType: config.schemaType
-    };
-    
+  
+  // If no files to process, return early
+  if (filesToProcess.length === 0) {
     return {
-      processed,
-      succeeded,
-      failed,
-      skipped,
-      metadata: updatedMetadata
+      folderName: folderConfig.folderName,
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: files.length,
+      metadata,
+      errors: []
     };
-  } catch (error) {
-    console.error('Error in folder processing:', error);
-    throw error;
   }
+  
+  // Apply specialized transformations if specified
+  let enhancedMappingConfig = { ...folderConfig.mappingConfig };
+  if (folderConfig.transformationRules) {
+    enhancedMappingConfig.transformations = {
+      ...(enhancedMappingConfig.transformations || {}),
+      ...folderConfig.transformationRules
+    };
+  }
+  
+  // Set schema type for JSON-LD
+  enhancedMappingConfig.schemaType = folderConfig.schemaType;
+  
+  // Process files with the specialized configuration
+  const result = await processBatchFiles(
+    filesToProcess,
+    enhancedMappingConfig,
+    100, // Default batch size
+    onProgress,
+    folderConfig.validationRules
+  );
+  
+  // Update metadata
+  metadata = {
+    ...metadata,
+    lastProcessed: new Date().toISOString(),
+    fileCount: result.processedFiles,
+    itemCount: metadata.itemCount + result.successRows,
+    schemaType: folderConfig.schemaType
+  };
+  
+  return {
+    folderName: folderConfig.folderName,
+    processed: result.totalRows,
+    succeeded: result.successRows,
+    failed: result.totalRows - result.successRows,
+    skipped: files.length - filesToProcess.length,
+    metadata,
+    errors: result.errors
+  };
 }
+
+/**
+ * Create a specialized configuration for a data category/folder
+ */
+export function createFolderConfig(
+  folderName: string,
+  schemaType: string,
+  columnMappings: Record<string, string>,
+  customValidationRules?: Record<string, (value: any) => boolean>,
+  incrementalOnly: boolean = false
+): FolderProcessingConfig {
+  // Get validation rules based on schema type or use custom rules
+  const validationRules = customValidationRules || 
+    (validationPresets[schemaType.toLowerCase()] || validationPresets.product);
+  
+  return {
+    folderName,
+    schemaType,
+    incrementalOnly,
+    validationRules,
+    mappingConfig: {
+      columnMappings,
+      defaultValues: {
+        category: folderName
+      },
+      schemaType
+    }
+  };
+}
+
+// We need to import validation presets but they'll be in a separate file
+// This is a temporary object to make TypeScript happy
+// It will be properly replaced with the import in the main file
+const validationPresets: Record<string, Record<string, (value: any) => boolean>> = {
+  product: {}
+};

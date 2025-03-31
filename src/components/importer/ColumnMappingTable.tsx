@@ -1,17 +1,11 @@
 
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
-
-interface ColumnMapping {
-  sourceColumn: string;
-  targetField: string;
-  isCustomField?: boolean;
-  sampleData?: any;
-}
+import { AlertTriangle } from 'lucide-react';
+import { ColumnMapping } from '@/types/directory';
 
 interface ColumnMappingTableProps {
   columnMappings: ColumnMapping[];
@@ -36,19 +30,15 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
   onSourceColumnChange,
   onRemoveMapping
 }) => {
-  // Function to find a sample value for a column across all sample rows
-  const findSampleValue = (column: string): React.ReactNode => {
-    // Check if the mapping itself has sample data
-    if (columnMappings.find(m => m.sourceColumn === column)?.sampleData !== undefined) {
-      const value = columnMappings.find(m => m.sourceColumn === column)?.sampleData;
-      return value === null || value === undefined ? 
-        <span className="text-gray-400 italic">No sample value</span> : 
-        String(value);
-    }
-    
-    // If no value found, return placeholder text
-    return <span className="text-gray-400 italic">No sample value</span>;
-  };
+  // Available target fields for mapping
+  const availableTargetFields = [
+    { value: 'title', label: 'Title' },
+    { value: 'description', label: 'Description' },
+    { value: 'subcategory', label: 'Subcategory' },
+    { value: 'tags', label: 'Tags' },
+    { value: 'imageUrl', label: 'Image URL' },
+    { value: 'thumbnailUrl', label: 'Thumbnail URL' }
+  ];
 
   return (
     <TableBody>
@@ -57,7 +47,7 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
           <TableCell>
             {manualMappingMode ? (
               <Select
-                value={mapping.sourceColumn}
+                value={mapping.sourceColumn || "select-column"} // Ensure we always have a value
                 onValueChange={(value) => onSourceColumnChange(index, value)}
                 disabled={isProcessing}
               >
@@ -65,10 +55,8 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
                   <SelectValue placeholder="Select column" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableColumns.map(column => (
-                    <SelectItem key={column} value={column}>
-                      {column}
-                    </SelectItem>
+                  {availableColumns.map(col => (
+                    <SelectItem key={col} value={col}>{col}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -78,7 +66,7 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
           </TableCell>
           <TableCell>
             <Select
-              value={mapping.targetField || "ignore"}
+              value={mapping.targetField || "ignore"} // Use "ignore" as the default value
               onValueChange={(value) => onMappingChange(index, value)}
               disabled={isProcessing}
             >
@@ -87,12 +75,11 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ignore">-- Ignore --</SelectItem>
-                <SelectItem value="title">Title</SelectItem>
-                <SelectItem value="description">Description</SelectItem>
-                <SelectItem value="subcategory">Subcategory</SelectItem>
-                <SelectItem value="imageUrl">Image URL</SelectItem>
-                <SelectItem value="thumbnailUrl">Thumbnail URL</SelectItem>
-                <SelectItem value="tags">Tags</SelectItem>
+                {availableTargetFields.map(field => (
+                  <SelectItem key={field.value} value={field.value}>
+                    {field.label}
+                  </SelectItem>
+                ))}
                 <SelectItem value="custom">Custom Field</SelectItem>
               </SelectContent>
             </Select>
@@ -102,23 +89,22 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
               <Input
                 value={customFields[mapping.sourceColumn] || ''}
                 onChange={(e) => onCustomFieldNameChange(mapping.sourceColumn, e.target.value)}
-                placeholder="Custom field name"
+                placeholder="Field name"
                 disabled={isProcessing}
-                className="w-full"
               />
             )}
           </TableCell>
           <TableCell className="max-w-[200px] truncate">
-            {findSampleValue(mapping.sourceColumn)}
+            {mapping.sampleData}
           </TableCell>
           <TableCell>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onRemoveMapping(index)}
-              disabled={isProcessing || columnMappings.length <= 1}
+              disabled={isProcessing}
             >
-              <Trash2 className="h-4 w-4" />
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             </Button>
           </TableCell>
         </TableRow>

@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { ImportAnalysis, ColumnMapping } from '@/types/directory';
-import { sampleFileContent, parseFileContent } from '@/utils/dataProcessingUtils';
+import { ImportAnalysis } from '@/types/directory';
+import { sampleFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useFileAnalysis() {
@@ -14,33 +14,14 @@ export function useFileAnalysis() {
     setIsAnalyzing(true);
     try {
       // Sample the file to get some representative data
-      const sampleRows = await sampleFileContent(file, 5); // Increased sample size for better analysis
+      const sampleRows = await sampleFileContent(file, 3);
       
       if (sampleRows.length === 0) {
         throw new Error("Couldn't extract data from the file.");
       }
 
-      // Parse the full file content for later use
-      const parsedData = await parseFileContent(file);
-
-      // Extract all possible columns by scanning all rows
-      const allColumnsSet = new Set<string>();
-      
-      // First check the sample rows
-      sampleRows.forEach(row => {
-        Object.keys(row).forEach(key => allColumnsSet.add(key));
-      });
-      
-      // Then scan the first 100 rows of the full parsed data for any additional columns
-      // This ensures we catch columns that might not appear in the first few rows
-      const scanLimit = Math.min(parsedData.length, 100);
-      for (let i = 0; i < scanLimit; i++) {
-        Object.keys(parsedData[i]).forEach(key => allColumnsSet.add(key));
-      }
-      
-      const columns = Array.from(allColumnsSet);
-      setAvailableColumns(columns);
-      console.log(`Detected ${columns.length} unique columns in file:`, columns.join(', '));
+      // Store available columns for manual mapping
+      setAvailableColumns(Object.keys(sampleRows[0]));
 
       // Call the edge function to classify the data
       const { data, error } = await supabase.functions.invoke('classify-csv-data', {
@@ -62,54 +43,37 @@ export function useFileAnalysis() {
       }
 
       // Convert AI response to our format
-      const suggestedMappings: ColumnMapping[] = [];
+      const suggestedMappings = [];
       const aiMappings = data.mappings || {};
       
-      // Track mapped columns
-      const mappedColumns = new Set<string>();
+      // Get all columns from the sample data
+      const columns = Object.keys(sampleRows[0]);
+      const mappedColumns = new Set(Object.values(aiMappings));
       
       // Add mapped columns
       for (const [targetField, sourceColumn] of Object.entries(aiMappings)) {
-        if (typeof sourceColumn === 'string') {
-          mappedColumns.add(sourceColumn);
-          
-          // Find a sample value for this column
-          let sampleValue = '';
-          for (const row of sampleRows) {
-            if (row[sourceColumn] !== undefined) {
-              sampleValue = row[sourceColumn];
-              break;
-            }
-          }
-          
-          suggestedMappings.push({
-            sourceColumn,
-            targetField: targetField || "ignore", // Ensure targetField is never empty
-            isCustomField: !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField),
-            sampleData: sampleValue
-          });
-        }
+        suggestedMappings.push({
+          sourceColumn: sourceColumn as string,
+          targetField: targetField || "ignore", // Ensure targetField is never empty
+          isCustomField: !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField),
+          sampleData: sampleRows[0][sourceColumn as string]
+        });
       }
       
       // Find unmapped columns
       const unmappedColumns = columns.filter(col => !mappedColumns.has(col));
-      console.log(`Found ${unmappedColumns.length} unmapped columns:`, unmappedColumns);
       
-      // Create the analysis object with all required properties
       const aiAnalysis: ImportAnalysis = {
         suggestedMappings,
         unmappedColumns,
-        sampleData: sampleRows[0],
-        parsedData, // Include the full parsed data
-        schemaType: data.schemaType || 'Thing',
-        category: data.recommendedCategory || category
+        sampleData: sampleRows[0]
       };
       
       setAnalysis(aiAnalysis);
       
       toast({
         title: "Analysis Complete",
-        description: `AI suggests ${data.recommendedCategory} category with ${Object.keys(aiMappings).length} mapped fields and ${unmappedColumns.length} additional fields available for mapping.`,
+        description: `AI suggests ${data.recommendedCategory} category with ${suggestedMappings.length} mapped fields. You can override these recommendations manually.`,
       });
 
       return {

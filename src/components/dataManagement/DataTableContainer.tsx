@@ -17,7 +17,7 @@ interface DataTableContainerProps {
   onEdit: (item: DirectoryItem) => void;
   onCancelEdit: () => void;
   onSaveEdit: (id: string) => void;
-  onDeleteItem: (item: DirectoryItem) => void;
+  onDeleteItem: (id: string) => void;
   onEditField: (field: string, value: any) => void;
 }
 

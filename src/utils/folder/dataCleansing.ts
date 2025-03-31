@@ -2,83 +2,60 @@
 /**
  * Apply data cleansing procedures to raw data
  */
-export function cleanseData(data: Record<string, any>[], options?: {
-  normalizeText?: boolean;
-  capitalizeNames?: boolean;
-  trimWhitespace?: boolean;
-  convertToLowerCase?: string[];
-  convertToUpperCase?: string[];
-}): Record<string, any>[] {
-  const opts = {
-    normalizeText: true,
-    capitalizeNames: true,
-    trimWhitespace: true,
-    convertToLowerCase: ['tags', 'category'],
-    convertToUpperCase: ['code', 'id'],
-    ...options
-  };
-
+export function cleanseData(
+  data: Record<string, any>[],
+  cleansingRules: Record<string, (value: any) => any>
+): Record<string, any>[] {
   return data.map(item => {
-    const result = { ...item };
+    const cleansedItem = { ...item };
     
-    // Process each field based on options
-    Object.entries(result).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        // Trim whitespace
-        if (opts.trimWhitespace) {
-          value = value.trim();
-        }
-        
-        // Capitalize names
-        if (opts.capitalizeNames && 
-            (key.includes('name') || key.includes('title') || key === 'title')) {
-          value = value.charAt(0).toUpperCase() + value.slice(1);
-        }
-        
-        // Convert to lowercase for specific fields
-        if (opts.convertToLowerCase?.includes(key)) {
-          value = value.toLowerCase();
-        }
-        
-        // Convert to uppercase for specific fields
-        if (opts.convertToUpperCase?.includes(key)) {
-          value = value.toUpperCase();
-        }
-        
-        result[key] = value;
+    for (const [field, cleanseFn] of Object.entries(cleansingRules)) {
+      if (field in cleansedItem) {
+        cleansedItem[field] = cleanseFn(cleansedItem[field]);
       }
-    });
+    }
     
-    return result;
+    return cleansedItem;
   });
 }
 
 /**
- * Collection of data cleansing functions
+ * Common data cleansing functions for different data types
  */
 export const cleansingFunctions = {
-  normalizeText: (text: string) => text.trim(),
-  capitalizeFirstLetter: (text: string) => {
-    if (!text) return '';
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  },
-  extractNumbers: (text: string) => {
-    const matches = text.match(/\d+(\.\d+)?/g);
-    return matches ? matches.join('') : '';
-  },
-  formatPhoneNumber: (phone: string) => {
-    // Remove non-numeric characters
-    const cleaned = phone.replace(/\D/g, '');
-    
-    // Format as (XXX) XXX-XXXX
-    if (cleaned.length === 10) {
-      return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6)}`;
+  trimText: (value: string): string => 
+    typeof value === 'string' ? value.trim() : String(value || ''),
+  
+  normalizeCase: (value: string): string =>
+    typeof value === 'string' 
+      ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() 
+      : String(value || ''),
+  
+  removeHtml: (value: string): string =>
+    typeof value === 'string' 
+      ? value.replace(/<[^>]*>/g, '') 
+      : String(value || ''),
+  
+  normalizeUrl: (value: string): string => {
+    if (!value) return '';
+    try {
+      const url = new URL(value);
+      return url.href;
+    } catch {
+      // If not a valid URL, try to fix common issues
+      if (value.match(/^www\./)) {
+        return `https://${value}`;
+      }
+      if (!value.match(/^https?:\/\//)) {
+        return `https://${value}`;
+      }
+      return value;
     }
-    
-    return phone;
   },
-  formatCurrency: (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return !isNaN(num) ? `$${num.toFixed(2)}` : `$0.00`;
+  
+  normalizePhone: (value: string): string => {
+    if (!value) return '';
+    // Remove non-digit characters
+    return value.replace(/\D/g, '');
   }
 };

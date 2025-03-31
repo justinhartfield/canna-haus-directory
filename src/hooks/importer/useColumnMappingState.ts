@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ColumnMapping, ImportAnalysis } from '@/types/directory';
 
 interface UseColumnMappingStateProps {
@@ -31,80 +31,33 @@ export function useColumnMappingState({
   const handleSourceColumnChange = (index: number, sourceColumn: string, sampleData?: Record<string, any>) => {
     const newMappings = [...columnMappings];
     newMappings[index].sourceColumn = sourceColumn;
-    
-    // Make sure to update the sample data if it exists
-    if (sampleData) {
-      newMappings[index].sampleData = sampleData[sourceColumn] || '';
-    }
-    
+    newMappings[index].sampleData = sampleData?.[sourceColumn] || '';
     setColumnMappings(newMappings);
-    
-    // Log the update for debugging
-    console.log(`Updated source column at index ${index} to ${sourceColumn}`);
   };
 
-  const handleAddMapping = (availableColumns: string[], sampleData?: Record<string, any>[]) => {
-    if (availableColumns.length === 0) {
-      console.warn('Cannot add mapping: no available columns');
-      return;
-    }
+  const handleAddMapping = (availableColumns: string[], sampleData?: Record<string, any>) => {
+    if (availableColumns.length === 0) return;
     
-    // Find the first available column that isn't already mapped
-    let columnToAdd = availableColumns[0];
-    const alreadyMapped = new Set(columnMappings.map(m => m.sourceColumn));
-    
-    for (const col of availableColumns) {
-      if (!alreadyMapped.has(col)) {
-        columnToAdd = col;
-        break;
+    setColumnMappings([
+      ...columnMappings,
+      {
+        sourceColumn: availableColumns[0],
+        targetField: "ignore", // Default to "ignore" instead of empty string
+        isCustomField: false,
+        sampleData: sampleData?.[availableColumns[0]] || ''
       }
-    }
-    
-    console.log(`Adding new mapping with source column: ${columnToAdd}`);
-    
-    // Find a sample value if available
-    let sampleValue = '';
-    if (sampleData && sampleData.length > 0) {
-      // Look through multiple rows to find a non-empty value
-      for (const row of sampleData) {
-        if (row[columnToAdd] !== undefined && row[columnToAdd] !== null && row[columnToAdd] !== '') {
-          sampleValue = row[columnToAdd];
-          break;
-        }
-      }
-    }
-    
-    const newMapping: ColumnMapping = {
-      sourceColumn: columnToAdd,
-      targetField: "ignore", // Default to "ignore" instead of empty string
-      isCustomField: false,
-      sampleData: sampleValue
-    };
-    
-    setColumnMappings([...columnMappings, newMapping]);
+    ]);
   };
 
   const handleRemoveMapping = (index: number) => {
     const newMappings = [...columnMappings];
     newMappings.splice(index, 1);
     setColumnMappings(newMappings);
-    console.log(`Removed mapping at index ${index}`);
   };
 
   const updateMappingsFromAnalysis = (analysis: ImportAnalysis) => {
-    if (!analysis || !analysis.suggestedMappings) {
-      console.warn('No valid analysis data provided for mapping update');
-      return;
-    }
-    
-    console.log(`Updating mappings from analysis. Found ${analysis.suggestedMappings.length} mappings.`);
     setColumnMappings(analysis.suggestedMappings);
   };
-
-  // Debug log when mappings change
-  useEffect(() => {
-    console.log(`Column mappings updated. Current count: ${columnMappings.length}`);
-  }, [columnMappings]);
 
   return {
     columnMappings,

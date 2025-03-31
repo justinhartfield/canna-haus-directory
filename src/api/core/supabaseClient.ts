@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { PostgrestResponse } from "@supabase/supabase-js";
 import { Database } from "@/integrations/supabase/types";
@@ -47,22 +48,10 @@ export const apiClient = {
     table: T, 
     data: any,
     options?: { 
-      returning?: boolean,
-      columns?: string[]  // Optional columns to include
+      returning?: boolean 
     }
   ): Promise<PostgrestResponse<any>> => {
-    // If specific columns are provided, filter the data
-    let filteredData = data;
-    if (options?.columns) {
-      filteredData = {};
-      for (const col of options.columns) {
-        if (col in data) {
-          filteredData[col] = data[col];
-        }
-      }
-    }
-    
-    let query = supabase.from(table).insert(filteredData);
+    const query = supabase.from(table).insert(data);
     
     if (options?.returning !== false) {
       return await query.select().single();
@@ -80,30 +69,12 @@ export const apiClient = {
     data: any,
     options?: { 
       returning?: boolean,
-      idField?: string,
-      columns?: string[]  // Optional columns to include
+      idField?: string 
     }
   ): Promise<PostgrestResponse<any>> => {
     const idField = options?.idField || 'id';
-    
-    // If specific columns are provided, filter the data
-    let filteredData = data;
-    if (options?.columns) {
-      filteredData = {};
-      for (const col of options.columns) {
-        if (col in data) {
-          filteredData[col] = data[col];
-        }
-      }
-    }
-    
     // Use `any` cast to bypass TypeScript's strict checking on the eq() method
-    const query = supabase.from(table).update(filteredData).eq(idField as any, id);
-    
-    // Log the update operation
-    console.log(`Executing update on ${table} with id ${id}`, {
-      fields: Object.keys(filteredData).join(', ')
-    });
+    const query = supabase.from(table).update(data).eq(idField as any, id);
     
     if (options?.returning !== false) {
       return await query.select().single();
@@ -132,70 +103,15 @@ export const apiClient = {
     table: T,
     data: any[],
     options?: {
-      returning?: boolean,
-      columns?: string[] // Optional columns to include
+      returning?: boolean
     }
   ): Promise<PostgrestResponse<any>> => {
-    if (data.length === 0) {
-      return { data: [], error: null, count: null, status: 200, statusText: 'OK' };
+    const query = supabase.from(table).insert(data);
+    
+    if (options?.returning !== false) {
+      return await query.select();
     }
     
-    // If specific columns are provided, filter each data item
-    let processedData = data;
-    if (options?.columns) {
-      processedData = data.map(item => {
-        const filtered: any = {};
-        for (const col of options.columns!) {
-          if (col in item) {
-            filtered[col] = item[col];
-          }
-        }
-        return filtered;
-      });
-    }
-    
-    // Enhanced error handling for bulk inserts
-    try {
-      let query = supabase.from(table).insert(processedData);
-      
-      if (options?.returning !== false) {
-        return await query.select();
-      }
-      
-      return await query;
-    } catch (error) {
-      console.error('Error in bulkInsert:', error);
-      
-      // Check if it's a specific error that we can handle
-      if (error instanceof Error && 
-          error.message.includes("Could not find") && 
-          error.message.includes("column")) {
-        
-        // Fall back to safer columns
-        console.warn('Attempting fallback with only core columns');
-        const safeColumns = ['title', 'description', 'category', 'subcategory', 'tags', 'jsonLd', 'metaData'];
-        
-        const safeData = data.map(item => {
-          const safeItem: any = {};
-          for (const key of safeColumns) {
-            if (key in item) {
-              safeItem[key] = item[key];
-            }
-          }
-          return safeItem;
-        });
-        
-        let retryQuery = supabase.from(table).insert(safeData);
-        
-        if (options?.returning !== false) {
-          return await retryQuery.select();
-        }
-        
-        return await retryQuery;
-      }
-      
-      // Re-throw if we can't handle it
-      throw error;
-    }
+    return await query;
   }
 };

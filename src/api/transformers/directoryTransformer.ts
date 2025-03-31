@@ -1,14 +1,10 @@
+
 import { DirectoryItem } from "@/types/directory";
 
 /**
  * Transform a database row to a DirectoryItem
  */
 export function transformDatabaseRowToDirectoryItem(row: any): DirectoryItem {
-  // Log the row structure during transformation to help debug
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Database row keys:', Object.keys(row));
-  }
-  
   return {
     id: row.id,
     title: row.title,
@@ -22,7 +18,6 @@ export function transformDatabaseRowToDirectoryItem(row: any): DirectoryItem {
     createdAt: row.createdat,
     updatedAt: row.updatedat,
     metaData: row.metadata || {},
-    // Map the lowercase database column name to camelCase in our code
     additionalFields: row.additionalfields || {}
   };
 }
@@ -42,27 +37,7 @@ export function transformDirectoryItemToDatabaseRow(item: Partial<DirectoryItem>
   if (item.thumbnailUrl !== undefined) row.thumbnailurl = item.thumbnailUrl;
   if (item.jsonLd !== undefined) row.jsonld = item.jsonLd;
   if (item.metaData !== undefined) row.metadata = item.metaData;
-  // Map camelCase from our code to lowercase database column name
   if (item.additionalFields !== undefined) row.additionalfields = item.additionalFields;
   
-  // Log the transformation for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Transformed item to row:', { 
-      itemKeys: item.additionalFields ? 'additionalFields present' : 'no additionalFields',
-      rowKeys: row.additionalfields ? 'additionalfields present' : 'no additionalfields' 
-    });
-  }
-  
   return row;
-}
-
-// Add a function to strip additionalFields when it causes issues
-export function stripAdditionalFieldsIfNeeded(item: Partial<DirectoryItem>): any {
-  // Create a copy of the item without additionalFields if they exist
-  if (item.additionalFields && Object.keys(item.additionalFields).length === 0) {
-    const { additionalFields, ...rest } = item;
-    console.log('Stripping empty additionalFields for compatibility');
-    return rest;
-  }
-  return item;
 }

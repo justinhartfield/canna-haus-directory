@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useDataManagement } from '@/hooks/dataManagement/useDataManagement';
@@ -10,51 +10,22 @@ import ErrorState from '@/components/dataManagement/ErrorState';
 
 const DataManagement: React.FC = () => {
   const {
-    data,
+    filteredItems,
+    categories,
+    searchTerm,
+    setSearchTerm,
+    selectedCategory,
+    setSelectedCategory,
+    editingItemId,
+    editedData,
     isLoading,
     error,
-    selectedItem,
-    isEditModalOpen,
-    isDeleteModalOpen,
-    openEditModal,
-    closeEditModal,
-    openDeleteModal,
-    closeDeleteModal,
-    handleSave,
-    handleDelete,
-    handleChange,
-    editedData
+    handleEdit,
+    handleCancelEdit,
+    handleSaveEdit,
+    handleDeleteItem,
+    handleEditField
   } = useDataManagement();
-  
-  // State for filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  
-  // Get unique categories from data
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set<string>();
-    data.forEach(item => {
-      if (item.category) {
-        uniqueCategories.add(item.category);
-      }
-    });
-    return Array.from(uniqueCategories);
-  }, [data]);
-  
-  // Filter items based on search term and category
-  const filteredItems = useMemo(() => {
-    return data.filter(item => {
-      // Filter by search term
-      const matchesSearchTerm = searchTerm === '' || 
-        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Filter by category
-      const matchesCategory = !selectedCategory || item.category === selectedCategory;
-      
-      return matchesSearchTerm && matchesCategory;
-    });
-  }, [data, searchTerm, selectedCategory]);
 
   return (
     <>
@@ -82,13 +53,13 @@ const DataManagement: React.FC = () => {
 
               <DataTableContainer
                 items={filteredItems}
-                editingItemId={selectedItem?.id || null}
+                editingItemId={editingItemId}
                 editedData={editedData}
-                onEdit={openEditModal}
-                onCancelEdit={closeEditModal}
-                onSaveEdit={handleSave}
-                onDeleteItem={openDeleteModal}
-                onEditField={handleChange}
+                onEdit={handleEdit}
+                onCancelEdit={handleCancelEdit}
+                onSaveEdit={handleSaveEdit}
+                onDeleteItem={handleDeleteItem}
+                onEditField={handleEditField}
               />
             </>
           )}

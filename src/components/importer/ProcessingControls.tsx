@@ -1,125 +1,31 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, X, Import, AlertTriangle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { UploadCloud, X } from 'lucide-react';
 
 interface ProcessingControlsProps {
   isProcessing: boolean;
   progress: number;
   onProcess: () => void;
   onCancel: () => void;
-  onImport?: () => void;
-  canImport?: boolean;
 }
 
 const ProcessingControls: React.FC<ProcessingControlsProps> = ({
   isProcessing,
   progress,
   onProcess,
-  onCancel,
-  onImport,
-  canImport = false
+  onCancel
 }) => {
-  const [stalledTimer, setStalledTimer] = useState<number>(0);
-  const [previousProgress, setPreviousProgress] = useState<number>(progress);
-  const [isStalled, setIsStalled] = useState<boolean>(false);
-  const [isImporting, setIsImporting] = useState<boolean>(false);
-  
-  // Monitor for stalled processing
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isProcessing && progress < 100) {
-      // Reset stalled state when progress changes
-      if (progress !== previousProgress) {
-        setPreviousProgress(progress);
-        setStalledTimer(0);
-        setIsStalled(false);
-      }
-      
-      // Monitor for stalled progress
-      interval = setInterval(() => {
-        if (progress === previousProgress && progress > 0 && progress < 100) {
-          setStalledTimer(prev => {
-            const newValue = prev + 1;
-            // If stalled for more than 10 seconds, show warning
-            if (newValue >= 10 && !isStalled) {
-              setIsStalled(true);
-              toast({
-                title: "Processing may be stalled",
-                description: "The process hasn't made progress in 10 seconds. You can continue waiting or cancel.",
-                variant: "default"
-              });
-            }
-            return newValue;
-          });
-        }
-      }, 1000);
-    } else {
-      // Reset when processing stops or completes
-      setStalledTimer(0);
-      setIsStalled(false);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isProcessing, progress, previousProgress, isStalled]);
-
-  // For debugging, log the state of canImport and isProcessing
-  useEffect(() => {
-    console.log('ProcessingControls state:', { canImport, isProcessing, progress, isImporting });
-  }, [canImport, isProcessing, progress, isImporting]);
-
-  const processingComplete = progress >= 100;
-  
-  const handleImport = async () => {
-    if (onImport && canImport && !isImporting) {
-      setIsImporting(true);
-      
-      try {
-        // Call the import function
-        await onImport();
-        
-        // Keep importing state true to prevent multiple clicks
-        // The parent component should reset this
-      } catch (error) {
-        console.error('Error during import:', error);
-        // Reset importing state after error
-        setIsImporting(false);
-        
-        toast({
-          title: "Import Failed",
-          description: error instanceof Error ? error.message : "An unknown error occurred",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
   return (
     <div className="space-y-4">
       {isProcessing && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <div className="flex items-center">
-              <span>Uploading and processing data...</span>
-              {isStalled && !processingComplete && (
-                <div className="flex items-center ml-2 text-amber-500">
-                  <AlertTriangle className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Processing may be stalled</span>
-                </div>
-              )}
-            </div>
+            <span>Uploading and processing data...</span>
             <span>{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />
-          {isStalled && !processingComplete && (
-            <div className="text-xs text-muted-foreground">
-              Stalled for {stalledTimer} seconds. You can continue waiting or cancel the operation.
-            </div>
-          )}
         </div>
       )}
       
@@ -127,23 +33,11 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
         <Button
           variant="outline"
           onClick={onCancel}
-          disabled={isProcessing && progress > 0 && progress < 5}
+          disabled={isProcessing}
         >
           <X className="h-4 w-4 mr-2" />
           Cancel
         </Button>
-        
-        {onImport && (
-          <Button
-            onClick={handleImport}
-            disabled={!canImport || isImporting}
-            variant="success"
-            className="bg-green-600 hover:bg-green-700 relative"
-          >
-            <Import className="h-4 w-4 mr-2" />
-            {isImporting ? "Importing..." : "Import Data"}
-          </Button>
-        )}
         
         <Button
           onClick={onProcess}

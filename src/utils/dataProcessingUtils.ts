@@ -37,8 +37,7 @@ export {
   processBatchFiles,
   updateImportProgress,
   commonValidationRules
-} from './import';
-export type { ImportProgress } from './import/types';
+} from './importUtils';
 
 // Batch processing utilities
 export {
@@ -56,11 +55,11 @@ export type { BatchProcessingConfig } from './batchProcessingUtils';
 export {
   processFolderData,
   createFolderConfig,
-  getSchemaTemplate,
   cleanseData,
   generateDataConsistencyReport,
   cleansingFunctions,
-  schemaTemplates
+  schemaTemplates,
+  getSchemaTemplate
 } from './folderProcessingUtils';
 export type { 
   FolderMetadata,
