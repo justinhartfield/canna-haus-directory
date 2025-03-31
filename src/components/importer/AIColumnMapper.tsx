@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
 import DataProcessor from './components/DataProcessor';
@@ -171,7 +170,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   // Function to add a new mapping using the first available column
   const handleAddNewMapping = () => {
     if (availableColumns.length > 0 && parsedData && parsedData.length > 0) {
-      handleAddMapping(availableColumns, parsedData[0]);
+      handleAddMapping(availableColumns, parsedData.slice(0, 5)); // Use first 5 rows for better sampling
     }
   };
 

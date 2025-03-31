@@ -43,19 +43,42 @@ export function useColumnMappingState({
     console.log(`Updated source column at index ${index} to ${sourceColumn}`);
   };
 
-  const handleAddMapping = (availableColumns: string[], sampleData?: Record<string, any>) => {
+  const handleAddMapping = (availableColumns: string[], sampleData?: Record<string, any>[]) => {
     if (availableColumns.length === 0) {
       console.warn('Cannot add mapping: no available columns');
       return;
     }
     
-    console.log(`Adding new mapping with source column: ${availableColumns[0]}`);
+    // Find the first available column that isn't already mapped
+    let columnToAdd = availableColumns[0];
+    const alreadyMapped = new Set(columnMappings.map(m => m.sourceColumn));
+    
+    for (const col of availableColumns) {
+      if (!alreadyMapped.has(col)) {
+        columnToAdd = col;
+        break;
+      }
+    }
+    
+    console.log(`Adding new mapping with source column: ${columnToAdd}`);
+    
+    // Find a sample value if available
+    let sampleValue = '';
+    if (sampleData && sampleData.length > 0) {
+      // Look through multiple rows to find a non-empty value
+      for (const row of sampleData) {
+        if (row[columnToAdd] !== undefined && row[columnToAdd] !== null && row[columnToAdd] !== '') {
+          sampleValue = row[columnToAdd];
+          break;
+        }
+      }
+    }
     
     const newMapping: ColumnMapping = {
-      sourceColumn: availableColumns[0],
+      sourceColumn: columnToAdd,
       targetField: "ignore", // Default to "ignore" instead of empty string
       isCustomField: false,
-      sampleData: sampleData?.[availableColumns[0]] || ''
+      sampleData: sampleValue
     };
     
     setColumnMappings([...columnMappings, newMapping]);

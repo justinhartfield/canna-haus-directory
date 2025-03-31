@@ -25,7 +25,7 @@ export const useColumnMapper = ({ file, category = 'Uncategorized' }: UseColumnM
   const [schemaType, setSchemaType] = useState('');
 
   // Use the file analysis hook
-  const { analysis, analyzeFile, isAnalyzing: isFileAnalyzing } = useFileAnalysis();
+  const { analysis, analyzeFile, isAnalyzing: isFileAnalyzing, availableColumns: detectedColumns } = useFileAnalysis();
 
   // Use the column mapping hook
   const {
@@ -49,11 +49,18 @@ export const useColumnMapper = ({ file, category = 'Uncategorized' }: UseColumnM
         // Store the parsed data
         setParsedData(data);
         
-        // Extract column names from the first row
-        if (data.length > 0) {
-          const firstRow = data[0];
-          setAvailableColumns(Object.keys(firstRow));
+        // Extract all possible columns by scanning all rows
+        const allColumnsSet = new Set<string>();
+        
+        // Scan through all rows (up to a limit) to collect all possible columns
+        const scanLimit = Math.min(data.length, 100);
+        for (let i = 0; i < scanLimit; i++) {
+          Object.keys(data[i]).forEach(key => allColumnsSet.add(key));
         }
+        
+        const allColumns = Array.from(allColumnsSet);
+        setAvailableColumns(allColumns);
+        console.log(`Detected ${allColumns.length} unique columns in file:`, allColumns.join(', '));
         
         // Start the analysis of the file
         analyzeFile(file.file);
@@ -72,6 +79,13 @@ export const useColumnMapper = ({ file, category = 'Uncategorized' }: UseColumnM
 
     loadFileData();
   }, [file]);
+
+  // Sync available columns from file analysis
+  useEffect(() => {
+    if (detectedColumns.length > 0) {
+      setAvailableColumns(detectedColumns);
+    }
+  }, [detectedColumns]);
 
   // Update mappings when analysis completes
   useEffect(() => {

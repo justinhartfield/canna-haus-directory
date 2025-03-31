@@ -23,10 +23,24 @@ export function useFileAnalysis() {
       // Parse the full file content for later use
       const parsedData = await parseFileContent(file);
 
-      // Store available columns for manual mapping
-      const columns = Object.keys(sampleRows[0]);
+      // Extract all possible columns by scanning all rows
+      const allColumnsSet = new Set<string>();
+      
+      // First check the sample rows
+      sampleRows.forEach(row => {
+        Object.keys(row).forEach(key => allColumnsSet.add(key));
+      });
+      
+      // Then scan the first 100 rows of the full parsed data for any additional columns
+      // This ensures we catch columns that might not appear in the first few rows
+      const scanLimit = Math.min(parsedData.length, 100);
+      for (let i = 0; i < scanLimit; i++) {
+        Object.keys(parsedData[i]).forEach(key => allColumnsSet.add(key));
+      }
+      
+      const columns = Array.from(allColumnsSet);
       setAvailableColumns(columns);
-      console.log(`Detected ${columns.length} columns in file:`, columns.join(', '));
+      console.log(`Detected ${columns.length} unique columns in file:`, columns.join(', '));
 
       // Call the edge function to classify the data
       const { data, error } = await supabase.functions.invoke('classify-csv-data', {
@@ -51,18 +65,28 @@ export function useFileAnalysis() {
       const suggestedMappings: ColumnMapping[] = [];
       const aiMappings = data.mappings || {};
       
-      // Get all columns from the sample data
+      // Track mapped columns
       const mappedColumns = new Set<string>();
       
       // Add mapped columns
       for (const [targetField, sourceColumn] of Object.entries(aiMappings)) {
         if (typeof sourceColumn === 'string') {
           mappedColumns.add(sourceColumn);
+          
+          // Find a sample value for this column
+          let sampleValue = '';
+          for (const row of sampleRows) {
+            if (row[sourceColumn] !== undefined) {
+              sampleValue = row[sourceColumn];
+              break;
+            }
+          }
+          
           suggestedMappings.push({
             sourceColumn,
             targetField: targetField || "ignore", // Ensure targetField is never empty
             isCustomField: !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField),
-            sampleData: sampleRows[0][sourceColumn]
+            sampleData: sampleValue
           });
         }
       }
