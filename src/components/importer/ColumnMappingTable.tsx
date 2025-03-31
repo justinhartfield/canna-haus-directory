@@ -37,8 +37,15 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
     { value: 'subcategory', label: 'Subcategory' },
     { value: 'tags', label: 'Tags' },
     { value: 'imageUrl', label: 'Image URL' },
-    { value: 'thumbnailUrl', label: 'Thumbnail URL' }
+    { value: 'thumbnailUrl', label: 'Thumbnail URL' },
+    { value: 'custom', label: 'Custom Field' }
   ];
+
+  // Log columns for debugging
+  React.useEffect(() => {
+    console.log("ColumnMappingTable rendering with mappings:", columnMappings.length);
+    console.log("Available columns:", availableColumns);
+  }, [columnMappings, availableColumns]);
 
   return (
     <TableBody>
@@ -80,7 +87,6 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
                     {field.label}
                   </SelectItem>
                 ))}
-                <SelectItem value="custom">Custom Field</SelectItem>
               </SelectContent>
             </Select>
           </TableCell>
@@ -89,7 +95,7 @@ const ColumnMappingTable: React.FC<ColumnMappingTableProps> = ({
               <Input
                 value={customFields[mapping.sourceColumn] || ''}
                 onChange={(e) => onCustomFieldNameChange(mapping.sourceColumn, e.target.value)}
-                placeholder="Field name"
+                placeholder="Custom field name"
                 disabled={isProcessing}
               />
             )}

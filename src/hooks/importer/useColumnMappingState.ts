@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ColumnMapping, ImportAnalysis } from '@/types/directory';
 
 interface UseColumnMappingStateProps {
@@ -31,33 +31,70 @@ export function useColumnMappingState({
   const handleSourceColumnChange = (index: number, sourceColumn: string, sampleData?: Record<string, any>) => {
     const newMappings = [...columnMappings];
     newMappings[index].sourceColumn = sourceColumn;
-    newMappings[index].sampleData = sampleData?.[sourceColumn] || '';
+    
+    // Make sure to update the sample data if it exists
+    if (sampleData) {
+      newMappings[index].sampleData = sampleData[sourceColumn] || '';
+    }
+    
     setColumnMappings(newMappings);
+    
+    // Log the update for debugging
+    console.log(`Updated source column at index ${index} to ${sourceColumn}`);
   };
 
   const handleAddMapping = (availableColumns: string[], sampleData?: Record<string, any>) => {
-    if (availableColumns.length === 0) return;
+    if (availableColumns.length === 0) {
+      console.warn('Cannot add mapping: no available columns');
+      return;
+    }
     
-    setColumnMappings([
-      ...columnMappings,
-      {
-        sourceColumn: availableColumns[0],
-        targetField: "ignore", // Default to "ignore" instead of empty string
-        isCustomField: false,
-        sampleData: sampleData?.[availableColumns[0]] || ''
-      }
-    ]);
+    console.log(`Adding new mapping with source column: ${availableColumns[0]}`);
+    
+    const newMapping: ColumnMapping = {
+      sourceColumn: availableColumns[0],
+      targetField: "ignore", // Default to "ignore" instead of empty string
+      isCustomField: false,
+      sampleData: sampleData?.[availableColumns[0]] || ''
+    };
+    
+    setColumnMappings([...columnMappings, newMapping]);
   };
 
   const handleRemoveMapping = (index: number) => {
     const newMappings = [...columnMappings];
     newMappings.splice(index, 1);
     setColumnMappings(newMappings);
+    console.log(`Removed mapping at index ${index}`);
   };
 
   const updateMappingsFromAnalysis = (analysis: ImportAnalysis) => {
+    if (!analysis || !analysis.suggestedMappings) {
+      console.warn('No valid analysis data provided for mapping update');
+      return;
+    }
+    
+    console.log(`Updating mappings from analysis. Found ${analysis.suggestedMappings.length} mappings.`);
     setColumnMappings(analysis.suggestedMappings);
+    
+    // Also add any unmapped columns if they exist
+    if (analysis.unmappedColumns && analysis.unmappedColumns.length > 0) {
+      const unmappedMappings = analysis.unmappedColumns.map(column => ({
+        sourceColumn: column,
+        targetField: "ignore",
+        isCustomField: false,
+        sampleData: analysis.sampleData?.[column] || ''
+      }));
+      
+      console.log(`Adding ${unmappedMappings.length} unmapped columns`);
+      setColumnMappings(prev => [...prev, ...unmappedMappings]);
+    }
   };
+
+  // Debug log when mappings change
+  useEffect(() => {
+    console.log(`Column mappings updated. Current count: ${columnMappings.length}`);
+  }, [columnMappings]);
 
   return {
     columnMappings,

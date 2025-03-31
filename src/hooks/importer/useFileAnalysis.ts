@@ -14,7 +14,7 @@ export function useFileAnalysis() {
     setIsAnalyzing(true);
     try {
       // Sample the file to get some representative data
-      const sampleRows = await sampleFileContent(file, 3);
+      const sampleRows = await sampleFileContent(file, 5); // Increased sample size for better analysis
       
       if (sampleRows.length === 0) {
         throw new Error("Couldn't extract data from the file.");
@@ -24,7 +24,9 @@ export function useFileAnalysis() {
       const parsedData = await parseFileContent(file);
 
       // Store available columns for manual mapping
-      setAvailableColumns(Object.keys(sampleRows[0]));
+      const columns = Object.keys(sampleRows[0]);
+      setAvailableColumns(columns);
+      console.log(`Detected ${columns.length} columns in file:`, columns.join(', '));
 
       // Call the edge function to classify the data
       const { data, error } = await supabase.functions.invoke('classify-csv-data', {
@@ -50,21 +52,34 @@ export function useFileAnalysis() {
       const aiMappings = data.mappings || {};
       
       // Get all columns from the sample data
-      const columns = Object.keys(sampleRows[0]);
-      const mappedColumns = new Set(Object.values(aiMappings));
+      const mappedColumns = new Set<string>();
       
       // Add mapped columns
       for (const [targetField, sourceColumn] of Object.entries(aiMappings)) {
-        suggestedMappings.push({
-          sourceColumn: sourceColumn as string,
-          targetField: targetField || "ignore", // Ensure targetField is never empty
-          isCustomField: !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField),
-          sampleData: sampleRows[0][sourceColumn as string]
-        });
+        if (typeof sourceColumn === 'string') {
+          mappedColumns.add(sourceColumn);
+          suggestedMappings.push({
+            sourceColumn,
+            targetField: targetField || "ignore", // Ensure targetField is never empty
+            isCustomField: !['title', 'description', 'subcategory', 'tags', 'imageUrl', 'thumbnailUrl'].includes(targetField),
+            sampleData: sampleRows[0][sourceColumn]
+          });
+        }
       }
       
       // Find unmapped columns
       const unmappedColumns = columns.filter(col => !mappedColumns.has(col));
+      console.log(`Found ${unmappedColumns.length} unmapped columns:`, unmappedColumns);
+      
+      // Add unmapped columns with "ignore" target
+      unmappedColumns.forEach(column => {
+        suggestedMappings.push({
+          sourceColumn: column,
+          targetField: "ignore",
+          isCustomField: false,
+          sampleData: sampleRows[0][column]
+        });
+      });
       
       const aiAnalysis: ImportAnalysis = {
         suggestedMappings,
@@ -77,7 +92,7 @@ export function useFileAnalysis() {
       
       toast({
         title: "Analysis Complete",
-        description: `AI suggests ${data.recommendedCategory} category with ${suggestedMappings.length} mapped fields. You can override these recommendations manually.`,
+        description: `AI suggests ${data.recommendedCategory} category with ${Object.keys(aiMappings).length} mapped fields and ${unmappedColumns.length} additional fields available for mapping.`,
       });
 
       return {

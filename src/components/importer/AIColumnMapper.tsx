@@ -114,9 +114,23 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       progress, 
       selectedCategory,
       parsedDataLength: parsedData?.length || 0,
-      mappingsCount: columnMappings.length
+      mappingsCount: columnMappings.length,
+      availableColumns
     });
-  }, [isProcessing, progress, selectedCategory, parsedData, columnMappings]);
+    
+    // Log the full column data to debug
+    if (availableColumns.length > 0) {
+      console.log("Available columns:", availableColumns);
+    }
+    
+    if (columnMappings.length > 0) {
+      console.log("Column mappings:", JSON.stringify(columnMappings));
+    }
+    
+    if (parsedData && parsedData.length > 0) {
+      console.log("Sample data row:", parsedData[0]);
+    }
+  }, [isProcessing, progress, selectedCategory, parsedData, columnMappings, availableColumns]);
 
   if (isAnalyzing) {
     return <AnalyzingState />;
@@ -136,7 +150,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   const prepareMappingsForProcessing = () => {
     const mappingsObj: Record<string, string> = {};
     columnMappings.forEach(mapping => {
-      if (mapping.targetField && mapping.sourceColumn) {
+      if (mapping.targetField && mapping.targetField !== 'ignore' && mapping.sourceColumn) {
         mappingsObj[mapping.targetField] = mapping.sourceColumn;
       }
     });
