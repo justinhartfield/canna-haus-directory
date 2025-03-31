@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -75,18 +74,27 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
 
   const processingComplete = progress >= 100;
   
-  const handleImport = () => {
+  const handleImport = async () => {
     if (onImport && canImport && !isImporting) {
       setIsImporting(true);
       
-      // Call the import function
-      onImport();
-      
-      // Reset importing state after a timeout
-      // This prevents multiple clicks
-      setTimeout(() => {
+      try {
+        // Call the import function
+        await onImport();
+        
+        // Keep importing state true to prevent multiple clicks
+        // The parent component should reset this
+      } catch (error) {
+        console.error('Error during import:', error);
+        // Reset importing state after error
         setIsImporting(false);
-      }, 2000);
+        
+        toast({
+          title: "Import Failed",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          variant: "destructive"
+        });
+      }
     }
   };
 

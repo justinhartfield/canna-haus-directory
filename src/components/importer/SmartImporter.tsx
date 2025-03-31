@@ -24,6 +24,7 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
   const [processedData, setProcessedData] = useState<any[] | null>(null);
   const [processingComplete, setProcessingComplete] = useState(false);
   const [importInProgress, setImportInProgress] = useState(false);
+  const [importComplete, setImportComplete] = useState(false);
 
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -44,12 +45,14 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
       return;
     }
     
+    // Reset all states when a new file is uploaded
     setSelectedFile({
       file,
       type: fileType
     });
     setProcessedData(null);
     setProcessingComplete(false);
+    setImportComplete(false);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -73,13 +76,14 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     });
   };
   
-  const handleImport = () => {
+  const handleImport = async () => {
     if (processedData && processedData.length > 0) {
       setImportInProgress(true);
       
       try {
+        // This is the critical part - pass the data to the parent's onComplete handler
         if (onComplete) {
-          onComplete(processedData);
+          await onComplete(processedData);
         }
         
         toast({
@@ -87,13 +91,17 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
           description: `Successfully imported ${processedData.length} records.`,
         });
         
-        // Reset the component only after successful import
+        // Mark import as complete BEFORE resetting
+        setImportComplete(true);
+        
+        // Reset the component only after successful import and with a delay
+        // This ensures the user sees the success state before reset
         setTimeout(() => {
           setSelectedFile(null);
           setProcessedData(null);
           setProcessingComplete(false);
           setImportInProgress(false);
-        }, 1000);
+        }, 1500);
       } catch (error) {
         console.error('Error during import:', error);
         setImportInProgress(false);
@@ -111,6 +119,8 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     setSelectedFile(null);
     setProcessedData(null);
     setProcessingComplete(false);
+    setImportInProgress(false);
+    setImportComplete(false);
   };
 
   // Log state for debugging
@@ -118,7 +128,8 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
     hasProcessedData: !!processedData,
     dataLength: processedData?.length || 0,
     processingComplete,
-    importInProgress
+    importInProgress,
+    importComplete
   });
 
   return (
@@ -133,7 +144,7 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
             onComplete={handleMappingComplete}
             onCancel={handleCancel}
             onImport={handleImport}
-            canImport={processingComplete && !!processedData && processedData.length > 0 && !importInProgress}
+            canImport={processingComplete && !!processedData && processedData.length > 0 && !importInProgress && !importComplete}
             category={category}
           />
         ) : (

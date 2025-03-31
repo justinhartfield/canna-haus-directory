@@ -44,7 +44,8 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
       isProcessing,
       progress,
       hasResults: !!results,
-      dataLength
+      dataLength,
+      resultsSuccess: results?.success?.length || 0
     });
   }, [processingStarted, isProcessing, progress, results, dataLength]);
   
@@ -72,7 +73,11 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
           // Process the data
           const result = await processData(data, mappings, category, subcategory);
           setHasResults(true);
-          console.log("Processing completed with result:", result);
+          console.log("Processing completed with result:", {
+            successCount: result.success.length,
+            errorCount: result.errors.length,
+            duplicateCount: result.duplicates.length
+          });
           
           // Ensure the progress is set to 100% when complete
           if (onProgress) {
@@ -80,7 +85,7 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
           }
           
           if (onProcessComplete && result) {
-            onProcessComplete(result);
+            onProcessComplete(result.success);
           }
         } catch (error) {
           console.error("Error processing data:", error);

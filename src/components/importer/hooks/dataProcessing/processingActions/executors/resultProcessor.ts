@@ -1,4 +1,3 @@
-
 import { ProcessingResult } from '../../types';
 import { toast } from '@/hooks/use-toast';
 
@@ -9,7 +8,11 @@ function cleanIngredientString(str: string): string {
   if (typeof str === 'string') {
     // Check if the string starts with "- " and remove it
     if (str.startsWith('- ')) {
-      return str.substring(2);
+      return str.substring(2).trim();
+    }
+    // Also check for numbers with periods like "1. " which can appear in lists
+    if (/^\d+\.\s/.test(str)) {
+      return str.replace(/^\d+\.\s/, '').trim();
     }
   }
   return str;
@@ -48,29 +51,44 @@ function cleanItemValues(item: any): any {
         result[key] = value
           .split(',')
           .map(item => cleanIngredientString(item.trim()))
+          .filter(item => item) // Remove empty strings
           .join(', ');
       }
       // Handle array values
       else if (Array.isArray(value)) {
-        result[key] = value.map(item => {
-          if (typeof item === 'string') {
-            return cleanIngredientString(item);
-          }
-          return item;
-        });
+        result[key] = value
+          .map(item => {
+            if (typeof item === 'string') {
+              return cleanIngredientString(item);
+            }
+            return item;
+          })
+          .filter(Boolean); // Remove nulls/undefined/empty strings
       }
     }
     
     // Clean other fields that might contain dash-prefixed items
-    if (typeof result[key] === 'string' && result[key].includes('- ')) {
-      // Check if it's likely a list (has multiple "- " occurrences)
+    if (typeof result[key] === 'string' && (result[key].includes('- ') || result[key].includes('\n'))) {
+      // Check if it's likely a list (has multiple "- " occurrences or newlines)
       const dashCount = (result[key].match(/- /g) || []).length;
-      if (dashCount > 1 || result[key].startsWith('- ')) {
-        // Split by commas, clean each item, then rejoin
-        result[key] = result[key]
-          .split(',')
-          .map(item => cleanIngredientString(item.trim()))
-          .join(', ');
+      const hasNewlines = result[key].includes('\n');
+      
+      if (dashCount > 1 || result[key].startsWith('- ') || hasNewlines) {
+        // If there are newlines, split by newlines
+        if (hasNewlines) {
+          result[key] = result[key]
+            .split('\n')
+            .map(item => cleanIngredientString(item.trim()))
+            .filter(item => item) // Remove empty strings
+            .join(', ');
+        } else {
+          // Otherwise split by commas
+          result[key] = result[key]
+            .split(',')
+            .map(item => cleanIngredientString(item.trim()))
+            .filter(item => item) // Remove empty strings
+            .join(', ');
+        }
       }
     }
   });
@@ -102,6 +120,15 @@ export function formatResults(
     duplicates: duplicateResults,
     missingColumns: missingColumns.size > 0 ? Array.from(missingColumns.keys()) : undefined
   };
+
+  // Log successful items for verification
+  if (cleanedItems.length > 0) {
+    console.log(`Cleaned ${cleanedItems.length} items. First item sample:`, 
+      cleanedItems.length > 0 ? Object.keys(cleanedItems[0]).slice(0, 3).reduce((acc, key) => {
+        acc[key] = cleanedItems[0][key];
+        return acc;
+      }, {} as Record<string, any>) : 'No items');
+  }
 
   // Ensure progress is set to 100% when processing is complete
   setProgress(100);
