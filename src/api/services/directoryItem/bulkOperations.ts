@@ -84,7 +84,8 @@ export async function bulkInsertDirectoryItems(
               error: error.message
             });
           } else if (data) {
-            results.success.push(data);
+            // Fix: Ensure we're pushing a single item, not an array
+            results.success.push(data as DirectoryItem);
           }
         } catch (itemError: any) {
           results.errors.push({
@@ -127,7 +128,8 @@ async function insertWithColumnFilter(table: string, item: any) {
     
     console.log('Trying insertion with safe columns:', Object.keys(safeItem).join(', '));
     
-    return await apiClient.insert(table, safeItem, { returning: true });
+    // Fix: Cast the table name to TableNames type to satisfy TypeScript
+    return await apiClient.insert(table as 'directory_items', safeItem, { returning: true });
   } catch (error) {
     console.error('Error in insertWithColumnFilter:', error);
     throw error;
