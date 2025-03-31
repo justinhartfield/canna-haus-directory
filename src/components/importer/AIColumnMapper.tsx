@@ -63,7 +63,9 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     setIsProcessing(false);
     
     // Convert the success results to the expected format
-    onComplete(results.success);
+    if (onComplete) {
+      onComplete(results.success);
+    }
     
     // Show summary toast
     const totalCount = results.success.length + results.errors.length + results.duplicates.length;
@@ -129,34 +131,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       processingComplete,
       canImportProp: canImport
     });
-    
-    // Log the full column data to debug
-    if (availableColumns.length > 0) {
-      console.log("Available columns:", availableColumns);
-    }
-    
-    if (columnMappings.length > 0) {
-      console.log("Column mappings:", JSON.stringify(columnMappings));
-    }
-    
-    if (parsedData && parsedData.length > 0) {
-      console.log("Sample data row:", parsedData[0]);
-    }
   }, [isProcessing, progress, selectedCategory, parsedData, columnMappings, availableColumns, processingComplete, canImport]);
-
-  // Effect to update processing complete when progress reaches 100%
-  useEffect(() => {
-    if (progress >= 100 && isProcessing) {
-      setProcessingComplete(true);
-      
-      // Small delay to ensure UI updates properly
-      const timeout = setTimeout(() => {
-        setIsProcessing(false);
-      }, 500);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [progress, isProcessing, setProcessingComplete, setIsProcessing]);
 
   if (isAnalyzing) {
     return <AnalyzingState />;
@@ -182,9 +157,6 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     });
     return mappingsObj;
   };
-
-  // Determine if import button should be enabled
-  const shouldEnableImport = processingComplete || canImport;
 
   // Function to add a new mapping using the first available column
   const handleAddNewMapping = () => {
@@ -242,7 +214,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         onProcess={handleStartProcessing}
         onCancel={onCancel}
         onImport={onImport}
-        canImport={shouldEnableImport}
+        canImport={canImport || processingComplete}
       />
     </div>
   );

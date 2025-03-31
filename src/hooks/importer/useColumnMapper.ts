@@ -106,13 +106,15 @@ export const useColumnMapper = ({ file, category = 'Uncategorized' }: UseColumnM
 
   // Auto-update processing complete flag when progress hits 100%
   useEffect(() => {
-    if (progress >= 100 && isProcessing) {
+    if (progress >= 100) {
+      // Add a small delay to ensure UI updates properly
       const timer = setTimeout(() => {
         setProcessingComplete(true);
+        setIsProcessing(false);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [progress, isProcessing]);
+  }, [progress]);
 
   // Function to toggle between manual and AI mode
   const toggleManualMode = () => {

@@ -43,10 +43,10 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
       processingStarted,
       isProcessing,
       progress,
-      hasResults,
+      hasResults: !!results,
       dataLength
     });
-  }, [processingStarted, isProcessing, progress, hasResults, dataLength]);
+  }, [processingStarted, isProcessing, progress, results, dataLength]);
   
   // Pass progress to parent component if needed
   useEffect(() => {
@@ -78,6 +78,10 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
           if (onProgress) {
             onProgress(100);
           }
+          
+          if (onProcessComplete && result) {
+            onProcessComplete(result);
+          }
         } catch (error) {
           console.error("Error processing data:", error);
           // Set progress to 100 even on error, to unblock the UI
@@ -89,7 +93,7 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
     };
     
     startProcessing();
-  }, [data, mappings, category, subcategory, processData, processingStarted, onProgress]);
+  }, [data, mappings, category, subcategory, processData, processingStarted, onProgress, onProcessComplete]);
 
   // Don't render anything visible, this is a processing component
   return (
