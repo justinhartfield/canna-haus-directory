@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -65,6 +66,11 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
       if (interval) clearInterval(interval);
     };
   }, [isProcessing, progress, previousProgress, isStalled]);
+
+  // For debugging, log the state of canImport and isProcessing
+  useEffect(() => {
+    console.log('ProcessingControls state:', { canImport, isProcessing, progress });
+  }, [canImport, isProcessing, progress]);
 
   return (
     <div className="space-y-4">

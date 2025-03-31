@@ -22,6 +22,7 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
   } | null>(null);
   
   const [processedData, setProcessedData] = useState<any[] | null>(null);
+  const [processingComplete, setProcessingComplete] = useState(false);
 
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -47,6 +48,7 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
       type: fileType
     });
     setProcessedData(null);
+    setProcessingComplete(false);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -61,7 +63,9 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
   });
   
   const handleMappingComplete = (data: any[]) => {
+    console.log('Processing complete, received data:', data.length);
     setProcessedData(data);
+    setProcessingComplete(true);
     toast({
       title: "Processing Complete",
       description: `Successfully processed ${data.length} records. Click "Import Data" to add them to the database.`,
@@ -82,13 +86,22 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
       // Reset the component
       setSelectedFile(null);
       setProcessedData(null);
+      setProcessingComplete(false);
     }
   };
   
   const handleCancel = () => {
     setSelectedFile(null);
     setProcessedData(null);
+    setProcessingComplete(false);
   };
+
+  // Log state for debugging
+  console.log('SmartImporter state:', { 
+    hasProcessedData: !!processedData,
+    dataLength: processedData?.length || 0,
+    processingComplete
+  });
 
   return (
     <Card className="w-full">
@@ -102,7 +115,7 @@ const SmartImporter: React.FC<SmartImporterProps> = ({
             onComplete={handleMappingComplete}
             onCancel={handleCancel}
             onImport={handleImport}
-            canImport={!!processedData && processedData.length > 0}
+            canImport={processingComplete && !!processedData && processedData.length > 0}
             category={category}
           />
         ) : (

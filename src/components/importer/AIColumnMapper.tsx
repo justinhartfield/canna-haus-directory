@@ -46,18 +46,21 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     handleRemoveMapping,
     toggleManualMode,
     analyzeFile,
-    parsedData
+    parsedData,
+    processingComplete,
+    setProcessingComplete
   } = useColumnMapper({ file, category });
 
   // Handle completion of data processing
   const handleProcessComplete = (results: {
     success: any[];
-    errors: Array<{ item: any; error: string }>;
+    errors: Array<{ item: any; message: string }>;
     duplicates: Array<{ item: any; error: string }>;
     missingColumns?: string[];
   }) => {
     // Convert the success results to the expected format
     onComplete(results.success);
+    setProcessingComplete(true);
     
     // Show summary toast
     const totalCount = results.success.length + results.errors.length + results.duplicates.length;
@@ -103,6 +106,9 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       return;
     }
     
+    // Reset the processing complete state when starting a new process
+    setProcessingComplete(false);
+    
     // Start processing
     setIsProcessing(true);
   };
@@ -115,7 +121,9 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       selectedCategory,
       parsedDataLength: parsedData?.length || 0,
       mappingsCount: columnMappings.length,
-      availableColumns
+      availableColumns,
+      processingComplete,
+      canImportProp: canImport
     });
     
     // Log the full column data to debug
@@ -130,7 +138,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     if (parsedData && parsedData.length > 0) {
       console.log("Sample data row:", parsedData[0]);
     }
-  }, [isProcessing, progress, selectedCategory, parsedData, columnMappings, availableColumns]);
+  }, [isProcessing, progress, selectedCategory, parsedData, columnMappings, availableColumns, processingComplete, canImport]);
 
   if (isAnalyzing) {
     return <AnalyzingState />;
@@ -156,6 +164,9 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     });
     return mappingsObj;
   };
+
+  // Determine if import button should be enabled
+  const shouldEnableImport = processingComplete || canImport;
 
   return (
     <div className="space-y-6">
@@ -206,7 +217,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         onProcess={handleStartProcessing}
         onCancel={onCancel}
         onImport={onImport}
-        canImport={canImport}
+        canImport={shouldEnableImport}
       />
     </div>
   );

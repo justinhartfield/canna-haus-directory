@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
+import { parseCSV, parseExcel } from '@/utils/fileProcessing';
 import { toast } from '@/hooks/use-toast';
-import { ImportAnalysis } from '@/types/directory';
 import { useFileAnalysis } from './useFileAnalysis';
 import { useColumnMappingState } from './useColumnMappingState';
 
@@ -12,88 +13,109 @@ interface UseColumnMapperProps {
   category?: string;
 }
 
-export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnMapperProps) {
+export const useColumnMapper = ({ file, category = 'Uncategorized' }: UseColumnMapperProps) => {
+  const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [schemaType, setSchemaType] = useState('Thing');
   const [selectedCategory, setSelectedCategory] = useState(category);
-  const [manualMappingMode, setManualMappingMode] = useState(false);
-  const [parsedData, setParsedData] = useState<Array<Record<string, any>>>([]);
-  
-  const {
-    isAnalyzing,
-    analysis,
-    availableColumns,
-    analyzeFile,
-    setAnalysis
-  } = useFileAnalysis();
-  
+  const [parsedData, setParsedData] = useState<Array<Record<string, any>> | null>(null);
+  const [processingComplete, setProcessingComplete] = useState(false);
+
+  // Use the file analysis hook
+  const { analysis, analyzeFile, analysisError } = useFileAnalysis();
+
+  // Use the column mapping hook
   const {
     columnMappings,
-    customFields,
     setColumnMappings,
+    availableColumns,
+    setAvailableColumns,
+    customFields,
+    schemaType,
+    setSchemaType,
+    manualMappingMode,
+    setManualMappingMode,
     handleMappingChange,
     handleCustomFieldNameChange,
     handleSourceColumnChange,
     handleAddMapping,
-    handleRemoveMapping,
-    updateMappingsFromAnalysis
+    handleRemoveMapping
   } = useColumnMappingState();
 
-  const toggleManualMode = () => {
-    // If switching to manual mode from AI mode, preserve the current mappings
-    if (!manualMappingMode && analysis) {
-      // Keep existing mappings
-    } else if (manualMappingMode && availableColumns.length > 0) {
-      // When switching back to AI mode, attempt to restore AI recommendations
-      if (analysis) {
-        updateMappingsFromAnalysis(analysis);
-      }
-    }
-    
-    setManualMappingMode(!manualMappingMode);
-    
-    toast({
-      title: !manualMappingMode ? "Manual Mapping Enabled" : "AI-Assisted Mapping Enabled",
-      description: !manualMappingMode 
-        ? "You can now manually configure all column mappings." 
-        : "AI recommendations have been restored. You can still modify these mappings."
-    });
-  };
-
-  // Trigger file analysis on mount
+  // Initialize data parsing when component loads
   useEffect(() => {
-    const runAnalysis = async () => {
-      const result = await analyzeFile(file.file, category);
-      
-      if (!result.error) {
-        setSelectedCategory(result.recommendedCategory);
-        setSchemaType(result.schemaType);
-        if (result.analysis) {
-          updateMappingsFromAnalysis(result.analysis);
+    const loadFileData = async () => {
+      try {
+        let data: Array<Record<string, any>> = [];
+        
+        if (file.type === 'csv') {
+          data = await parseCSV(file.file);
+        } else if (file.type === 'xlsx') {
+          data = await parseExcel(file.file);
+        }
+
+        // Store the parsed data
+        setParsedData(data);
+        
+        // Extract column names from the first row
+        if (data.length > 0) {
+          const firstRow = data[0];
+          setAvailableColumns(Object.keys(firstRow));
         }
         
-        // Set parsed data from file analysis
-        if (result.analysis && result.analysis.parsedData) {
-          setParsedData(result.analysis.parsedData);
-        }
-      } else {
-        // If analysis failed, enable manual mapping mode
+        // Start the analysis of the file
+        analyzeFile(file.file);
+      } catch (error) {
+        console.error('Error parsing file:', error);
+        toast({
+          title: 'File Parsing Error',
+          description: error instanceof Error ? error.message : 'Failed to parse the file',
+          variant: 'destructive'
+        });
+        
         setManualMappingMode(true);
+        setIsAnalyzing(false);
       }
     };
-    
-    runAnalysis();
-  }, []);
 
-  // Wrapper for handleAddMapping to pass in availableColumns and analysis
-  const addMappingWrapper = () => {
-    handleAddMapping(availableColumns, analysis?.sampleData);
-  };
+    loadFileData();
+  }, [file]);
 
-  // Wrapper for handleSourceColumnChange to pass in analysis
-  const sourceColumnChangeWrapper = (index: number, sourceColumn: string) => {
-    handleSourceColumnChange(index, sourceColumn, analysis?.sampleData);
+  // Update mappings when analysis completes
+  useEffect(() => {
+    if (analysis) {
+      // Set the schema type from analysis
+      if (analysis.schemaType) {
+        setSchemaType(analysis.schemaType);
+      }
+      
+      // Set the category from analysis
+      if (analysis.category) {
+        setSelectedCategory(analysis.category);
+      }
+      
+      // Set the column mappings from analysis
+      if (analysis.mappings && Object.keys(analysis.mappings).length > 0) {
+        const newMappings = Object.entries(analysis.mappings).map(([targetField, sourceColumn]) => ({
+          targetField,
+          sourceColumn,
+          customFieldName: '',
+          isCustomField: false
+        }));
+        
+        setColumnMappings(newMappings);
+      }
+      
+      setIsAnalyzing(false);
+    } else if (analysisError) {
+      console.error('Analysis error:', analysisError);
+      setIsAnalyzing(false);
+    }
+  }, [analysis, analysisError]);
+
+  // Function to toggle between manual and AI mode
+  const toggleManualMode = () => {
+    setManualMappingMode(!manualMappingMode);
   };
 
   return {
@@ -114,11 +136,17 @@ export function useColumnMapper({ file, category = 'Uncategorized' }: UseColumnM
     setManualMappingMode,
     handleMappingChange,
     handleCustomFieldNameChange,
-    handleSourceColumnChange: sourceColumnChangeWrapper,
-    handleAddMapping: addMappingWrapper,
+    handleSourceColumnChange,
+    handleAddMapping,
     handleRemoveMapping,
     toggleManualMode,
-    analyzeFile: () => analyzeFile(file.file, category),
-    parsedData
+    analyzeFile: () => {
+      setIsAnalyzing(true);
+      analyzeFile(file.file);
+    },
+    parsedData,
+    processingComplete,
+    setProcessingComplete
   };
-}
+};
+
