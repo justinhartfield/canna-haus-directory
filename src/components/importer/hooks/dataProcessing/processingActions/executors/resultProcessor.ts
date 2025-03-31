@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
  */
 export function formatResults(
   successItems: any[],
-  allErrors: Array<{ item: any; error: string }>,
+  allErrors: Array<{ item: any; message: string }>,
   duplicateResults: Array<{ item: any; error: string }>,
   missingColumns: Map<string, string>,
   addProcessingStep: (step: string) => void,

@@ -55,7 +55,7 @@ export async function batchProcessItems(
   // Step 5: Transform data to directory items
   addProcessingStep('Step 5: Transforming data');
   const directory: TempDirectoryItem[] = [];
-  const errors: Array<{ item: any; error: string }> = [];
+  const errors: Array<{ item: any; message: string }> = [];
   const titles = new Set<string>();
   const duplicates: Array<{ item: any; error: string }> = [];
   

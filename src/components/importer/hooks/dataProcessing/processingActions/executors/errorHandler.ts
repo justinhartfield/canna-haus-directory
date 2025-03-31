@@ -17,7 +17,7 @@ export function handleProcessingError(
     success: [],
     errors: [{
       item: null,
-      error: error instanceof Error ? error.message : 'Unknown error during processing'
+      message: error instanceof Error ? error.message : 'Unknown error during processing'
     }],
     duplicates: []
   };
