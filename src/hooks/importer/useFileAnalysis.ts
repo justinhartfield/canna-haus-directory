@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { ImportAnalysis } from '@/types/directory';
+import { ImportAnalysis, ColumnMapping } from '@/types/directory';
 import { sampleFileContent, parseFileContent } from '@/utils/dataProcessingUtils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,7 +48,7 @@ export function useFileAnalysis() {
       }
 
       // Convert AI response to our format
-      const suggestedMappings = [];
+      const suggestedMappings: ColumnMapping[] = [];
       const aiMappings = data.mappings || {};
       
       // Get all columns from the sample data
@@ -71,21 +71,14 @@ export function useFileAnalysis() {
       const unmappedColumns = columns.filter(col => !mappedColumns.has(col));
       console.log(`Found ${unmappedColumns.length} unmapped columns:`, unmappedColumns);
       
-      // Add unmapped columns with "ignore" target
-      unmappedColumns.forEach(column => {
-        suggestedMappings.push({
-          sourceColumn: column,
-          targetField: "ignore",
-          isCustomField: false,
-          sampleData: sampleRows[0][column]
-        });
-      });
-      
+      // Create the analysis object with all required properties
       const aiAnalysis: ImportAnalysis = {
         suggestedMappings,
         unmappedColumns,
         sampleData: sampleRows[0],
-        parsedData // Include the full parsed data
+        parsedData, // Include the full parsed data
+        schemaType: data.schemaType || 'Thing',
+        category: data.recommendedCategory || category
       };
       
       setAnalysis(aiAnalysis);

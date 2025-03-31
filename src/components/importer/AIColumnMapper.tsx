@@ -168,6 +168,13 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
   // Determine if import button should be enabled
   const shouldEnableImport = processingComplete || canImport;
 
+  // Function to add a new mapping using the first available column
+  const handleAddNewMapping = () => {
+    if (availableColumns.length > 0 && parsedData && parsedData.length > 0) {
+      handleAddMapping(availableColumns, parsedData[0]);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <MappingHeader 
@@ -197,7 +204,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         onCustomFieldNameChange={handleCustomFieldNameChange}
         onSourceColumnChange={handleSourceColumnChange}
         onRemoveMapping={handleRemoveMapping}
-        onAddMapping={handleAddMapping}
+        onAddMapping={handleAddNewMapping}
       />
       
       {isProcessing && parsedData && parsedData.length > 0 && (

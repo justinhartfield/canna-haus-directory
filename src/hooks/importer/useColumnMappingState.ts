@@ -76,19 +76,6 @@ export function useColumnMappingState({
     
     console.log(`Updating mappings from analysis. Found ${analysis.suggestedMappings.length} mappings.`);
     setColumnMappings(analysis.suggestedMappings);
-    
-    // Also add any unmapped columns if they exist
-    if (analysis.unmappedColumns && analysis.unmappedColumns.length > 0) {
-      const unmappedMappings = analysis.unmappedColumns.map(column => ({
-        sourceColumn: column,
-        targetField: "ignore",
-        isCustomField: false,
-        sampleData: analysis.sampleData?.[column] || ''
-      }));
-      
-      console.log(`Adding ${unmappedMappings.length} unmapped columns`);
-      setColumnMappings(prev => [...prev, ...unmappedMappings]);
-    }
   };
 
   // Debug log when mappings change
