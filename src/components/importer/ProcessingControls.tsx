@@ -25,6 +25,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
   const [stalledTimer, setStalledTimer] = useState<number>(0);
   const [previousProgress, setPreviousProgress] = useState<number>(progress);
   const [isStalled, setIsStalled] = useState<boolean>(false);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
   
   // Monitor for stalled processing
   useEffect(() => {
@@ -69,10 +70,25 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
 
   // For debugging, log the state of canImport and isProcessing
   useEffect(() => {
-    console.log('ProcessingControls state:', { canImport, isProcessing, progress });
-  }, [canImport, isProcessing, progress]);
+    console.log('ProcessingControls state:', { canImport, isProcessing, progress, isImporting });
+  }, [canImport, isProcessing, progress, isImporting]);
 
   const processingComplete = progress >= 100;
+  
+  const handleImport = () => {
+    if (onImport && canImport && !isImporting) {
+      setIsImporting(true);
+      
+      // Call the import function
+      onImport();
+      
+      // Reset importing state after a timeout
+      // This prevents multiple clicks
+      setTimeout(() => {
+        setIsImporting(false);
+      }, 2000);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -111,13 +127,13 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
         
         {onImport && (
           <Button
-            onClick={onImport}
-            disabled={!canImport}
+            onClick={handleImport}
+            disabled={!canImport || isImporting}
             variant="success"
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 relative"
           >
             <Import className="h-4 w-4 mr-2" />
-            Import Data
+            {isImporting ? "Importing..." : "Import Data"}
           </Button>
         )}
         

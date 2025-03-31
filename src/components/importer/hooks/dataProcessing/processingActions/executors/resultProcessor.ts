@@ -26,7 +26,8 @@ function cleanItemValues(item: any): any {
   // Fields that are likely to contain ingredients or lists
   const ingredientFields = [
     'ingredients', 'items', 'parts', 'components', 'materials',
-    'contents', 'elements', 'composition', 'makeup', 'constituents'
+    'contents', 'elements', 'composition', 'makeup', 'constituents',
+    'flavors', 'feelings', 'negatives', 'helps'
   ];
   
   // Process all keys in the item

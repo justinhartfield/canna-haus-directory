@@ -133,6 +133,14 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     });
   }, [isProcessing, progress, selectedCategory, parsedData, columnMappings, availableColumns, processingComplete, canImport]);
 
+  const handleImportAction = () => {
+    if (!onImport) return;
+    
+    // Since we've already validated that processedData exists and has items in the button disabled state,
+    // we can safely call onImport here
+    onImport();
+  };
+
   if (isAnalyzing) {
     return <AnalyzingState />;
   }
@@ -213,8 +221,8 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
         progress={progress}
         onProcess={handleStartProcessing}
         onCancel={onCancel}
-        onImport={onImport}
-        canImport={canImport || processingComplete}
+        onImport={handleImportAction}
+        canImport={canImport}
       />
     </div>
   );
