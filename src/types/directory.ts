@@ -61,5 +61,7 @@ export interface ImportAnalysis {
   suggestedMappings: ColumnMapping[];
   unmappedColumns: string[];
   sampleData: Record<string, any>;
-  parsedData?: Array<Record<string, any>>; // Added this property
+  parsedData?: Array<Record<string, any>>;
+  schemaType?: string; // Added this property
+  category?: string;   // Added this property
 }
