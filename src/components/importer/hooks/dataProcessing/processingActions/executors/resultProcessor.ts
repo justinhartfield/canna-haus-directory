@@ -23,7 +23,9 @@ export function formatResults(
     missingColumns: missingColumns.size > 0 ? Array.from(missingColumns.keys()) : undefined
   };
 
+  // Ensure progress is set to 100% when processing is complete
   setProgress(100);
+  
   addProcessingStep(`Processing complete: ${successItems.length} succeeded, ${allErrors.length} failed, ${duplicateResults.length} duplicates`);
 
   // Show toast with results

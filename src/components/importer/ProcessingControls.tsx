@@ -30,7 +30,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isProcessing) {
+    if (isProcessing && progress < 100) {
       // Reset stalled state when progress changes
       if (progress !== previousProgress) {
         setPreviousProgress(progress);
@@ -57,7 +57,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
         }
       }, 1000);
     } else {
-      // Reset when processing stops
+      // Reset when processing stops or completes
       setStalledTimer(0);
       setIsStalled(false);
     }
@@ -72,6 +72,8 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
     console.log('ProcessingControls state:', { canImport, isProcessing, progress });
   }, [canImport, isProcessing, progress]);
 
+  const processingComplete = progress >= 100;
+
   return (
     <div className="space-y-4">
       {isProcessing && (
@@ -79,7 +81,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
           <div className="flex justify-between text-sm">
             <div className="flex items-center">
               <span>Uploading and processing data...</span>
-              {isStalled && (
+              {isStalled && !processingComplete && (
                 <div className="flex items-center ml-2 text-amber-500">
                   <AlertTriangle className="h-4 w-4 mr-1" />
                   <span className="text-xs">Processing may be stalled</span>
@@ -89,7 +91,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
             <span>{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />
-          {isStalled && progress < 100 && (
+          {isStalled && !processingComplete && (
             <div className="text-xs text-muted-foreground">
               Stalled for {stalledTimer} seconds. You can continue waiting or cancel the operation.
             </div>
@@ -110,7 +112,7 @@ const ProcessingControls: React.FC<ProcessingControlsProps> = ({
         {onImport && (
           <Button
             onClick={onImport}
-            disabled={!canImport || isProcessing}
+            disabled={!canImport}
             variant="success"
             className="bg-green-600 hover:bg-green-700"
           >

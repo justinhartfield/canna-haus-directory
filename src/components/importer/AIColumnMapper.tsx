@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useColumnMapper } from '@/hooks/importer/useColumnMapper';
 import DataProcessor from './components/DataProcessor';
@@ -57,9 +58,12 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     duplicates: Array<{ item: any; error: string }>;
     missingColumns?: string[];
   }) => {
+    // Explicitly set processing complete state
+    setProcessingComplete(true);
+    setIsProcessing(false);
+    
     // Convert the success results to the expected format
     onComplete(results.success);
-    setProcessingComplete(true);
     
     // Show summary toast
     const totalCount = results.success.length + results.errors.length + results.duplicates.length;
@@ -110,6 +114,7 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
     
     // Start processing
     setIsProcessing(true);
+    setProgress(0); // Start at 0%
   };
 
   // Debug logging
@@ -138,6 +143,20 @@ const AIColumnMapper: React.FC<AIColumnMapperProps> = ({
       console.log("Sample data row:", parsedData[0]);
     }
   }, [isProcessing, progress, selectedCategory, parsedData, columnMappings, availableColumns, processingComplete, canImport]);
+
+  // Effect to update processing complete when progress reaches 100%
+  useEffect(() => {
+    if (progress >= 100 && isProcessing) {
+      setProcessingComplete(true);
+      
+      // Small delay to ensure UI updates properly
+      const timeout = setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [progress, isProcessing, setProcessingComplete, setIsProcessing]);
 
   if (isAnalyzing) {
     return <AnalyzingState />;

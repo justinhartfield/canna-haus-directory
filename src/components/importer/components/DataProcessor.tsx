@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useDataProcessing } from '../hooks/dataProcessing';
 import DuplicatesAlert from './DuplicatesAlert';
 import MissingColumnsAlert from './MissingColumnsAlert';
-import ProgressIndicator from './ProgressIndicator';
 
 interface DataProcessorProps {
   data: Array<Record<string, any>>;
@@ -74,14 +73,23 @@ const DataProcessor: React.FC<DataProcessorProps> = ({
           const result = await processData(data, mappings, category, subcategory);
           setHasResults(true);
           console.log("Processing completed with result:", result);
+          
+          // Ensure the progress is set to 100% when complete
+          if (onProgress) {
+            onProgress(100);
+          }
         } catch (error) {
           console.error("Error processing data:", error);
+          // Set progress to 100 even on error, to unblock the UI
+          if (onProgress) {
+            onProgress(100);
+          }
         }
       }
     };
     
     startProcessing();
-  }, [data, mappings, category, subcategory, processData, processingStarted]);
+  }, [data, mappings, category, subcategory, processData, processingStarted, onProgress]);
 
   // Don't render anything visible, this is a processing component
   return (

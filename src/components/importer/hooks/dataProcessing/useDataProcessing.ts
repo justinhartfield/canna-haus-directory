@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { UseDataProcessingProps, ProcessingResult } from './types';
 import { useProcessingSteps } from './useProcessingSteps';
@@ -47,6 +47,27 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
     setShowDuplicatesModal,
     addProcessingStep
   );
+
+  // Make sure processing state is properly reset when errors occur
+  useEffect(() => {
+    if (processingError) {
+      setProgress(100);
+      const timer = setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [processingError]);
+  
+  // Ensure processing state is properly handled when progress reaches 100%
+  useEffect(() => {
+    if (progress >= 100 && isProcessing) {
+      const timer = setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [progress, isProcessing]);
   
   // Wrap processData to call onComplete when processing is done
   const processData = useCallback(async (
@@ -57,13 +78,16 @@ export const useDataProcessing = ({ onComplete }: UseDataProcessingProps = {}) =
   ) => {
     const result = await processDataAction(data, mappings, category, subcategory);
     
+    // Set progress to 100% to indicate completion
+    setProgress(100);
+    
     // Call onComplete callback if provided
     if (onComplete) {
       onComplete(result);
     }
     
     return result;
-  }, [processDataAction, onComplete]);
+  }, [processDataAction, onComplete, setProgress]);
 
   return {
     isProcessing,
